@@ -44,7 +44,24 @@ public class Board {
 	// bottom row of the chessboard, from white's perspective,
 	// and board[0][0] is bottom row, first column (from the left).
 	// So board[0][0] is a1, in traditional chess notation
-	private Piece[][] board;
+	public Piece[][] board;
+	
+	public Board() {
+		this.board = new Piece[8][8];
+	}
+	
+	/**
+	 * Access a particular square on the board
+	 * 
+	 * Precondition: row and column satisfy validSquare(row, column)
+	 * 
+	 * @param row - The row to access
+	 * @param column - The column to access
+	 * @return The piece at the specified square, or null if the square is empty 
+	 */
+	public Piece getPiece(int row, int column) {
+		return board[row][column];
+	}
 	
 	/**
 	 * Initialize the board using stream, where stream is assumed to be opened at
@@ -62,7 +79,7 @@ public class Board {
 	 * @return A boolean representing whether or not the given colour
 	 * is in check
 	 */
-	boolean isCheck(Colour colour) {
+	public boolean isCheck(Colour colour) {
 		return false;
 	}
 	
@@ -72,7 +89,45 @@ public class Board {
 	 * @return A boolean representing whether or not the given colour
 	 * has been checkmated
 	 */
-	boolean isCheckmate(Colour colour) {
+	public boolean isCheckmate(Colour colour) {
 		return false;
+	}
+	
+	/**
+	 * Determine whether a given square is "on the board"
+	 * @param row - The row that the square is on
+	 * @param column - The column that the square is on
+	 * @return true if and only if (row,column) is a valid square
+	 */
+	public boolean validSquare(int row, int column) {
+		return 0 <= row && row <= 7 && 0 <= column && column <= 7;
+	}
+	
+	/**
+	 * Compute whether or not a piece can move to the given square,
+	 * WITHOUT TAKING.
+	 * 
+	 * @param row - The row of the square
+	 * @param column - The column of the square
+	 * @return true if and only if (row,column) is a valid square and
+	 * there is no piece there 
+	 */
+	public boolean isMovable(int row, int column) {
+		return validSquare(row,column) && board[row][column] == null;
+	}
+	
+	/**
+	 * Compute whether or not a piece with the given colour could move to
+	 * the given square, either because it is empty or there is an enemy
+	 * piece on it.
+	 * 
+	 * @param row - The row of the square
+	 * @param column - The column of the square
+	 * @param colour - The colour of the piece considering moving to the square
+	 * @return true if and only if (row,column) is a valid square which is either
+	 * empty, or contains a piece with Colour different from colour
+	 */
+	public boolean isCapturable(int row, int column, Colour colour) {
+		return validSquare(row,column) && (board[row][column] == null || board[row][column].getColour() != colour);
 	}
 }

@@ -1,5 +1,7 @@
 package game;
 
+import java.util.List;
+
 import utility.Pair;
 
 public abstract class Piece {
@@ -8,22 +10,29 @@ public abstract class Piece {
 	// column=0 means the first column from the left, when viewed from
 	// white's perspective
 	// So row=0,column=0 means a1, in traditional chess notation
-	private int row;
-	private int column;
+	protected int row;
+	protected int column;
 	
 	// This piece's colour (white or black)
-	private Colour colour;
+	protected Colour colour;
 	
 	// The Board of which this piece is a member
-	private Board board;
+	protected Board board;
 	
-	public Piece(int row, int column, Colour colour) {
+	public Piece(int row, int column, Colour colour, Board board) {
 		this.row = row;
 		this.column = column;
 		this.colour = colour;
+		this.board = board;
 	}
 	
-	abstract Pair<Integer, Integer> getMoves();
+	/**
+	 * Compute where this piece can move to on the board
+	 * 
+	 * @return A List of pairs (row,column), where each pair represents
+	 * a square that this piece can move to, according to its rules of movement
+	 */
+	public abstract List<Pair> getMoves();
 	
 	public void move(int row, int column) {
 		this.row = row;

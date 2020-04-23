@@ -1,27 +1,31 @@
 package utility;
 
-public class Pair<T,V> {
-	private T firstElement;
-	private V secondElement;
+public class Pair {
+	private int firstElement;
+	private int secondElement;
 	
-	public Pair(T first, V second) {
+	public Pair(int first, int second) {
 		this.firstElement = first;
 		this.secondElement = second;
 	}
 	
-	public void setFirst(T firstElem) {
+	public void setFirst(int firstElem) {
 		this.firstElement = firstElem;
 	}
 	
-	public T first() {
+	public int first() {
 		return this.firstElement;
 	}
 	
-	public void setSecond(V secondElem) {
+	public void setSecond(int secondElem) {
 		this.secondElement = secondElem;
 	}
 	
-	public V second() {
+	public int second() {
 		return this.secondElement;
+	}
+	
+	public String toString() {
+		return "(" + this.firstElement + ", " + this.secondElement + ")";
 	}
 }
