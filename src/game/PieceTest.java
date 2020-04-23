@@ -10,7 +10,7 @@ public class PieceTest {
 		int i = 0;
 		int j = 0;
 		
-		board.board[i][j] = new Rook(i,j,Colour.WHITE,board);
+		board.board[i][j] = new Queen(i,j,Colour.BLACK,board);
 		board.board[5][0] = new Pawn(5,0,Colour.WHITE,board);
 		board.board[0][2] = new Pawn(0,2,Colour.WHITE,board);
 		System.out.println(board);

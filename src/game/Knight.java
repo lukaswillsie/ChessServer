@@ -20,6 +20,8 @@ public class Knight extends Piece {
 	public List<Pair> getMoves() {
 		List<Pair> moves = new ArrayList<Pair>();
 		
+		// Use arrays to generalize the process of checking each square
+		// the knight can move to
 		int[] directions = {1,-1};
 		int[] offsets = {2,-2};
 		
