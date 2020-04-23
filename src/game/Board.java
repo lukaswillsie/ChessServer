@@ -1,6 +1,10 @@
 package game;
 
 import java.io.FileOutputStream;
+import java.util.ArrayList;
+import java.util.List;
+
+import utility.Pair;
 
 /**
  * Represents a chessboard. Can be initialized through use of the
@@ -44,16 +48,34 @@ public class Board {
 	// bottom row of the chessboard, from white's perspective,
 	// and board[0][0] is bottom row, first column (from the left).
 	// So board[0][0] is a1, in traditional chess notation
-	public Piece[][] board;
+	private Piece[][] board;
+	
+	// A list of all Pieces currently on the board
+	private List<Piece> pieces;
+	
+	// A list of all white Pieces currently on the board
+	private List<Piece> whitePieces;
+	
+	// A list of all black Pieces currently on the board
+	private List<Piece> blackPieces;
 	
 	public Board() {
 		this.board = new Piece[8][8];
+		this.pieces = new ArrayList<Piece>();
+		this.whitePieces = new ArrayList<Piece>();
+		this.blackPieces = new ArrayList<Piece>();
 	}
 	
 	/**
-	 * Replace whatever is on the square with piece
+	 * Replace whatever is on the square with piece.
 	 * 
-	 * Precondition: row and column satisfy validSquare(row,column)
+	 * Note that this does not MOVE the given piece. If it is
+	 * already on the board somewhere else, it will be in two places
+	 * at once, and resulting functionality is undefined
+	 * 
+	 * 
+	 * Precondition: row and column satisfy validSquare(row,column),
+	 * and piece is not already on the board
 	 * 
 	 * @param row - The row to put the piece on
 	 * @param column - The column to put the piece on
@@ -61,6 +83,28 @@ public class Board {
 	 */
 	public void setPiece(int row, int column, Piece piece) {
 		board[row][column] = piece;
+		pieces.add(piece);
+		
+		// If we're placing an empty square on the board
+		if(piece == null) {
+			// Check if we're replacing an actual piece on the board,
+			// in which case we need to remove it from the relevant lists
+			if(board[row][column] instanceof Piece) {
+				pieces.remove(board[row][column]);
+				if(board[row][column].getColour() == Colour.WHITE) {
+					whitePieces.remove(board[row][column]);
+				}
+				else {
+					blackPieces.remove(board[row][column]);
+				}
+			}
+		}
+		else if(piece.getColour() == Colour.BLACK) {
+			blackPieces.add(piece);
+		}
+		else {
+			whitePieces.add(piece);
+		}
 	}
 	
 	/**
@@ -150,6 +194,88 @@ public class Board {
 		return validSquare(row,column) && (board[row][column] == null || board[row][column].getColour() != colour);
 	}
 	
+	/**
+	 * Compute whether or not the given piece is pinned, which means that
+	 * moving the piece would put its king in check. 
+	 * 
+	 * @param piece - The piece of concern
+	 * @return true if and only if moving the given piece would place its king in check
+	 */
+	public boolean isPinned(Piece piece) {
+		int row = piece.getRow();
+		int column = piece.getColumn();
+		Colour colour = piece.getColour();
+		
+		return false;
+	}
+	
+	/**
+	 * Return a list of all squares that pieces with the given colour
+	 * can move to, sorted primarily in increasing order of first element,
+	 * then in increasing order of second element.
+	 * 
+	 * @param colour - The colour to be searched for
+	 * @return A list of all squares that pieces with the given colour
+	 * can move to
+	 */
+	public List<Pair> getMoves(Colour colour) {
+		List<Pair> moves = new ArrayList<Pair>();
+		List<Pair> pieceMoves;
+		List<Piece> pieceList;
+		if(colour == Colour.WHITE) {
+			pieceList = whitePieces;
+		}
+		else {
+			pieceList = blackPieces;
+		}
+		
+		for(Piece piece : pieceList) {
+			pieceMoves = piece.getMoves();
+			for(Pair pair : pieceMoves) {
+				insert(moves, pair);
+			}
+		}
+		
+		return moves;
+	}
+	
+	/**
+	 * Inserts the given Pair into list WITHOUT REPITITION so that Pair
+	 * is sorted primarily in increasing order of first elements, and
+	 * secondarily in increasing order of second elements. For example:
+	 * 
+	 * (0,0), (0,1), (1,3), (1,4), (1,5), (1,6), (2,0)
+	 * 
+	 * Is properly sorted in this manner, but
+	 * 
+	 * (0,0), (0,1), (1,3), (1,2), (1,5), (1,6), (2,1), (2,0)
+	 * 
+	 * is not.
+	 * 
+	 * Precondition: list is sorted in this fashion prior to the operation
+	 * @param list
+	 * @param pair
+	 */
+	public void insert(List<Pair> list, Pair pair) {
+		int i = 0;
+		while(i < list.size() && list.get(i).compareTo(pair) < 0) {
+			i++;
+		}
+		
+		if(i == list.size()) {
+			list.add(pair);
+		}
+		// Only insert if pair is not already in list
+		else if(!pair.equals(list.get(i))) {
+			list.add(i, pair);
+		}
+	}
+	
+	/**
+	 * Print the board using the same format as described in the class Javadoc
+	 * 
+	 *@return A string representation of the board
+	 */
 	@Override
 	public String toString() {
 		StringBuilder rep = new StringBuilder();
