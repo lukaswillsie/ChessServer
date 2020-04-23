@@ -34,6 +34,20 @@ public abstract class Piece {
 	 */
 	public abstract List<Pair> getMoves();
 	
+	/**
+	 * Compute all squares that this piece is PROTECTING. A protected
+	 * square is a square that is currently occupied by an allied piece,
+	 * but that this piece could move to were that allied piece not there.
+	 * This way, if the allied piece is taken by an enemy, this piece could
+	 * recapture the enemy.
+	 * 
+	 * This is useful for computing where a King can legally move.
+	 * 
+	 * @return A list of Pairs, where each pair represents a square protected by
+	 * this piece
+	 */
+	public abstract List<Pair> getProtectedSquares();
+	
 	public void move(int row, int column) {
 		this.row = row;
 		this.column = column;

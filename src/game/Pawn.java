@@ -26,8 +26,7 @@ public class Pawn extends Piece {
 		
 		// Check the square in front and to the left (from white's perspective)
 		// of the pawn to see if it has an enemy on it
-		if(board.validSquare(this.row+direction, this.column-1) &&
-		  !board.isEmpty(this.row+direction, this.column-1) &&
+		if(board.isPiece(this.row+direction, this.column-1) &&
 		   board.getPiece(this.row+direction, this.column-1).getColour() != colour) {
 			moves.add(new Pair(this.row+direction, this.column-1));
 		}
@@ -39,14 +38,51 @@ public class Pawn extends Piece {
 		
 		// Check the square in front and to the right (from white's perspective)
 		// of the pawn to see if it has an enenmy on it
-		if(board.validSquare(this.row+direction, this.column+1) &&
-		  !board.isEmpty(this.row+direction, this.column+1) &&
+		if(board.isPiece(this.row+direction, this.column+1) &&
 		   board.getPiece(this.row+direction, this.column+1).getColour() != colour) {
 			moves.add(new Pair(this.row+direction, this.column+1));
 		}
 		
 		
 		return moves;
+	}
+	
+	/**
+	 * Compute all squares that this piece is PROTECTING. A protected
+	 * square is a square that is currently occupied by an allied piece,
+	 * but that this piece could move to were that allied piece not there.
+	 * This way, if the allied piece is taken by an enemy, this piece could
+	 * recapture the enemy.
+	 * 
+	 * This is useful for computing where a King can legally move.
+	 * 
+	 * @return A list of Pairs, where each pair represents a square protected by
+	 * this piece
+	 */
+	@Override
+	public List<Pair> getProtectedSquares() {
+		// Stores the direction of the pawn's movement (varies from white to 
+		// black pawns). White pawns move up the board and black pawns move down
+		int direction = this.colour == Colour.WHITE ? 1 : -1;
+		
+		List<Pair> protected_squares = new ArrayList<Pair>();
+		
+		// Check the square in front and to the left (from white's perspective)
+		// of the pawn to see if it's an ally
+		if(board.isPiece(this.row+direction, this.column-1) &&
+		   board.getPiece(this.row+direction, this.column-1).getColour() == colour) {
+			protected_squares.add(new Pair(this.row+direction, this.column-1));
+		}
+		
+		// Check the square in front and to the right (from white's perspective)
+		// of the pawn to see if it's an ally
+		if(board.isPiece(this.row+direction, this.column+1) &&
+		   board.getPiece(this.row+direction, this.column+1).getColour() == colour) {
+			protected_squares.add(new Pair(this.row+direction, this.column+1));
+		}
+		
+		
+		return protected_squares;
 	}
 	
 	/**

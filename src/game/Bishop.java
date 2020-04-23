@@ -25,6 +25,8 @@ public class Bishop extends Piece {
 		int[] row_increments =    {1,  1, -1, -1};
 		int[] column_increments = {1, -1, -1,  1};
 		
+		// Iterate from the bishop outward along all diagonals until we hit the edge
+		// of the board or a piece, adding it to moves if it's an enemy
 		int check_row = row;
 		int check_column = column;
 		int row_increment, column_increment;
@@ -52,6 +54,63 @@ public class Bishop extends Piece {
 		}
 		
 		return moves;
+	}
+	
+	/**
+	 * Compute all squares that this piece is PROTECTING. A protected
+	 * square is a square that is currently occupied by an allied piece,
+	 * but that this piece could move to were that allied piece not there.
+	 * This way, if the allied piece is taken by an enemy, this piece could
+	 * recapture the enemy.
+	 * 
+	 * This is useful for computing where a King can legally move.
+	 * 
+	 * @return A list of Pairs, where each pair represents a square protected by
+	 * this piece
+	 */
+	@Override
+	public List<Pair> getProtectedSquares() {
+		List<Pair> protected_squares = new ArrayList<Pair>();
+		
+		// Iterate along all 4 diagonals until the edge of the
+		// board or another piece is reached
+		int[] row_increments =    {1,  1, -1, -1};
+		int[] column_increments = {1, -1, -1,  1};
+		
+		
+		// Iterate from the bishop outward along all diagonals until we hit
+		// a piece or the edge of the board, and add any allied pieces
+		// encountered this way
+		int check_row = row;
+		int check_column = column;
+		int row_increment, column_increment;
+		for(int i = 0; i < row_increments.length; i++) {
+			row_increment = row_increments[i];
+			column_increment = column_increments[i];
+			
+			check_row += row_increment;
+			check_column += column_increment;
+			while(board.isMovable(check_row, check_column, colour)) { 
+				// If we've hit an enemy piece, we can't go any farther
+				if(!board.isEmpty(check_row, check_column) &&
+					board.getPiece(check_row, check_column).colour != colour) {
+					break;
+				}
+				
+				check_row += row_increment;
+				check_column += column_increment;
+			}
+			
+			if(board.isPiece(check_row, check_column) &&
+			   board.getPiece(check_row, check_column).getColour() == colour) {
+				protected_squares.add(new Pair(check_row, check_column));
+			}
+			
+			check_row = row;
+			check_column = column;
+		}
+		
+		return protected_squares;
 	}
 	
 	/**

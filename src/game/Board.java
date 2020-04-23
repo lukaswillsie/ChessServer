@@ -151,6 +151,19 @@ public class Board {
 	}
 	
 	/**
+	 * Determine whether or not there is a piece at the square given
+	 * by row,column.
+	 * 
+	 * @param row - The row of the square
+	 * @param column - The column of the square
+	 * @return true if and only if row,column is a valid square and
+	 * the entry at board[row][column] is non-null
+	 */
+	public boolean isPiece(int row, int column) {
+		return validSquare(row, column) && board[row][column] != null;
+	}
+	
+	/**
 	 * Determine whether a given square is "on the board"
 	 * @param row - The row that the square is on
 	 * @param column - The column that the square is on
@@ -211,8 +224,8 @@ public class Board {
 	
 	/**
 	 * Return a list of all squares that pieces with the given colour
-	 * can move to, sorted primarily in increasing order of first element,
-	 * then in increasing order of second element.
+	 * can move to, sorted according to the ordering imposed on Pairs.
+	 * See compareTo() in the Pair class for details.
 	 * 
 	 * @param colour - The colour to be searched for
 	 * @return A list of all squares that pieces with the given colour
@@ -240,19 +253,42 @@ public class Board {
 	}
 	
 	/**
-	 * Inserts the given Pair into list WITHOUT REPITITION so that Pair
-	 * is sorted primarily in increasing order of first elements, and
-	 * secondarily in increasing order of second elements. For example:
+	 * Return a list of every single square that pieces with the given colour
+	 * are protecting, sorted according to the ordering imposed on Pairs.
+	 * See compareTo() in the Pair class for details.
 	 * 
-	 * (0,0), (0,1), (1,3), (1,4), (1,5), (1,6), (2,0)
+	 * @param colour - The colour to be searched for
+	 * @return A list of all squares that pieces with the given colour
+	 * are protecting
+	 */
+	public List<Pair> getProtectedSquares(Colour colour) {
+		List<Pair> protected_squares = new ArrayList<Pair>();
+		List<Pair> pieceProtectedSquares;
+		List<Piece> pieceList;
+		if(colour == Colour.WHITE) {
+			pieceList = whitePieces;
+		}
+		else {
+			pieceList = blackPieces;
+		}
+		
+		for(Piece piece : pieceList) {
+			pieceProtectedSquares = piece.getProtectedSquares();
+			for(Pair pair : pieceProtectedSquares) {
+				insert(protected_squares, pair);
+			}
+		}
+		
+		return protected_squares;
+	}
+	
+	/**
+	 * Inserts the given Pair into list WITHOUT REPITITION so that list
+	 * is sorted in increasing order. In this case, that means primarily
+	 * in order of the first element, secondarily in order of the second.
+	 * See implementation of compareTo() in Pair for details.
 	 * 
-	 * Is properly sorted in this manner, but
-	 * 
-	 * (0,0), (0,1), (1,3), (1,2), (1,5), (1,6), (2,1), (2,0)
-	 * 
-	 * is not.
-	 * 
-	 * Precondition: list is sorted in this fashion prior to the operation
+	 * Precondition: list is sorted in increasing order when this operation begins
 	 * @param list
 	 * @param pair
 	 */

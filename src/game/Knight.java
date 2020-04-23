@@ -47,4 +47,42 @@ public class Knight extends Piece {
 	public String toString() {
 		return (colour == Colour.WHITE) ? "N" : "n";
 	}
+	
+	/**
+	 * Compute all squares that this piece is PROTECTING. A protected
+	 * square is a square that is currently occupied by an allied piece,
+	 * but that this piece could move to were that allied piece not there.
+	 * This way, if the allied piece is taken by an enemy, this piece could
+	 * recapture the enemy.
+	 * 
+	 * This is useful for computing where a King can legally move.
+	 * 
+	 * @return A list of Pairs, where each pair represents a square protected by
+	 * this piece
+	 */
+	@Override
+	public List<Pair> getProtectedSquares() {
+		List<Pair> protectedSquares = new ArrayList<Pair>();
+		
+		// Use arrays to generalize the process of checking each square
+		// the knight can move to
+		int[] directions = {1,-1};
+		int[] offsets = {2,-2};
+		
+		for(int offset : offsets) {
+			for(int direction : directions) {
+				// Only add a square to the list if it is occupied by an allied piece
+				if(board.isPiece(row+direction, column+offset) &&
+				   board.getPiece(row+direction, column+offset).getColour() == colour) {
+					protectedSquares.add(new Pair(row+direction, column+offset));
+				}
+				if(board.isPiece(row+offset, column+direction) &&
+				   board.getPiece(row+offset, column+direction).getColour() == colour) {
+					protectedSquares.add(new Pair(row+offset, column+direction));
+				}
+			}
+		}
+		
+		return protectedSquares;
+	}
 }
