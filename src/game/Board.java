@@ -104,16 +104,22 @@ public class Board {
 	}
 	
 	/**
-	 * Compute whether or not a piece can move to the given square,
-	 * WITHOUT TAKING.
+	 * Compute whether or not the given square is empty.
 	 * 
+	 * If (row,column) is not a valid square (i.e. out of bounds),
+	 * returns false
 	 * @param row - The row of the square
-	 * @param column - The column of the square
-	 * @return true if and only if (row,column) is a valid square and
-	 * there is no piece there 
+	 * @param column - the column of the square
+	 * @return true if and only if (row,column) is a valid square
+	 * which does not have a piece on it
 	 */
-	public boolean isMovable(int row, int column) {
-		return validSquare(row,column) && board[row][column] == null;
+	public boolean isEmpty(int row, int column) {
+		if(validSquare(row, column)) {
+			return  board[row][column] == null;
+		}
+		else {
+			return false;
+		}
 	}
 	
 	/**
@@ -124,10 +130,10 @@ public class Board {
 	 * @param row - The row of the square
 	 * @param column - The column of the square
 	 * @param colour - The colour of the piece considering moving to the square
-	 * @return true if and only if (row,column) is a valid square which is either
+	 * @return true if and only if (row,column) is a valid square and is either
 	 * empty, or contains a piece with Colour different from colour
 	 */
-	public boolean isCapturable(int row, int column, Colour colour) {
+	public boolean isMovable(int row, int column, Colour colour) {
 		return validSquare(row,column) && (board[row][column] == null || board[row][column].getColour() != colour);
 	}
 }
