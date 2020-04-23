@@ -51,6 +51,19 @@ public class Board {
 	}
 	
 	/**
+	 * Replace whatever is on the square with piece
+	 * 
+	 * Precondition: row and column satisfy validSquare(row,column)
+	 * 
+	 * @param row - The row to put the piece on
+	 * @param column - The column to put the piece on
+	 * @param piece - The piece to place on the board
+	 */
+	public void setPiece(int row, int column, Piece piece) {
+		board[row][column] = piece;
+	}
+	
+	/**
 	 * Access a particular square on the board
 	 * 
 	 * Precondition: row and column satisfy validSquare(row, column)
@@ -135,5 +148,25 @@ public class Board {
 	 */
 	public boolean isMovable(int row, int column, Colour colour) {
 		return validSquare(row,column) && (board[row][column] == null || board[row][column].getColour() != colour);
+	}
+	
+	@Override
+	public String toString() {
+		StringBuilder rep = new StringBuilder();
+		Piece[] row;
+		for(int i = 7; i >= 0; i--) {
+			row = this.board[i];
+			for(Piece piece : row) {
+				if(piece == null) {
+					rep.append("X");
+				}
+				else {
+					rep.append(piece.toString());
+				}
+			}
+			rep.append("\n");
+		}
+		
+		return rep.toString();
 	}
 }

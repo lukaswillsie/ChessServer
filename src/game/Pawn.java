@@ -9,7 +9,13 @@ public class Pawn extends Piece {
 	public Pawn(int row, int column, Colour colour, Board board) {
 		super(row, column, colour, board);
 	}
-
+	
+	/**
+	 * Compute where this piece can move to on the board
+	 * 
+	 * @return A List of pairs (row,column), where each pair represents
+	 * a square that this pawn can move to
+	 */
 	@Override
 	public List<Pair> getMoves() {
 		// Stores the direction of the pawn's movement (varies from white to 
@@ -39,4 +45,12 @@ public class Pawn extends Piece {
 		return moves;
 	}
 	
+	/**
+	 * Create a String representation of this pawn
+	 * 
+	 * @return A String representation of this pawn
+	 */
+	public String toString() {
+		return (colour == Colour.WHITE) ? "P" : "p";
+	}
 }
