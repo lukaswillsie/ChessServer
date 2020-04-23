@@ -37,11 +37,15 @@ public abstract class Piece {
 	/**
 	 * Compute all squares that this piece is PROTECTING. A protected
 	 * square is a square that is currently occupied by an allied piece,
-	 * but that this piece could move to were that allied piece not there.
-	 * This way, if the allied piece is taken by an enemy, this piece could
-	 * recapture the enemy.
+	 * but which the enemy king can't move to without placing himself
+	 * in check.
 	 * 
-	 * This is useful for computing where a King can legally move.
+	 * This might sound like a strange definition, but see the Javadoc
+	 * for the King class's implementation of this method to understand
+	 * why we phrase it this way.
+	 * 
+	 * This is useful for computing where a King cannot legally move
+	 * without placing himself in check.
 	 * 
 	 * @return A list of Pairs, where each pair represents a square protected by
 	 * this piece
