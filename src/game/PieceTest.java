@@ -1,5 +1,6 @@
 package game;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import utility.Pair;
@@ -7,19 +8,18 @@ import utility.Pair;
 public class PieceTest {
 	public static void main(String[] args) {
 		Board board = new Board();
-		int i = 0;
-		int j = 0;
+		int i = 1;
+		int j = 1;
 		
-		board.board[i][j] = new Queen(i,j,Colour.BLACK,board);
-		board.board[5][0] = new Pawn(5,0,Colour.WHITE,board);
-		board.board[0][2] = new Pawn(0,2,Colour.WHITE,board);
+		board.setPiece(i, j, new King(i,j,Colour.BLACK,board));
+		board.setPiece(5, 0, new Rook(5,0,Colour.WHITE,board));
+		board.setPiece(0, 0, new Bishop(0,0,Colour.WHITE,board));
 		System.out.println(board);
 		
-		System.out.println(board.board[i][j].getMoves().toString());
-		List<Pair> moves = board.board[i][j].getMoves();
+		List<Pair> moves = board.getPiece(i,j).getMoves();
 		
 		for(Pair pair : moves) {
-			board.board[pair.first()][pair.second()] = new Rook(0,0,Colour.WHITE,board);
+			board.setPiece(pair.first(), pair.second(), new Rook(0,0,Colour.WHITE,board));
 		}
 		
 		System.out.println(board);
