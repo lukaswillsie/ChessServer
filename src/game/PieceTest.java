@@ -8,19 +8,25 @@ import utility.Pair;
 public class PieceTest {
 	public static void main(String[] args) {
 		Board board = new Board();
-		int i = 7;
-		int j = 7;
+		int i = 0;
+		int j = 0;
 		
-		board.setPiece(i, j, new King(i,j,Colour.BLACK,board));
-		board.setPiece(5, 0, new Rook(5,0,Colour.WHITE,board));
-		board.setPiece(0, 0, new Bishop(0,0,Colour.WHITE,board));
-		board.setPiece(0, 7, new Rook(0,7,Colour.WHITE,board));
+		board.addPiece(new King(i,j,Colour.BLACK,board));
+		Queen queen = new Queen(1,7,Colour.WHITE,board);
+		board.addPiece(queen);
+//		Bishop bishop = new Bishop(2,2,Colour.WHITE,board);
+//		board.addPiece(bishop);
+		Rook blackRook = new Rook(0,7,Colour.WHITE,board);
+		board.addPiece(blackRook);
 		System.out.println(board);
+		System.out.println(blackRook.getProtectedSquares());
+		System.out.println("Pinned: " + board.isPinned(queen));
+		System.out.println("Check: " + board.isCheck(Colour.BLACK));
 		
 		List<Pair> moves = board.getPiece(i,j).getMoves();
 		
 		for(Pair pair : moves) {
-			board.setPiece(pair.first(), pair.second(), new Rook(0,0,Colour.WHITE,board));
+			board.setPiece(new Rook(pair.first(),pair.second(),Colour.WHITE,board));
 		}
 		
 		System.out.println(board);

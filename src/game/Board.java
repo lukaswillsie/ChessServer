@@ -2,6 +2,7 @@ package game;
 
 import java.io.FileOutputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import utility.Pair;
@@ -66,45 +67,56 @@ public class Board {
 		this.blackPieces = new ArrayList<Piece>();
 	}
 	
+	// This method is for testing purposes only
+	public void setPiece(Piece piece) {
+		board[piece.getRow()][piece.getColumn()] = piece;
+	}
+	
 	/**
-	 * Replace whatever is on the square with piece.
+	 * Add the given piece to the board, at the square given by
+	 * its row and column attributes.
 	 * 
-	 * Note that this does not MOVE the given piece. If it is
-	 * already on the board somewhere else, it will be in two places
-	 * at once, and resulting functionality is undefined
-	 * 
-	 * 
-	 * Precondition: row and column satisfy validSquare(row,column),
-	 * and piece is not already on the board
-	 * 
-	 * @param row - The row to put the piece on
-	 * @param column - The column to put the piece on
-	 * @param piece - The piece to place on the board
+	 * Has no effect if this square is already occupied.
+	 * @param piece - The piece to add to the board
 	 */
-	public void setPiece(int row, int column, Piece piece) {
-		board[row][column] = piece;
-		pieces.add(piece);
-		
-		// If we're placing an empty square on the board
-		if(piece == null) {
-			// Check if we're replacing an actual piece on the board,
-			// in which case we need to remove it from the relevant lists
-			if(board[row][column] instanceof Piece) {
-				pieces.remove(board[row][column]);
-				if(board[row][column].getColour() == Colour.WHITE) {
-					whitePieces.remove(board[row][column]);
-				}
-				else {
-					blackPieces.remove(board[row][column]);
-				}
+	public void addPiece(Piece piece) {
+		if(board[piece.getRow()][piece.getColumn()] == null) {
+			board[piece.getRow()][piece.getColumn()] = piece;
+			if(piece.getColour() == Colour.WHITE) {
+				whitePieces.add(piece);
+			}
+			else {
+				blackPieces.add(piece);
 			}
 		}
-		else if(piece.getColour() == Colour.BLACK) {
-			blackPieces.add(piece);
+	}
+	
+	/**
+	 * "Pick up" the given piece, that is, replace its spot on
+	 * the board with an empty square, without removing it
+	 * from any of the lists of pieces. This allows the board
+	 * to be analyzed as if the piece wasn't there
+	 * 
+	 * Precondition: the given piece is on the board before
+	 * this method is called
+	 * 
+	 * @param piece - The piece to be picked up
+	 */
+	public void pickUp(Piece piece) {
+		if(board[piece.getRow()][piece.getColumn()] != null) {
+			board[piece.getRow()][piece.getColumn()] = null;
 		}
-		else {
-			whitePieces.add(piece);
-		}
+	}
+	
+	/**
+	 * Restore the given piece, assumed to have been picked up,
+	 * to the board
+	 * 
+	 * Precondition: pickUp(piece) has previously been called
+	 * @param piece
+	 */
+	public void restore(Piece piece) {
+		board[piece.getRow()][piece.getColumn()] = piece;
 	}
 	
 	/**
@@ -131,13 +143,41 @@ public class Board {
 	}
 	
 	/**
-	 * Compute whether or not the given colour is in check
+	 * Compute whether or not the given colour is in check. Assumes that
+	 * the given colour has one and only one King on the board.
+	 * 
 	 * @param colour - The colour
 	 * @return A boolean representing whether or not the given colour
 	 * is in check
 	 */
 	public boolean isCheck(Colour colour) {
-		return false;
+		List<Piece> pieceList;
+		if(colour == Colour.WHITE) {
+			pieceList = this.whitePieces;
+		}
+		else {
+			pieceList = this.blackPieces;
+		}
+		
+		// Find what square the given colour's king is on
+		Pair kingSquare = null;
+		for(Piece piece : pieceList) {
+			if(piece instanceof King) {
+				kingSquare = new Pair(piece.getRow(), piece.getColumn());
+				break;
+			}
+		}
+		// If the given colour has NO king, then simply return false, because this is
+		// an incorrect game state
+		if(kingSquare == null) {
+			return false;
+		}
+				
+		Colour enemyColour = (colour == Colour.WHITE) ? Colour.BLACK : Colour.WHITE;
+		List<Pair> enemyMoves = this.getMoves(enemyColour);
+		
+		// Check if any enemy can capture the king
+		return Collections.binarySearch(enemyMoves, kingSquare) >= 0;
 	}
 	
 	/**
@@ -147,6 +187,12 @@ public class Board {
 	 * has been checkmated
 	 */
 	public boolean isCheckmate(Colour colour) {
+		// A colour is in checkmate if its King is in check, all the squares
+		// around it are protected by enemy pieces (it's getMoves() is emtpy),
+		// and no allied pieces can block the check, or take the checking
+		// piece (note that if a King is being checked by multiple pieces and
+		// all its surrounding squares are protected, it is guaranteed to be
+		// in checkmate, since no single move can block more than one check)
 		return false;
 	}
 	
@@ -209,17 +255,75 @@ public class Board {
 	
 	/**
 	 * Compute whether or not the given piece is pinned, which means that
-	 * moving the piece would put its king in check. 
+	 * moving the piece would put its king in check (and hence that it
+	 * can't move at all)
 	 * 
 	 * @param piece - The piece of concern
 	 * @return true if and only if moving the given piece would place its king in check
 	 */
 	public boolean isPinned(Piece piece) {
-		int row = piece.getRow();
-		int column = piece.getColumn();
-		Colour colour = piece.getColour();
-		
-		return false;
+		if(!this.isCheck(piece.getColour())) {
+			// Temporarily remove the piece from the board to see if this puts
+			// its king in check
+			this.pickUp(piece);
+			
+			boolean pinned = this.isCheck(piece.getColour());
+			
+			this.restore(piece);
+			
+			return pinned;
+		}
+		else if(!(piece instanceof King)) { // Only non-king pieces can be pinned
+			List<Piece> enemies = (piece.getColour() == Colour.WHITE) ? this.blackPieces : this.whitePieces;
+			List<Piece> allies = (piece.getColour() == Colour.BLACK) ? this.blackPieces : this.whitePieces;
+			
+			// Find what square the piece's King is on
+			Pair kingSquare = null;
+			for(Piece ally : allies) {
+				if(ally instanceof King) {
+					kingSquare = new Pair(ally.getRow(), ally.getColumn());
+					break;
+				}
+			}
+			// If the piece's team has no king, return false
+			if(kingSquare == null) {
+				return false;
+			}
+			
+			// A list of enemy pieces that are giving check to the king
+			List<Piece> givingCheck = new ArrayList<Piece>();
+			
+			for(Piece enemy : enemies) {
+				if(enemy.getMoves().contains(kingSquare)) {
+					givingCheck.add(enemy);
+				}
+			}
+			
+			// Record how many pieces are currently giving check before resetting givingCheck
+			int initialCheckers = givingCheck.size();
+			givingCheck = new ArrayList<Piece>();
+			
+			// Temporarily remove piece from the board to see what happens
+			this.pickUp(piece);
+			
+			for(Piece enemy : enemies) {
+				if(enemy.getMoves().contains(kingSquare)) {
+					givingCheck.add(enemy);
+				}
+			}
+			
+			// Piece is pinned if, after removing it from the board,
+			// there are more pieces checking the King than before
+			boolean pinned = givingCheck.size() > initialCheckers;
+			
+			// Restore piece to the board
+			this.restore(piece);
+			
+			return pinned;
+		}
+		else {
+			return false; 
+		}
 	}
 	
 	/**

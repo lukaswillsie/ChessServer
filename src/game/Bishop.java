@@ -58,16 +58,14 @@ public class Bishop extends Piece {
 	
 	/**
 	 * Compute all squares that this piece is PROTECTING. A protected
-	 * square is a square that is currently occupied by an allied piece,
-	 * but which the enemy king can't move to without placing himself
-	 * in check.
+	 * square is a square that this piece is preventing the enemy king
+	 * from moving to. In other words, it's a square that the enemy
+	 * king can't move to, lest he put himself in check.
 	 * 
-	 * This might sound like a strange definition, but see the Javadoc
-	 * for the King class's implementation of this method to understand
-	 * why we phrase it this way.
-	 * 
-	 * This is useful for computing where a King cannot legally move
-	 * without placing himself in check.
+	 * For example, this might be a square the piece can move to,
+	 * or a square occupied by an allied piece who this piece is protecting,
+	 * or it might be a square diagonal to a pawn (the pawn can't move there,
+	 * but it's neither can the enemy king, thanks to the pawn).
 	 * 
 	 * @return A list of Pairs, where each pair represents a square protected by
 	 * this piece
@@ -95,6 +93,8 @@ public class Bishop extends Piece {
 			check_row += row_increment;
 			check_column += column_increment;
 			while(board.isMovable(check_row, check_column, colour)) { 
+				protected_squares.add(new Pair(check_row, check_column));
+				
 				// If we've hit an enemy piece, we can't go any farther
 				if(!board.isEmpty(check_row, check_column) &&
 					board.getPiece(check_row, check_column).colour != colour) {
@@ -105,6 +105,7 @@ public class Bishop extends Piece {
 				check_column += column_increment;
 			}
 			
+			// Check if there's an ally piece that this piece is protecting
 			if(board.isPiece(check_row, check_column) &&
 			   board.getPiece(check_row, check_column).getColour() == colour) {
 				protected_squares.add(new Pair(check_row, check_column));
