@@ -13,9 +13,11 @@ public class King extends Piece {
 	}
 
 	/**
-	 * TODO: This method isn't finished yet because it doesn't take into account
-	 * Protected squares; i.e. enemy pieces that the king can't take because they're
-	 * being backed up by another enemy piece
+	 * Compute where this piece can move to on the board, accounting for
+	 * the King not being able to put himself into check
+	 * 
+	 * @return A List of pairs (row,column), where each pair represents
+	 * a square that this piece can move to, according to its rules of movement
 	 */
 	@Override
 	public List<Pair> getMoves() {
@@ -56,7 +58,7 @@ public class King extends Piece {
 		// Check the square in the same row and to the right of the King
 		if(board.isMovable(this.row, this.column+1, this.colour)
 		&& Collections.binarySearch(enemyMoves, new Pair(this.row, this.column+1)) < 0
-		&& Collections.binarySearch(enemyProtectedSquares, new Pair(this.row, this.column-1)) < 0) {
+		&& Collections.binarySearch(enemyProtectedSquares, new Pair(this.row, this.column+1)) < 0) {
 			moves.add(new Pair(this.row, this.column + 1));
 		}
 		
