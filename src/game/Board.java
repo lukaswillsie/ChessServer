@@ -10,36 +10,36 @@ import utility.Pair;
 /**
  * Represents a chessboard. Can be initialized through use of the
  * initialize(FileOutputStream stream) method, where stream is an open
- * board data file.
- * 
+ * board data file. <br>
+ * <br>
  * Board data files are formatted as follows. They are 8 rows of 8 characters
  * each, not including newlines, with letters used to represent chess pieces as
- * follows:
- * 		P - Pawn
- * 		R - Rook
- * 		N - Knight
- * 		B - Bishop
- * 		Q - Queen
- * 		K - King
- * 		X - empty square
- * UPPERCASE letters represent white pieces
- * LOWERCASE letters represent black pieces
- * 
+ * follows: <br>
+ * 		P - Pawn <br>
+ * 		R - Rook <br>
+ * 		N - Knight <br>
+ * 		B - Bishop <br>
+ * 		Q - Queen <br>
+ * 		K - King <br>
+ * 		X - empty square <br>
+ * UPPERCASE letters represent white pieces <br>
+ * LOWERCASE letters represent black pieces <br>
+ * <br>
  * The board should be oriented the same way as the actual board, from
  * white's perspective. That is, the first line of the file should be black's
  * back row and  the last line white's back row.
  * 
  * As an example, this is what the board should look like before any moves have
- * been made:
- * 
- * rnbqkbnr
- * pppppppp
- * XXXXXXXX
- * XXXXXXXX
- * XXXXXXXX
- * XXXXXXXX
- * PPPPPPPP
- * RNBQKBNR
+ * been made: <br>
+ * <br>
+ * rnbqkbnr <br>
+ * pppppppp <br>
+ * XXXXXXXX <br>
+ * XXXXXXXX <br>
+ * XXXXXXXX <br>
+ * XXXXXXXX <br>
+ * PPPPPPPP <br>
+ * RNBQKBNR <br>
  * 
  * @author Lukas Willsie
  */
