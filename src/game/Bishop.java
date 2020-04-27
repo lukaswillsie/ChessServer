@@ -32,31 +32,11 @@ public class Bishop extends Piece {
 		else {
 			// Determine where the pinner is in relation to this Bishop;
 			// above, below, or on the same row
-			int rowIncrement;
-			if(pinner.getRow() - this.getRow() > 0) {
-				rowIncrement = 1;
-			}
-			// If on the same row, this piece can't move at all
-			else if (pinner.getRow() == this.getRow()) {
-				return new ArrayList<Pair>();
-			}
-			else {
-				rowIncrement = -1;
-			}
+			int rowIncrement = sign(pinner.getRow() - this.getRow());
 			
 			// Determine where the pinner is in relation to this Bishop;
 			// left, right, or in the same column
-			int columnIncrement;
-			if(pinner.getColumn() - this.getColumn() > 0) {
-				columnIncrement = 1;
-			}
-			// If in the same column, this piece can't move at all
-			else if(pinner.getColumn() == this.getColumn()) {
-				return new ArrayList<Pair>();
-			}
-			else {
-				columnIncrement = -1;
-			}
+			int columnIncrement = sign(pinner.getColumn() - this.getColumn());
 			
 			// If we've reached this point, the pinner is a Queen or Bishop
 			// in some diagonal with this Bishop. So we simply add every square
@@ -82,12 +62,30 @@ public class Bishop extends Piece {
 			checkRow = this.getRow() + rowIncrement;
 			checkColumn = this.getColumn() + columnIncrement;
 			// Simply move along the diagonal until we hit the ally King,
-			// at which point our while loop will break
+			// at which point our while loop will break because the square
+			// won't be movable
 			while(board.isMovable(checkRow, checkColumn, colour)) {
 				moves.add(new Pair(checkRow, checkColumn));
 			}
 			
 			return moves;
+		}
+	}
+	
+	/**
+	 * Return the sign of the given integer, or 0 if it is 0
+	 * @param num - The integer whose sign should be computed
+	 * @return -1 if num < 0, 1 if num > 0 and 0 if num == 0
+	 */
+	private int sign(int num) {
+		if(num > 0) {
+			return 1;
+		}
+		else if (num == 0) {
+			return 0;
+		}
+		else {
+			return -1;
 		}
 	}
 	

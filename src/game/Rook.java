@@ -18,8 +18,81 @@ public class Rook extends Piece {
 	 */
 	@Override
 	public List<Pair> getMoves() {
+		Piece pinner = board.isPinned(this);
+		if(pinner == null) {
+			return getNormalMoves();
+		}
+		else if(pinner instanceof Bishop) {
+			return new ArrayList<Pair>();
+		}
+		else {
+			// For this to be able to move at all, the pinning piece
+			// has to be in the same row or column
+			if(pinner.getRow() == this.getRow()
+			|| pinner.getColumn() == this.getColumn()) {
+				// Figure out which direction will take this Rook toward its pinner
+				int rowIncrement = sign(pinner.getRow() - this.getRow());
+				int columnIncrement = sign(pinner.getColumn() - this.getColumn());
+				
+				List<Pair> moves = new ArrayList<Pair>();
+				
+				// Move forward until we run into the pinner
+				int checkRow = this.getRow()+rowIncrement;
+				int checkColumn = this.getColumn()+columnIncrement;
+				while(board.isMovable(checkRow, checkColumn, colour)) {
+					moves.add(new Pair(checkRow, checkColumn));
+					
+					// If we've reached the pinner
+					if(!board.isEmpty(checkRow, checkColumn)) {
+						break;
+					}
+				}
+				
+				rowIncrement *= -1;
+				columnIncrement *= -1;
+				
+				// Move backward until we hit the ally King
+				checkRow = this.getRow()+rowIncrement;
+				checkColumn = this.getColumn()+columnIncrement;
+				while(board.isMovable(checkRow, checkColumn, colour)) {
+					moves.add(new Pair(checkRow, checkColumn));
+				}
+				
+				return moves;
+			}
+			else {
+				return new ArrayList<Pair>();
+			}
+		}
+	}	
+	
+	/**
+	 * Return the sign of the given integer, or 0 if it is 0
+	 * @param num - The integer whose sign should be computed
+	 * @return -1 if num < 0, 1 if num > 0 and 0 if num == 0
+	 */
+	private int sign(int num) {
+		if(num > 0) {
+			return 1;
+		}
+		else if (num == 0) {
+			return 0;
+		}
+		else {
+			return -1;
+		}
+	}
+	
+	/**
+	 * Compute where this piece can move to by only considering the rules governing
+	 * this piece's movement, without consideration of, for example, whether or not
+	 * moving this piece places the King in check
+	 * 
+	 * @return A List of Pairs representing all the squares that this piece can move to,
+	 * according to the rules of Chess governing the movement of a Rook
+	 */
+	private List<Pair> getNormalMoves() {
 		List<Pair> moves = new ArrayList<Pair>();
-		
 		// Arrays used to automate checking the rook's file and rank 
 		int[] row_increments = 	  {0, 1,  0, -1};
 		int[] column_increments = {1, 0, -1,  0};
@@ -54,7 +127,7 @@ public class Rook extends Piece {
 		}
 		
 		return moves;
-	}	
+	}
 	
 	/**
 	 * Compute all squares that this piece is PROTECTING. A protected
