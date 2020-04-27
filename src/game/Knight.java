@@ -71,36 +71,32 @@ public class Knight extends Piece {
 	 */
 	@Override
 	public List<Pair> getProtectedSquares() {
-		// If this piece is not pinned, simply check all squares that a knight can move to
-		if(board.isPinned(this) == null) {
-			List<Pair> protectedSquares = new ArrayList<Pair>();
-			
-			// Use arrays to generalize the process of checking each square
-			// the knight can move to
-			int[] directions = {1,-1};
-			int[] offsets =    {2,-2};
-			
-			for(int offset : offsets) {
-				for(int direction : directions) {
-					// Add a square to the list if it's empty or occupied by an allied piece
-					if((board.isPiece(row+direction, column+offset)
-					&&  board.getPiece(row+direction, column+offset).getColour() == colour)
-					||  board.isMovable(row+direction, column+offset, colour)) {
-						protectedSquares.add(new Pair(row+direction, column+offset));
-					}
-					if((board.isPiece(row+offset, column+direction)
-					&&  board.getPiece(row+offset, column+direction).getColour() == colour)
-					||  board.isMovable(row+offset, column+direction, colour)) {
-						protectedSquares.add(new Pair(row+offset, column+direction));
-					}
+		// We don't have to take into account whether or not the Knight is
+		// pinned, here, because the enemy King still can't move to any
+		// squares under the Knight's influence
+		List<Pair> protectedSquares = new ArrayList<Pair>();
+		
+		// Use arrays to generalize the process of checking each square
+		// the knight can move to
+		int[] directions = {1,-1};
+		int[] offsets =    {2,-2};
+		
+		for(int offset : offsets) {
+			for(int direction : directions) {
+				// Add a square to the list if it's empty or occupied by an allied piece
+				if((board.isPiece(row+direction, column+offset)
+				&&  board.getPiece(row+direction, column+offset).getColour() == colour)
+				||  board.isMovable(row+direction, column+offset, colour)) {
+					protectedSquares.add(new Pair(row+direction, column+offset));
+				}
+				if((board.isPiece(row+offset, column+direction)
+				&&  board.getPiece(row+offset, column+direction).getColour() == colour)
+				||  board.isMovable(row+offset, column+direction, colour)) {
+					protectedSquares.add(new Pair(row+offset, column+direction));
 				}
 			}
-			
-			return protectedSquares;
 		}
-		// If it is pinned, it can't move at all
-		else {
-			return new ArrayList<Pair>();
-		}
+		
+		return protectedSquares;
 	}
 }
