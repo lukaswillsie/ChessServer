@@ -18,25 +18,32 @@ public class Knight extends Piece {
 	 */
 	@Override
 	public List<Pair> getMoves() {
-		List<Pair> moves = new ArrayList<Pair>();
-		
-		// Use arrays to generalize the process of checking each square
-		// the knight can move to
-		int[] directions = {1,-1};
-		int[] offsets = {2,-2};
-		
-		for(int offset : offsets) {
-			for(int direction : directions) {
-				if(board.isMovable(row+direction, column+offset, colour)) {
-					moves.add(new Pair(row+direction, column+offset));
-				}
-				if(board.isMovable(row+offset, column+direction, colour)) {
-					moves.add(new Pair(row+offset, column+direction));
+		// If this piece is not pinned, simply check all squares that a knight can move to
+		if(board.isPinned(this) == null) {
+			List<Pair> moves = new ArrayList<Pair>();
+			
+			// Use arrays to generalize the process of checking each square
+			// the knight can move to
+			int[] directions = {1,-1};
+			int[] offsets = {2,-2};
+			
+			for(int offset : offsets) {
+				for(int direction : directions) {
+					if(board.isMovable(row+direction, column+offset, colour)) {
+						moves.add(new Pair(row+direction, column+offset));
+					}
+					if(board.isMovable(row+offset, column+direction, colour)) {
+						moves.add(new Pair(row+offset, column+direction));
+					}
 				}
 			}
+			
+			return moves;
 		}
-		
-		return moves;
+		// If it is pinned, it can't move at all
+		else {
+			return new ArrayList<Pair>();
+		}
 	}
 	
 	/**
@@ -64,29 +71,36 @@ public class Knight extends Piece {
 	 */
 	@Override
 	public List<Pair> getProtectedSquares() {
-		List<Pair> protectedSquares = new ArrayList<Pair>();
-		
-		// Use arrays to generalize the process of checking each square
-		// the knight can move to
-		int[] directions = {1,-1};
-		int[] offsets =    {2,-2};
-		
-		for(int offset : offsets) {
-			for(int direction : directions) {
-				// Add a square to the list if it's empty or occupied by an allied piece
-				if((board.isPiece(row+direction, column+offset)
-				&&  board.getPiece(row+direction, column+offset).getColour() == colour)
-				||  board.isMovable(row+direction, column+offset, colour)) {
-					protectedSquares.add(new Pair(row+direction, column+offset));
-				}
-				if((board.isPiece(row+offset, column+direction)
-				&&  board.getPiece(row+offset, column+direction).getColour() == colour)
-				||  board.isMovable(row+offset, column+direction, colour)) {
-					protectedSquares.add(new Pair(row+offset, column+direction));
+		// If this piece is not pinned, simply check all squares that a knight can move to
+		if(board.isPinned(this) == null) {
+			List<Pair> protectedSquares = new ArrayList<Pair>();
+			
+			// Use arrays to generalize the process of checking each square
+			// the knight can move to
+			int[] directions = {1,-1};
+			int[] offsets =    {2,-2};
+			
+			for(int offset : offsets) {
+				for(int direction : directions) {
+					// Add a square to the list if it's empty or occupied by an allied piece
+					if((board.isPiece(row+direction, column+offset)
+					&&  board.getPiece(row+direction, column+offset).getColour() == colour)
+					||  board.isMovable(row+direction, column+offset, colour)) {
+						protectedSquares.add(new Pair(row+direction, column+offset));
+					}
+					if((board.isPiece(row+offset, column+direction)
+					&&  board.getPiece(row+offset, column+direction).getColour() == colour)
+					||  board.isMovable(row+offset, column+direction, colour)) {
+						protectedSquares.add(new Pair(row+offset, column+direction));
+					}
 				}
 			}
+			
+			return protectedSquares;
 		}
-		
-		return protectedSquares;
+		// If it is pinned, it can't move at all
+		else {
+			return new ArrayList<Pair>();
+		}
 	}
 }
