@@ -30,6 +30,7 @@ public class Bishop extends Piece {
 		// Otherwise, it's pinned by a Bishop or Queen, in which case it's possible
 		// that it can move, if the pinner is in the same diagonal as this Bishop
 		else {
+
 			// Determine where the pinner is in relation to this Bishop;
 			// above, below, or on the same row
 			int rowIncrement = sign(pinner.getRow() - this.getRow());
@@ -197,9 +198,11 @@ public class Bishop extends Piece {
 	}
 	
 	/**
-	 * Create a String representation of this bishop
+	 * Create a String representation of this Bishop.
 	 * 
-	 * @return A String representation of this bishop
+	 * Guaranteed to only be one character long
+	 * 
+	 * @return A String representation of this Bishop
 	 */
 	public String toString () {
 		return (colour == Colour.WHITE) ? "B" : "b";

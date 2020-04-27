@@ -190,9 +190,11 @@ public class Rook extends Piece {
 	}
 	
 	/**
-	 * Create a String representation of this rook
+	 * Create a String representation of this Rook.
 	 * 
-	 * @return A String representation of this rook
+	 * Guaranteed to only be one character long
+	 * 
+	 * @return A String representation of this Rook
 	 */
 	public String toString() {
 		return (colour == Colour.WHITE) ? "R" : "r";

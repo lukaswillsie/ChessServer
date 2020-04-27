@@ -15,9 +15,19 @@ public class Queen extends Piece {
 		// Since the Queen is essentially just a Bishop and Rook at the same time,
 		// prevent copying code by making use of the versions of getMoves() in
 		// Rook and Bishop
-		List<Pair> moves = new Rook(row, column, colour, board).getMoves();
-		moves.addAll(new Bishop(row, column, colour, board).getMoves());
+		board.removePiece(this);
+		
+		Rook rook = new Rook(row, column, colour, board);
+		board.addPiece(rook);
+		List<Pair> moves = rook.getMoves();
+		board.removePiece(rook);
+		
+		Bishop bishop = new Bishop(row, column, colour, board);
+		board.addPiece(bishop);
+		moves.addAll(bishop.getMoves());
+		board.removePiece(bishop);
 
+		board.addPiece(this);
 		return moves;
 	}	
 
@@ -47,9 +57,11 @@ public class Queen extends Piece {
 	}
 	
 	/**
-	 * Create a String representation of this bishop
+	 * Create a String representation of this Queen.
 	 * 
-	 * @return A String representation of this bishop
+	 * Guaranteed to only be one character long
+	 * 
+	 * @return A String representation of this Queen
 	 */
 	public String toString () {
 		return (colour == Colour.WHITE) ? "Q" : "q";

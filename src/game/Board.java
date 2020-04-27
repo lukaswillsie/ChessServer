@@ -1,9 +1,9 @@
 package game;
 
-import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Scanner;
 
 import utility.Pair;
 
@@ -51,9 +51,6 @@ public class Board {
 	// So board[0][0] is a1, in traditional chess notation
 	private Piece[][] board;
 	
-	// A list of all Pieces currently on the board
-	private List<Piece> pieces;
-	
 	// A list of all white Pieces currently on the board
 	private List<Piece> whitePieces;
 	
@@ -62,7 +59,6 @@ public class Board {
 	
 	public Board() {
 		this.board = new Piece[8][8];
-		this.pieces = new ArrayList<Piece>();
 		this.whitePieces = new ArrayList<Piece>();
 		this.blackPieces = new ArrayList<Piece>();
 	}
@@ -92,31 +88,16 @@ public class Board {
 	}
 	
 	/**
-	 * "Pick up" the given piece, that is, replace its spot on
-	 * the board with an empty square, without removing it
-	 * from any of the lists of pieces. This allows the board
-	 * to be analyzed as if the piece wasn't there
+	 * Fully remove the given piece from the game.
 	 * 
-	 * Precondition: the given piece is on the board before
-	 * this method is called
-	 * 
-	 * @param piece - The piece to be picked up
+	 * @param piece - The piece to be removed
 	 */
-	public void pickUp(Piece piece) {
-		if(board[piece.getRow()][piece.getColumn()] != null) {
+	public void removePiece(Piece piece) {
+		List<Piece> pieceList = (piece.getColour() == Colour.WHITE) ? whitePieces : blackPieces;
+		if(pieceList.contains(piece)) {
 			board[piece.getRow()][piece.getColumn()] = null;
+			pieceList.remove(piece);
 		}
-	}
-	
-	/**
-	 * Restore the given piece, assumed to have been picked up,
-	 * to the board
-	 * 
-	 * Precondition: pickUp(piece) has previously been called
-	 * @param piece
-	 */
-	public void restore(Piece piece) {
-		board[piece.getRow()][piece.getColumn()] = piece;
 	}
 	
 	/**
@@ -136,10 +117,49 @@ public class Board {
 	 * Initialize the board using stream, where stream is assumed to be opened at
 	 * the beginning of a correctly-formatted board data file. See class Javadoc for details.
 	 * 
-	 * @param stream - A FileOutputStream open to the beginning of a valid board data file
+	 * @param scanner - A Scanner open to the beginning of a valid board data file
+	 * @return 0 if the initialization succeeded; no invalid input was encountered, and 1 if otherwise
 	 */
-	public void initialize(FileOutputStream stream) {
+	public int initialize(Scanner scanner) {
+		int row = 7;
+		int column = 0;
+		String line;
+		while(scanner.hasNextLine() && row >= 0) {
+			line = scanner.nextLine();
+			while(column < 8) {
+				Colour colour = Character.isLowerCase(line.charAt(column)) ? Colour.BLACK : Colour.WHITE;
+				switch((line.toLowerCase()).charAt(column)) {
+					case 'p':
+						this.addPiece(new Pawn(row, column, colour,this));
+						break;
+					case 'r':
+						this.addPiece(new Rook(row, column, colour,this));
+						break;
+					case 'n':
+						this.addPiece(new Knight(row, column, colour,this));
+						break;
+					case 'b':
+						this.addPiece(new Bishop(row, column, colour,this));
+						break;
+					case 'q':
+						this.addPiece(new Queen(row, column, colour,this));
+						break;
+					case 'k':
+						this.addPiece(new King(row, column, colour,this));
+						break;
+					case 'x':
+						break;
+					default:
+						return 1;
+						
+				}
+				column++;
+			}
+			row--;
+			column = 0;
+		}
 		
+		return 0;
 	}
 	
 	/**

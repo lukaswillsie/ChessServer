@@ -32,7 +32,7 @@ public class King extends Piece {
 		// a square that the rook can move to at the moment, but the King still
 		// can't move there because if he did he would be in check. We need
 		// to remove the King from the board to catch such subtleties. 
-		board.pickUp(this);
+		board.removePiece(this);
 		
 		// By definition, protected squares are the squares which a King is not allowed
 		// to move to, so fetch all of them
@@ -68,7 +68,7 @@ public class King extends Piece {
 		}
 		
 		// We can't forget to put the king back on the board
-		board.restore(this);
+		board.addPiece(this);
 		
 		return moves;
 	}
@@ -139,9 +139,11 @@ public class King extends Piece {
 	}
 	
 	/**
-	 * Create a String representation of this bishop
+	 * Create a String representation of this King.
 	 * 
-	 * @return A String representation of this bishop
+	 * Guaranteed to only be one character long
+	 * 
+	 * @return A String representation of this King
 	 */
 	public String toString() {
 		return (colour == Colour.WHITE) ? "K" : "k";
