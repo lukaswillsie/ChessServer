@@ -22,29 +22,72 @@ public class Pawn extends Piece {
 		// black pawns). White pawns move up the board and black pawns move down
 		int direction = this.colour == Colour.WHITE ? 1 : -1;
 		
-		List<Pair> moves = new ArrayList<Pair>();
-		
-		// Check the square in front and to the left (from white's perspective)
-		// of the pawn to see if it has an enemy on it
-		if(board.isPiece(this.row+direction, this.column-1) &&
-		   board.getPiece(this.row+direction, this.column-1).getColour() != colour) {
-			moves.add(new Pair(this.row+direction, this.column-1));
+		Piece pinner = board.isPinned(this);
+		if(pinner == null) {	
+			List<Pair> moves = new ArrayList<Pair>();
+			// Check the square in front and to the left (from white's perspective)
+			// of the pawn to see if it has an enemy on it
+			if(board.isPiece(this.row+direction, this.column-1) &&
+			   board.getPiece(this.row+direction, this.column-1).getColour() != colour) {
+				moves.add(new Pair(this.row+direction, this.column-1));
+			}
+			
+			// Check the square directly in front of the pawn
+			if(board.isEmpty(this.row+direction, this.column)) {
+				moves.add(new Pair(this.row+direction, this.column));
+			}
+			
+			// Check the square in front and to the right (from white's perspective)
+			// of the pawn to see if it has an enemy on it
+			if(board.isPiece(this.row+direction, this.column+1) &&
+			   board.getPiece(this.row+direction, this.column+1).getColour() != colour) {
+				moves.add(new Pair(this.row+direction, this.column+1));
+			}
+			
+			
+			return moves;
 		}
-		
-		// Check the square directly in front of the pawn
-		if(board.isEmpty(this.row+direction, this.column)) {
-			moves.add(new Pair(this.row+direction, this.column));
+		// If the pawn is getting pinned by a Queen or Bishop in its column
+		else if(pinner.getColumn() == this.getColumn()) {
+			// The pawn can't take diagonally in this scenario, and so can only move forward,
+			// and then only if the square in front of it is empty
+			if(board.isEmpty(row+direction, column)) {
+				List<Pair> moves = new ArrayList<Pair>();
+				moves.add(new Pair(row+direction, column));
+				return moves;
+			}
+			// Otherwise, the square in front of it is occupied by someone, so the pawn
+			// can't move anywhere. Then return moves, empty
+			else {
+				return new ArrayList<Pair>();
+			}
 		}
-		
-		// Check the square in front and to the right (from white's perspective)
-		// of the pawn to see if it has an enenmy on it
-		if(board.isPiece(this.row+direction, this.column+1) &&
-		   board.getPiece(this.row+direction, this.column+1).getColour() != colour) {
-			moves.add(new Pair(this.row+direction, this.column+1));
+		// If the pawn is getting pinned by a Queen or Bishop in its row, it can't move at
+		// all, since moving forward would expose it's King
+		else if(pinner.getRow() == this.getRow()) {
+			return new ArrayList<Pair>();
 		}
-		
-		
-		return moves;
+		// Otherwise, it's being pinned by a Bishop or Queen diagonal to it.
+		// Then, it can only move if the pinning piece is immediately diagonal
+		// to it, and hence capturable
+		else {
+			List<Pair> moves = new ArrayList<Pair>();
+			
+			// Check the square in front and to the left (from white's perspective)
+			// of the pawn to see if it has the pinner on it
+			if(board.isPiece(this.row+direction, this.column-1) &&
+			   board.getPiece(this.row+direction, this.column-1) == pinner) {
+				moves.add(new Pair(this.row+direction, this.column-1));
+			}
+			// Check the square in front and to the right (from white's perspective)
+			// of the pawn to see if it has the pinner on it
+			else if(board.isPiece(this.row+direction, this.column+1) &&
+					board.getPiece(this.row+direction, this.column+1) == pinner) {
+				moves.add(new Pair(this.row+direction, this.column+1));
+			}
+			
+			return moves;
+		}
 	}
 	
 	/**
