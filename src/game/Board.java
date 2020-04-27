@@ -254,76 +254,159 @@ public class Board {
 	}
 	
 	/**
-	 * Compute whether or not the given piece is pinned, which means that
-	 * moving the piece would put its king in check (and hence that it
-	 * can't move at all)
+	 * Compute whether or not the given piece is PINNED, which means that this piece
+	 * stands between its King and some attacking enemy piece. For example, if a White
+	 * Queen and a Black King are in the same row with a Black Rook between them, the
+	 * Rook is pinned. Note that this doesn't necessarily mean that the piece can't move
+	 * at all (in our case our Rook can move back and forth in its row, just not up and
+	 * down), just that its movement is restricted.
+	 * 
+	 * If the piece IS pinned, return the enemy piece that is pinning it (there can be only
+	 * one). Otherwise return null.
 	 * 
 	 * @param piece - The piece of concern
-	 * @return true if and only if moving the given piece would place its king in check
+	 * @return null if the given piece is NOT pinned, or a reference to the enemy piece that
+	 * is pinning this piece if it is
 	 */
-	public boolean isPinned(Piece piece) {
-		if(!this.isCheck(piece.getColour())) {
-			// Temporarily remove the piece from the board to see if this puts
-			// its king in check
-			this.pickUp(piece);
-			
-			boolean pinned = this.isCheck(piece.getColour());
-			
-			this.restore(piece);
-			
-			return pinned;
+	public Piece isPinned(Piece piece) {
+		List<Piece> pieceList = (piece.getColour() == Colour.WHITE) ? whitePieces : blackPieces;
+		King king = null;
+		for(Piece allyPiece : pieceList) {
+			if(allyPiece instanceof King) {
+				king = (King)allyPiece;
+				break;
+			}
 		}
-		else if(!(piece instanceof King)) { // Only non-king pieces can be pinned
-			List<Piece> enemies = (piece.getColour() == Colour.WHITE) ? this.blackPieces : this.whitePieces;
-			List<Piece> allies = (piece.getColour() == Colour.BLACK) ? this.blackPieces : this.whitePieces;
-			
-			// Find what square the piece's King is on
-			Pair kingSquare = null;
-			for(Piece ally : allies) {
-				if(ally instanceof King) {
-					kingSquare = new Pair(ally.getRow(), ally.getColumn());
-					break;
-				}
-			}
-			// If the piece's team has no king, return false
-			if(kingSquare == null) {
-				return false;
-			}
-			
-			// A list of enemy pieces that are giving check to the king
-			List<Piece> givingCheck = new ArrayList<Piece>();
-			
-			for(Piece enemy : enemies) {
-				if(enemy.getMoves().contains(kingSquare)) {
-					givingCheck.add(enemy);
-				}
-			}
-			
-			// Record how many pieces are currently giving check before resetting givingCheck
-			int initialCheckers = givingCheck.size();
-			givingCheck = new ArrayList<Piece>();
-			
-			// Temporarily remove piece from the board to see what happens
-			this.pickUp(piece);
-			
-			for(Piece enemy : enemies) {
-				if(enemy.getMoves().contains(kingSquare)) {
-					givingCheck.add(enemy);
-				}
-			}
-			
-			// Piece is pinned if, after removing it from the board,
-			// there are more pieces checking the King than before
-			boolean pinned = givingCheck.size() > initialCheckers;
-			
-			// Restore piece to the board
-			this.restore(piece);
-			
-			return pinned;
+		// If the piece has NO allied King, simply return null
+		if(king == null) {
+			return null;
 		}
-		else {
-			return false; 
+		
+		// Arrays used to automate checking the rook's file and rank 
+		int[] row_increments = 	  {0, 1,  0, -1};
+		int[] column_increments = {1, 0, -1,  0};
+		
+		// Radiate from the king outward in all 4 cardinal directions
+		// (not diagonals yet). The given piece is pinned if we encounter
+		// 0 or more empty squares followed by the piece followed by
+		// 0 or more empty squares followed by an enemy Queen or Rook
+		int checkRow = king.getRow();
+		int checkColumn = king.getColumn();
+		int row_increment = 0;
+		int column_increment = 0;
+		// Keeps track of whether or not we've run into piece yet
+		boolean foundPiece = false;
+		for(int i = 0; i < row_increments.length; i++) {
+			row_increment = row_increments[i];
+			column_increment = column_increments[i];
+			
+			checkRow += row_increment;
+			checkColumn += column_increment;
+			while(validSquare(checkRow, checkColumn))
+			{
+				if(foundPiece) { // If we've found the piece, start looking for an enemy Rook or Queen
+					if(enemyRookOrQueen(piece, checkRow, checkColumn)) {
+						return board[checkRow][checkColumn];
+					}
+					// If we've reached a square that is occupied by any piece, ally or enemy, 
+					// return null (since we know the piece is not a Rook or Queen thanks
+					// to the above if statement)
+					else if(!isEmpty(checkRow, checkColumn)) {
+						return null;
+					}
+				}
+				else {
+					if(board[checkRow][checkColumn] == piece) {
+						foundPiece = true;
+					}
+					// If we've found any piece other than the one we're looking for,
+					// we're not going to find the given piece pinned in this row/column,
+					// so move on
+					else if(!isEmpty(checkRow, checkColumn)) {
+						break;
+					}
+				}
+				checkRow += row_increment;
+				checkColumn += column_increment;
+			}
+			checkRow = king.getRow();
+			checkColumn = king.getColumn();
 		}
+		
+		
+		int[] row_offsets =    {1,  1, -1, -1};
+		int[] column_offsets = {1, -1, -1,  1};
+		
+		// Radiate outward from the king along all 4 diagonals. The given piece is pinned
+		// if we encounter 0 or more empty squares followed by the piece followed by
+		// 0 or more empty squares followed by a Bishop or Queen
+		checkRow = king.getRow();
+		checkColumn = king.getColumn();
+		foundPiece = false;
+		for(int i = 0; i < row_offsets.length; i++) {
+			row_increment = row_offsets[i];
+			column_increment = column_offsets[i];
+			
+			checkRow += row_increment;
+			checkColumn += column_increment;
+			while(validSquare(checkRow, checkColumn)) { 
+				if(foundPiece) {
+					if(enemyBishopOrQueen(piece, checkRow, checkColumn)) {
+						return board[checkRow][checkColumn];
+					}
+					else if(!isEmpty(checkRow, checkColumn)) {
+						return null;
+					}
+				}
+				else {
+					if(board[checkRow][checkColumn] == piece) {
+						foundPiece = true;
+					}
+					// If we've found any piece other than the one we're looking for,
+					// we're not going to find the given piece pinned in this row/column,
+					// so move on
+					else if(!isEmpty(checkRow, checkColumn)) {
+						break;
+					}
+				}
+				
+				checkRow += row_increment;
+				checkColumn += column_increment;
+			}
+			
+			checkRow = king.getRow();
+			checkColumn = king.getColumn();
+		}
+		
+		return null;
+	}
+	
+	/**
+	 * Compute whether or not the given square contains a Rook or Queen
+	 * which is an enemy of the given piece
+	 * @param piece - Determines what colour of Rooks/Queens to look for
+	 * @param row - The row of the square to check
+	 * @param column - The column of the square to check
+	 * @return true if and only if the given square contains a Rook or Queen with
+	 * colour opposite to that of the given piece
+	 */
+	private boolean enemyRookOrQueen(Piece piece, int row, int column) {
+		return validSquare(row, column) && board[row][column].getColour() != piece.getColour()
+			&& (board[row][column] instanceof Rook || board[row][column] instanceof Queen);
+	}
+	
+	/**
+	 * Compute whether or not the given square contains a Bishop or Queen which is an enemy
+	 * of the given piece
+	 * @param piece - Determines what colour of Rooks/Queens to look for
+	 * @param row - The row of the square to check
+	 * @param column - The column of the square to check
+	 * @return true if and only if the given square contains a Bishop or Queen
+	 * with colour opposite to that of the given piece
+	 */
+	private boolean enemyBishopOrQueen(Piece piece, int row, int column) {
+		return validSquare(row, column) && board[row][column].getColour() != piece.getColour()
+				&& (board[row][column] instanceof Bishop|| board[row][column] instanceof Queen);
 	}
 	
 	/**

@@ -11,15 +11,19 @@ public class PieceTest {
 		int i = 0;
 		int j = 0;
 		
-		board.addPiece(new King(i,j,Colour.BLACK,board));
-		Queen queen = new Queen(1,7,Colour.WHITE,board);
+		board.addPiece(new King(i,j,Colour.WHITE,board));
+		Queen queen = new Queen(1,1,Colour.WHITE,board);
 		board.addPiece(queen);
-//		Bishop bishop = new Bishop(2,2,Colour.WHITE,board);
-//		board.addPiece(bishop);
+		Bishop bishop = new Bishop(2,2,Colour.BLACK,board);
+		board.addPiece(bishop);
 		Rook blackRook = new Rook(0,7,Colour.WHITE,board);
 		board.addPiece(blackRook);
 		System.out.println(board);
 		System.out.println(blackRook.getProtectedSquares());
+		long start = System.nanoTime();
+		Piece pinning = board.isPinned(queen);
+		long end = System.nanoTime();
+		System.out.println("Time: " + (end-start));
 		System.out.println("Pinned: " + board.isPinned(queen));
 		System.out.println("Check: " + board.isCheck(Colour.BLACK));
 		
