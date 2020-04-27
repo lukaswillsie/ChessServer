@@ -61,7 +61,8 @@ public class Bishop extends Piece {
 			// If we've reached this point, the pinner is a Queen or Bishop
 			// in some diagonal with this Bishop. So we simply add every square
 			// along this diagonal between the Bishop and the pinner (inclusive
-			// on the latter end)
+			// on the latter end), and in the other direction between the Bishop
+			// and its King
 			List<Pair> moves = new ArrayList<Pair>();
 			
 			int checkRow = this.getRow() + rowIncrement;
@@ -74,6 +75,16 @@ public class Bishop extends Piece {
 				if(!board.isEmpty(checkRow, checkColumn)) {
 					break;
 				}
+			}
+			
+			rowIncrement *= -1;
+			columnIncrement *= -1;
+			checkRow = this.getRow() + rowIncrement;
+			checkColumn = this.getColumn() + columnIncrement;
+			// Simply move along the diagonal until we hit the ally King,
+			// at which point our while loop will break
+			while(board.isMovable(checkRow, checkColumn, colour)) {
+				moves.add(new Pair(checkRow, checkColumn));
 			}
 			
 			return moves;
