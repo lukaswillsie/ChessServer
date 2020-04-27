@@ -391,7 +391,8 @@ public class Board {
 	 * colour opposite to that of the given piece
 	 */
 	private boolean enemyRookOrQueen(Piece piece, int row, int column) {
-		return validSquare(row, column) && board[row][column].getColour() != piece.getColour()
+		return  validSquare(row, column) && !isEmpty(row, column)
+			&&  board[row][column].getColour() != piece.getColour()
 			&& (board[row][column] instanceof Rook || board[row][column] instanceof Queen);
 	}
 	
@@ -405,8 +406,9 @@ public class Board {
 	 * with colour opposite to that of the given piece
 	 */
 	private boolean enemyBishopOrQueen(Piece piece, int row, int column) {
-		return validSquare(row, column) && board[row][column].getColour() != piece.getColour()
-				&& (board[row][column] instanceof Bishop|| board[row][column] instanceof Queen);
+		return  validSquare(row, column) && !isEmpty(row, column)
+			&&  board[row][column].getColour() != piece.getColour()
+			&& (board[row][column] instanceof Bishop|| board[row][column] instanceof Queen);
 	}
 	
 	/**
