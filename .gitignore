@@ -3,3 +3,4 @@
 .project
 build
 *.txt
+src/game/PieceTest.java
