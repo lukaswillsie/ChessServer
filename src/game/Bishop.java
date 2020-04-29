@@ -166,7 +166,7 @@ public class Bishop extends Piece {
 		int[] column_increments = {1, -1, -1,  1};
 		
 		
-		// Iterate from the bishop outward along all diagonals until we hit
+		// Iterate from the Bishop outward along all diagonals until we hit
 		// a piece or the edge of the board, and add any allied pieces
 		// encountered this way
 		int check_row = row;

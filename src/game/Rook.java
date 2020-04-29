@@ -99,11 +99,11 @@ public class Rook extends Piece {
 	 */
 	private List<Pair> getNormalMoves() {
 		List<Pair> moves = new ArrayList<Pair>();
-		// Arrays used to automate checking the rook's file and rank 
+		// Arrays used to automate checking the Rook's row and column
 		int[] row_increments = 	  {0, 1,  0, -1};
 		int[] column_increments = {1, 0, -1,  0};
 		
-		// Iterate from the rook outward in both directions along its row
+		// Iterate from the Rook outward in both directions along its row
 		// and column until the edge of the board or a piece is reached
 		int check_row = row;
 		int check_column = column;
@@ -118,7 +118,7 @@ public class Rook extends Piece {
 			while(board.isMovable(check_row, check_column, colour)) {
 				moves.add(new Pair(check_row, check_column));
 				
-				// If we've hit an enemy piece, stop because the rook can't move any farther
+				// If we've hit an enemy piece, stop because the Rook can't move any farther
 				if(!board.isEmpty(check_row, check_column) &&
 				   board.getPiece(check_row, check_column).colour != colour) {
 					break;
@@ -153,11 +153,11 @@ public class Rook extends Piece {
 	public List<Pair> getProtectedSquares() {
 		List<Pair> protected_squares = new ArrayList<Pair>();
 		
-		// Arrays used to automate checking the rook's file and rank 
+		// Arrays used to automate checking the Rook's row and column
 		int[] row_increments = 	  {0, 1,  0, -1};
 		int[] column_increments = {1, 0, -1,  0};
 		
-		// Iterate from the rook outward in both directions along its row
+		// Iterate from the Rook outward in both directions along its row
 		// and column until the edge of the board or a piece is reached
 		int check_row = row;
 		int check_column = column;
@@ -173,7 +173,7 @@ public class Rook extends Piece {
 			while(board.isMovable(check_row, check_column, colour)) {		
 				protected_squares.add(new Pair(check_row, check_column));
 				
-				// If we've hit an enemy piece, stop because the rook can't move any farther
+				// If we've hit an enemy piece, stop because the Rook can't move any farther
 				if(!board.isEmpty(check_row, check_column) &&
 				    board.getPiece(check_row, check_column).colour != colour) {
 					break;
