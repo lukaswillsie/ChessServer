@@ -45,7 +45,7 @@ public class Pawn extends Piece {
 			}
 			
 			
-			return moves;
+			return board.getLegal(moves, colour);
 		}
 		// If the pawn is getting pinned by a Queen or Bishop in its column
 		else if(pinner.getColumn() == this.getColumn()) {
@@ -54,7 +54,7 @@ public class Pawn extends Piece {
 			if(board.isEmpty(row+direction, column)) {
 				List<Pair> moves = new ArrayList<Pair>();
 				moves.add(new Pair(row+direction, column));
-				return moves;
+				return board.getLegal(moves, colour);
 			}
 			// Otherwise, the square in front of it is occupied by someone, so the pawn
 			// can't move anywhere. Then return moves, empty
@@ -86,7 +86,7 @@ public class Pawn extends Piece {
 				moves.add(new Pair(this.row+direction, this.column+1));
 			}
 			
-			return moves;
+			return board.getLegal(moves, colour);
 		}
 	}
 	

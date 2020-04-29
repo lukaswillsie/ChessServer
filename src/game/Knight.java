@@ -38,7 +38,7 @@ public class Knight extends Piece {
 				}
 			}
 			
-			return moves;
+			return board.getLegal(moves, colour);
 		}
 		// If it is pinned, it can't move at all
 		else {

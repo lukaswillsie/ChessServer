@@ -20,7 +20,7 @@ public class Rook extends Piece {
 	public List<Pair> getMoves() {
 		Piece pinner = board.isPinned(this);
 		if(pinner == null) {
-			return getNormalMoves();
+			return board.getLegal(getNormalMoves(), colour);
 		}
 		else if(pinner instanceof Bishop) {
 			return new ArrayList<Pair>();
@@ -46,6 +46,9 @@ public class Rook extends Piece {
 					if(!board.isEmpty(checkRow, checkColumn)) {
 						break;
 					}
+					
+					checkRow += rowIncrement;
+					checkColumn += columnIncrement;
 				}
 				
 				rowIncrement *= -1;
@@ -56,9 +59,12 @@ public class Rook extends Piece {
 				checkColumn = this.getColumn()+columnIncrement;
 				while(board.isMovable(checkRow, checkColumn, colour)) {
 					moves.add(new Pair(checkRow, checkColumn));
+					
+					checkRow += rowIncrement;
+					checkColumn += columnIncrement;
 				}
 				
-				return moves;
+				return board.getLegal(moves, colour);
 			}
 			else {
 				return new ArrayList<Pair>();

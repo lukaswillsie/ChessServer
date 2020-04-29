@@ -15,6 +15,9 @@ public class Queen extends Piece {
 		// Since the Queen is essentially just a Bishop and Rook at the same time,
 		// prevent copying code by making use of the versions of getMoves() in
 		// Rook and Bishop
+		//
+		// We have to keep adding and removing because we need the board to think a
+		// Rook/Bishop is actually occupying the square
 		board.removePiece(this);
 		
 		Rook rook = new Rook(row, column, colour, board);
@@ -50,6 +53,9 @@ public class Queen extends Piece {
 		// Since the Queen is basically a Rook and Bishop simultaneously,
 		// farm out the work to a pretend Bishop and Rook occupying the
 		// same spot as the Queen
+		//
+		// We note that we don't have to do all the adding and removing business
+		// that we do in getMoves() because 
 		List<Pair> protected_squares = new Rook(row, column, colour, board).getProtectedSquares();
 		protected_squares.addAll(new Bishop(row, column, colour, board).getProtectedSquares());
 

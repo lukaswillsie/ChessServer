@@ -21,7 +21,7 @@ public class Bishop extends Piece {
 		Piece pinner = board.isPinned(this);
 		// If this Bishop isn't pinned, move as normal
 		if(pinner == null) {
-			return getNormalMoves();
+			return board.getLegal(getNormalMoves(), colour);
 		}
 		// If a Bishop is pinned by a Rook, the Bishop can't move at all
 		else if (pinner instanceof Rook){
@@ -56,6 +56,9 @@ public class Bishop extends Piece {
 				if(!board.isEmpty(checkRow, checkColumn)) {
 					break;
 				}
+				
+				checkRow += rowIncrement;
+				checkColumn += columnIncrement;
 			}
 			
 			rowIncrement *= -1;
@@ -67,9 +70,12 @@ public class Bishop extends Piece {
 			// won't be movable
 			while(board.isMovable(checkRow, checkColumn, colour)) {
 				moves.add(new Pair(checkRow, checkColumn));
+				
+				checkRow += rowIncrement;
+				checkColumn += columnIncrement;
 			}
 			
-			return moves;
+			return board.getLegal(moves, colour);
 		}
 	}
 	

@@ -209,11 +209,10 @@ public class Board {
 	public boolean isCheckmate(Colour colour) {
 		// A colour is in checkmate if its King is in check, all the squares
 		// around it are protected by enemy pieces (it's getMoves() is emtpy),
-		// and no allied pieces can block the check, or take the checking
-		// piece (note that if a King is being checked by multiple pieces and
-		// all its surrounding squares are protected, it is guaranteed to be
-		// in checkmate, since no single move can block more than one check)
-		return false;
+		// and no allied pieces can move and block or break the check
+		return this.getKing(colour) != null
+			&& this.getKing(colour).getMoves().size() == 0
+			&& this.getMoves(colour).size() == 0;
 	}
 	
 	/**
@@ -279,7 +278,6 @@ public class Board {
 			}								  // to move and escape check
 			
 			Piece checkingPiece = checkingPieces.get(0);
-			System.out.println("Checking Piece Square:" + new Pair(checkingPiece.getRow(), checkingPiece.getColumn()));
 			
 			// Obtain a list of all squares that can be moved to that will
 			// block the checking piece
@@ -287,7 +285,6 @@ public class Board {
 			
 			List<Pair> legalMoves = new ArrayList<Pair>();
 			for(Pair move : moves) {
-				System.out.println("Analyzing move " + move + "...");
 				// A move is legal if it blocks or captures the checker
 				if(blockingMoves.contains(move)
 				|| move.equals(new Pair(checkingPiece.getRow(), checkingPiece.getColumn()))) {
@@ -321,7 +318,7 @@ public class Board {
 	 * @param piece - A blockable (Queen, Bishop, or Rook) Piece
 	 * @return
 	 */
-	public List<Pair> getBlockingSquares(Piece piece) {		
+	private List<Pair> getBlockingSquares(Piece piece) {		
 		// Obtain a reference to the King this piece is giving check to
 		Piece king = getKing((piece.getColour() == Colour.WHITE) ? Colour.BLACK : Colour.WHITE);
 		
