@@ -273,26 +273,40 @@ public class Board {
 	public List<Pair> getLegal(List<Pair> moves, Colour colour) {
 		if(this.isCheck(colour)) {
 			List<Piece> checkingPieces = this.getCheckingPieces(colour);
-			if(checkingPieces.size() > 1) {   // If the colur's King is being checked by multiple pieces
+			if(checkingPieces.size() > 1) {   // If the colour's King is being checked by multiple pieces
 				return new ArrayList<Pair>(); // The only valid move for that whole colour is for the King
 			}								  // to move and escape check
 			
 			Piece checkingPiece = checkingPieces.get(0);
 			
-			// Obtain a list of all squares that can be moved to that will
-			// block the checking piece
-			List<Pair> blockingMoves = this.getBlockingSquares(checkingPiece);
-			
-			List<Pair> legalMoves = new ArrayList<Pair>();
-			for(Pair move : moves) {
-				// A move is legal if it blocks or captures the checker
-				if(blockingMoves.contains(move)
-				|| move.equals(new Pair(checkingPiece.getRow(), checkingPiece.getColumn()))) {
-					legalMoves.add(move);
+			if(this.isBlockable(checkingPiece)) {
+				// Obtain a list of all squares that can be moved to that will
+				// block the checking piece
+				List<Pair> blockingMoves = this.getBlockingSquares(checkingPiece);
+				
+				List<Pair> legalMoves = new ArrayList<Pair>();
+				for(Pair move : moves) {
+					// A move is legal if it blocks or captures the checker
+					if(blockingMoves.contains(move)
+					|| move.equals(new Pair(checkingPiece.getRow(), checkingPiece.getColumn()))) {
+						legalMoves.add(move);
+					}
 				}
+				
+				return legalMoves;
 			}
-			
-			return legalMoves;
+			else {
+				List<Pair> legalMoves = new ArrayList<Pair>();
+				for(Pair move : moves) {
+					// A move is legal only if it captures the checker, since the checker isn't blockable
+					if(move.equals(new Pair(checkingPiece.getRow(), checkingPiece.getColumn()))) {
+						legalMoves.add(move);
+						break; // There is only a single possible legal move, so break after we find it
+					}
+				}
+				
+				return legalMoves;
+			}
 		}
 		else { // If the piece's colour is not in check, all moves it can make are legal
 			return moves;
