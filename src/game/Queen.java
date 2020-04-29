@@ -1,5 +1,6 @@
 package game;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import utility.Pair;
@@ -12,27 +13,151 @@ public class Queen extends Piece {
 
 	@Override
 	public List<Pair> getMoves() {
-		// Since the Queen is essentially just a Bishop and Rook at the same time,
-		// prevent copying code by making use of the versions of getMoves() in
-		// Rook and Bishop
-		//
-		// We have to keep adding and removing because we need the board to think a
-		// Rook/Bishop is actually occupying the square
-		board.removePiece(this);
-		
-		Rook rook = new Rook(row, column, colour, board);
-		board.addPiece(rook);
-		List<Pair> moves = rook.getMoves();
-		board.removePiece(rook);
-		
-		Bishop bishop = new Bishop(row, column, colour, board);
-		board.addPiece(bishop);
-		moves.addAll(bishop.getMoves());
-		board.removePiece(bishop);
-
-		board.addPiece(this);
-		return moves;
+		Piece pinner = board.isPinned(this);
+		if(pinner == null) {
+			return board.getLegal(getNormalMoves(), colour);
+		}
+		else {
+			// The Queen can only move toward and away from the pinning piece
+			// without exposing its King. Determine what direction constitutes
+			// "toward" the pinning piece
+			int rowDirection = sign(pinner.getRow() - pinner.getColumn());
+			int columnDirection = sign(pinner.getColumn() - pinner.getColumn());
+			
+			List<Pair> moves = new ArrayList<Pair>();
+			
+			// Travel toward pinner, until we run into it, adding every single square
+			// encounter in the process, including the square occupied by pinner
+			int checkRow = this.row+rowDirection;
+			int checkColumn = this.column+columnDirection;
+			while(board.isMovable(checkRow, checkColumn, colour)) {
+				moves.add(new Pair(checkRow, checkColumn));
+				
+				// Break once we've hit pinner, because we can't go any farther
+				if(board.getPiece(checkRow, checkColumn) == pinner) {
+					break;
+				}
+				
+				checkRow += rowDirection;
+				checkColumn += columnDirection;
+			}
+			
+			
+			// Do the exact same thing, except now we're traveling in the opposite direction,
+			// toward the Queen's King.
+			rowDirection *= -1;
+			columnDirection *= -1;
+			
+			// Travel toward the Queen's King until we run into it, without adding the
+			// square it's occupying
+			checkRow = this.row+rowDirection;
+			checkColumn = this.column+columnDirection;
+			while(board.isMovable(checkRow, checkColumn, colour)) {
+				moves.add(new Pair(checkRow, checkColumn));
+				
+				checkRow += rowDirection;
+				checkColumn += columnDirection;
+			}
+			
+			return board.getLegal(moves, colour);
+		}
 	}	
+	
+	/**
+	 * Return the sign of the given integer, or 0 if it is 0
+	 * @param num - The integer whose sign should be computed
+	 * @return -1 if num < 0, 1 if num > 0 and 0 if num == 0
+	 */
+	private int sign(int num) {
+		if(num > 0) {
+			return 1;
+		}
+		else if (num == 0) {
+			return 0;
+		}
+		else {
+			return -1;
+		}
+	}
+	
+	/**
+	 * Compute where this piece can move to by only considering the rules governing
+	 * this piece's movement, without consideration of, for example, whether or not
+	 * moving this piece places the King in check.
+	 * 
+	 * @return A List of Pairs representing all the squares that this piece can move to,
+	 * according to the rules of Chess governing the movement of a Bishop
+	 */
+	private List<Pair> getNormalMoves() {
+		List<Pair> moves = new ArrayList<Pair>();
+		
+		// Iterate along all 4 diagonals until the edge of the
+		// board or another piece is reached
+		int[] row_increments =    {1,  1, -1, -1};
+		int[] column_increments = {1, -1, -1,  1};
+		
+		// Iterate from the Queen outward along all diagonals until we hit the edge
+		// of the board or a piece, adding it to moves if it's an enemy
+		int check_row = row;
+		int check_column = column;
+		int row_increment, column_increment;
+		for(int i = 0; i < row_increments.length; i++) {
+			row_increment = row_increments[i];
+			column_increment = column_increments[i];
+			
+			check_row += row_increment;
+			check_column += column_increment;
+			while(board.isMovable(check_row, check_column, colour)) { 
+				moves.add(new Pair(check_row, check_column));
+				
+				// If we've hit an enemy piece, we can't go any farther
+				if(!board.isEmpty(check_row, check_column)) {
+					break;
+				}
+				
+				check_row += row_increment;
+				check_column += column_increment;
+			}
+			
+			check_row = row;
+			check_column = column;
+		}
+		
+		// Arrays used to automate checking the Queen's row and column
+		int[] row_offsets = 	  {0, 1,  0, -1};
+		int[] column_offsets = {1, 0, -1,  0};
+		
+		// Iterate from the Queen outward in both directions along its row
+		// and column until the edge of the board or a piece is reached
+		check_row = row;
+		check_column = column;
+		row_increment = 0;
+		column_increment = 0;
+		for(int i = 0; i < row_offsets.length; i++) {
+			row_increment = row_offsets[i];
+			column_increment = column_offsets[i];
+			
+			check_row += row_increment;
+			check_column += column_increment;
+			while(board.isMovable(check_row, check_column, colour)) {
+				moves.add(new Pair(check_row, check_column));
+				
+				// If we've hit an enemy piece, stop because the Queen can't move any farther
+				if(!board.isEmpty(check_row, check_column) &&
+				    board.getPiece(check_row, check_column).colour != colour) {
+					break;
+				}
+				
+				check_row += row_increment;
+				check_column += column_increment;
+			}
+			
+			check_row = row;
+			check_column = column;
+		}
+		
+		return moves;
+	}
 
 	/**
 	 * Compute all squares that this piece is PROTECTING. A protected
@@ -50,15 +175,86 @@ public class Queen extends Piece {
 	 */
 	@Override
 	public List<Pair> getProtectedSquares() {
-		// Since the Queen is basically a Rook and Bishop simultaneously,
-		// farm out the work to a pretend Bishop and Rook occupying the
-		// same spot as the Queen
-		//
-		// We note that we don't have to do all the adding and removing business
-		// that we do in getMoves() because 
-		List<Pair> protected_squares = new Rook(row, column, colour, board).getProtectedSquares();
-		protected_squares.addAll(new Bishop(row, column, colour, board).getProtectedSquares());
-
+		List<Pair> protected_squares = new ArrayList<Pair>();
+		
+		// Arrays used to automate checking the Queen's row and column
+		int[] row_increments = 	  {0, 1,  0, -1};
+		int[] column_increments = {1, 0, -1,  0};
+		
+		// Iterate from the Queen outward in both directions along its row
+		// and column until the edge of the board or a piece is reached
+		int check_row = row;
+		int check_column = column;
+		int row_increment = 0;
+		int column_increment = 0;
+		for(int i = 0; i < row_increments.length; i++) {
+			row_increment = row_increments[i];
+			column_increment = column_increments[i];
+			
+			check_row += row_increment;
+			check_column += column_increment;
+			// Iterate until we hit the edge of the board or a piece
+			while(board.isMovable(check_row, check_column, colour)) {		
+				protected_squares.add(new Pair(check_row, check_column));
+				
+				// If we've hit an enemy piece, stop because the Queen can't move any farther
+				if(!board.isEmpty(check_row, check_column) &&
+				    board.getPiece(check_row, check_column).colour != colour) {
+					break;
+				}
+				
+				check_row += row_increment;
+				check_column += column_increment;
+			}
+			
+			if(board.isPiece(check_row, check_column) &&
+			   board.getPiece(check_row, check_column).getColour() == colour) {
+				protected_squares.add(new Pair(check_row, check_column));
+			}
+			
+			check_row = row;
+			check_column = column;
+		}
+		
+		// Iterate along all 4 diagonals until the edge of the
+		// board or another piece is reached
+		int[] row_offsets =    {1,  1, -1, -1};
+		int[] column_offsets = {1, -1, -1,  1};
+		
+		
+		// Iterate from the Queen outward along all diagonals until we hit
+		// a piece or the edge of the board, and add any allied pieces
+		// encountered this way
+		check_row = row;
+		check_column = column;
+		for(int i = 0; i < row_offsets.length; i++) {
+			row_increment = row_offsets[i];
+			column_increment = column_offsets[i];
+			
+			check_row += row_increment;
+			check_column += column_increment;
+			while(board.isMovable(check_row, check_column, colour)) { 
+				protected_squares.add(new Pair(check_row, check_column));
+				
+				// If we've hit an enemy piece, we can't go any farther
+				if(!board.isEmpty(check_row, check_column)) {
+					break;
+				}
+				
+				check_row += row_increment;
+				check_column += column_increment;
+			}
+			
+			// Check if there's an ally piece that this piece is protecting
+			if(board.isPiece(check_row, check_column) &&
+			   board.getPiece(check_row, check_column).getColour() == colour) {
+				protected_squares.add(new Pair(check_row, check_column));
+			}
+			
+			check_row = row;
+			check_column = column;
+		}
+		
 		return protected_squares;
 	}
 	
