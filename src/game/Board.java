@@ -259,6 +259,180 @@ public class Board {
 	}
 	
 	/**
+	 * Takes a list of squares representing moves that can be made by a non-King piece of the given colour.
+	 * Returns the subset of the given list containing all legal moves, taking into account
+	 * whether or not the King is in check. This method exists because if a piece's King is in
+	 * check, it can only make moves that take the King out of check, and a Piece by itself
+	 * does not have the information to take this into account.
+	 * 
+	 * If the given colour is NOT in check, simply returns the original list.
+	 * 
+	 * @param moves - The list of moves to pare down according to legality
+	 * @param colour - The colour that the moves belong to
+	 * @return A subset of the given list containing all the legal moves in the original list
+	 */
+	public List<Pair> getLegal(List<Pair> moves, Colour colour) {
+		if(this.isCheck(colour)) {
+			List<Piece> checkingPieces = this.getCheckingPieces(colour);
+			if(checkingPieces.size() > 1) {   // If the colur's King is being checked by multiple pieces
+				return new ArrayList<Pair>(); // The only valid move for that whole colour is for the King
+			}								  // to move and escape check
+			
+			Piece checkingPiece = checkingPieces.get(0);
+			System.out.println("Checking Piece Square:" + new Pair(checkingPiece.getRow(), checkingPiece.getColumn()));
+			
+			// Obtain a list of all squares that can be moved to that will
+			// block the checking piece
+			List<Pair> blockingMoves = this.getBlockingSquares(checkingPiece);
+			
+			List<Pair> legalMoves = new ArrayList<Pair>();
+			for(Pair move : moves) {
+				System.out.println("Analyzing move " + move + "...");
+				// A move is legal if it blocks or captures the checker
+				if(blockingMoves.contains(move)
+				|| move.equals(new Pair(checkingPiece.getRow(), checkingPiece.getColumn()))) {
+					legalMoves.add(move);
+				}
+			}
+			
+			return legalMoves;
+		}
+		else { // If the piece's colour is not in check, all moves it can make are legal
+			return moves;
+		}
+	}
+	
+	/**
+	 * Assuming that piece is a BLOCKABLE piece (see below method) and is currently
+	 * checking the King of the opposite colour, return all squares such that, if there
+	 * was a piece of the opposite colour there, the check would be broken. For example:
+	 * 
+	 * r
+	 * X
+	 * X
+	 * X
+	 * K
+	 * 
+	 * Every square between the Black Rook and White King is a blocking square here, for
+	 * the rook.
+	 * 
+	 * Result is undefined if piece is not blockable, or is not checking the enemy King.
+	 * 
+	 * @param piece - A blockable (Queen, Bishop, or Rook) Piece
+	 * @return
+	 */
+	public List<Pair> getBlockingSquares(Piece piece) {		
+		// Obtain a reference to the King this piece is giving check to
+		Piece king = getKing((piece.getColour() == Colour.WHITE) ? Colour.BLACK : Colour.WHITE);
+		
+		// Since piece must either be a Queen, Bishop, or Rook, we assume that we can
+		// get from the king to piece by moving either in a diagonal or a straight line.
+		// That is, we start at the King and add one of 1, -1, or 0 each to row and column
+		// until we hit piece. So we simply determine what direction we're moving in with
+		// respect to the row and column, and add each empty square found until we
+		// encounter the given piece.
+		int rowDirection = sign(piece.getRow() - king.getRow());
+		int columnDirection = sign(piece.getColumn() - king.getColumn());
+		
+		List<Pair> blockingSquares = new ArrayList<Pair>();
+		
+		int checkRow = king.getRow()+rowDirection;
+		int checkColumn = king.getColumn()+columnDirection;
+		// Travel toward piece, adding every empty square we find until we hit piece,
+		// at which point our while loop will break
+		while(this.validSquare(checkRow, checkColumn) && this.isEmpty(checkRow, checkColumn) ) {
+			blockingSquares.add(new Pair(checkRow, checkColumn));
+			
+			checkRow += rowDirection;
+			checkColumn += columnDirection;
+		}
+		
+		return blockingSquares;
+	}
+	
+	/**
+	 * Return the King with the given colour, or null if no such King exists
+	 * 
+	 * @param colour - The colour whose King should be searched for.
+	 * @return A reference to the King with the given colour
+	 */
+	private Piece getKing(Colour colour) {
+		List<Piece> pieceList = (colour == Colour.WHITE) ? this.whitePieces : this.blackPieces;
+		
+		for(Piece piece : pieceList) {
+			if(piece instanceof King) {
+				return piece;
+			}
+		}
+		
+		return null;
+	}
+	
+	/**
+	 * Return the sign of the given integer, or 0 if it is 0
+	 * @param num - The integer whose sign should be computed
+	 * @return -1 if num < 0, 1 if num > 0 and 0 if num == 0
+	 */
+	private int sign(int num) {
+		if(num > 0) {
+			return 1;
+		}
+		else if (num == 0) {
+			return 0;
+		}
+		else {
+			return -1;
+		}
+	}
+	
+	
+	/**
+	 * Compute whether or not the given piece is blockable, meaning generally that
+	 * if it is giving check to the enemy King, it is theoretically feasible for
+	 * an enemy piece to be placed such that the check is broken, without capturing
+	 * the piece.
+	 * 
+	 * The blockable pieces are Queens, Bishops, and Rooks.
+	 * 
+	 * The unblockable pieces are Pawns, Knights, and Kings
+	 * 
+	 * @param piece
+	 * @return
+	 */
+	private boolean isBlockable(Piece piece) {
+		return piece instanceof Queen
+			|| piece instanceof Bishop
+			|| piece instanceof Rook;
+	}
+	
+	/**
+	 * Return a list of pieces checking the given colour's King.
+	 * Empty if the given colour is not in check.
+	 * 
+	 * @param colour - The colour whose King's checkers we are returning
+	 * @return A list of Pieces checking the given colour's King
+	 */
+	private List<Piece> getCheckingPieces(Colour colour) {
+		List<Piece> enemyPieces = (colour == Colour.WHITE) ? this.blackPieces : this.whitePieces;
+		
+		Piece king = getKing(colour);
+		if(king == null) {
+			return new ArrayList<Piece>();
+		}
+		Pair kingSquare = new Pair(king.getRow(), king.getColumn());
+		
+		List<Piece> checkers = new ArrayList<Piece>();
+		
+		for(Piece enemy : enemyPieces) {
+			if(enemy.getMoves().contains(kingSquare)) {
+				checkers.add(enemy);
+			}
+		}
+		
+		return checkers;
+	}
+	
+	/**
 	 * Compute whether or not a piece with the given colour could move to
 	 * the given square, either because it is empty or there is an enemy
 	 * piece on it.
