@@ -151,48 +151,43 @@ public class Rook extends Piece {
 	 */
 	@Override
 	public List<Pair> getProtectedSquares() {
-		List<Pair> protected_squares = new ArrayList<Pair>();
+		List<Pair> protectedSquares = new ArrayList<Pair>();
 		
 		// Arrays used to automate checking the Rook's row and column
-		int[] row_increments = 	  {0, 1,  0, -1};
-		int[] column_increments = {1, 0, -1,  0};
+		int[] rowIncrements = 	  {0, 1,  0, -1};
+		int[] columnIncrements =  {1, 0, -1,  0};
 		
 		// Iterate from the Rook outward in both directions along its row
-		// and column until the edge of the board or a piece is reached
-		int check_row = row;
-		int check_column = column;
-		int row_increment = 0;
-		int column_increment = 0;
-		for(int i = 0; i < row_increments.length; i++) {
-			row_increment = row_increments[i];
-			column_increment = column_increments[i];
+		// and column until the edge of the board or a piece is reached,
+		// adding all empty squares and allies encountered
+		int checkRow = row;
+		int checkColumn = column;
+		int rowIncrement = 0;
+		int columnIncrement = 0;
+		for(int i = 0; i < rowIncrements.length; i++) {
+			rowIncrement = rowIncrements[i];
+			columnIncrement = columnIncrements[i];
 			
-			check_row += row_increment;
-			check_column += column_increment;
-			// Iterate until we hit the edge of the board or a piece
-			while(board.isMovable(check_row, check_column, colour)) {		
-				protected_squares.add(new Pair(check_row, check_column));
+			checkRow += rowIncrement;
+			checkColumn += columnIncrement;
+			// Iterate until we run into the edge of the board or a piece
+			while(board.isEmpty(checkRow, checkColumn)) {		
+				protectedSquares.add(new Pair(checkRow, checkColumn));
 				
-				// If we've hit an enemy piece, stop because the Rook can't move any farther
-				if(!board.isEmpty(check_row, check_column) &&
-				    board.getPiece(check_row, check_column).colour != colour) {
-					break;
-				}
-				
-				check_row += row_increment;
-				check_column += column_increment;
+				checkRow += rowIncrement;
+				checkColumn += columnIncrement;
+			}
+			// Check if we've run into an ally piece that we are protecting
+			if(board.isPiece(checkRow, checkColumn) &&
+			   board.getPiece(checkRow, checkColumn).getColour() == colour) {
+				protectedSquares.add(new Pair(checkRow, checkColumn));
 			}
 			
-			if(board.isPiece(check_row, check_column) &&
-			   board.getPiece(check_row, check_column).getColour() == colour) {
-				protected_squares.add(new Pair(check_row, check_column));
-			}
-			
-			check_row = row;
-			check_column = column;
+			checkRow = row;
+			checkColumn = column;
 		}
 		
-		return protected_squares;
+		return protectedSquares;
 	}
 	
 	/**

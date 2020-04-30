@@ -158,7 +158,7 @@ public class Bishop extends Piece {
 	 */
 	@Override
 	public List<Pair> getProtectedSquares() {
-		List<Pair> protected_squares = new ArrayList<Pair>();
+		List<Pair> protectedSquares = new ArrayList<Pair>();
 		
 		// Iterate along all 4 diagonals until the edge of the
 		// board or another piece is reached
@@ -167,40 +167,36 @@ public class Bishop extends Piece {
 		
 		
 		// Iterate from the Bishop outward along all diagonals until we hit
-		// a piece or the edge of the board, and add any allied pieces
-		// encountered this way
-		int check_row = row;
-		int check_column = column;
+		// a piece or the edge of the board, adding all empty squares
+		// and ally pieces encountered
+		int checkRow = row;
+		int checkColumn = column;
 		int row_increment, column_increment;
 		for(int i = 0; i < row_increments.length; i++) {
 			row_increment = row_increments[i];
 			column_increment = column_increments[i];
 			
-			check_row += row_increment;
-			check_column += column_increment;
-			while(board.isMovable(check_row, check_column, colour)) { 
-				protected_squares.add(new Pair(check_row, check_column));
+			checkRow += row_increment;
+			checkColumn += column_increment;
+			// Iterate until we run into the edge of the board or a piece
+			while(board.isEmpty(checkRow, checkColumn)) { 				
+				protectedSquares.add(new Pair(checkRow, checkColumn));
 				
-				// If we've hit an enemy piece, we can't go any farther
-				if(!board.isEmpty(check_row, check_column)) {
-					break;
-				}
-				
-				check_row += row_increment;
-				check_column += column_increment;
+				checkRow += row_increment;
+				checkColumn += column_increment;
 			}
 			
-			// Check if there's an ally piece that this piece is protecting
-			if(board.isPiece(check_row, check_column) &&
-			   board.getPiece(check_row, check_column).getColour() == colour) {
-				protected_squares.add(new Pair(check_row, check_column));
+			// Check if we ran into an ally piece that we are protecting
+			if(board.isPiece(checkRow, checkColumn) &&
+			   board.getPiece(checkRow, checkColumn).getColour() == colour) {
+				protectedSquares.add(new Pair(checkRow, checkColumn));
 			}
 			
-			check_row = row;
-			check_column = column;
+			checkRow = row;
+			checkColumn = column;
 		}
 		
-		return protected_squares;
+		return protectedSquares;
 	}
 	
 	/**
