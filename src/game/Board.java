@@ -60,6 +60,11 @@ public class Board {
 	// A list of all black Pieces currently on the board
 	private List<Piece> blackPieces;
 	
+	// Keeps track of what colour's turn it is. Is set during initialization,
+	// through the constructor, and cannot be changed after that, except of
+	// course by making a move. Defaults to White.
+	private Colour turn = Colour.WHITE;
+	
 	// Keeps track of whether or not there's a square that can be moved
 	// to as part of an "en passant" move. There should only be one
 	// of these at a time, as the ability for a player to make such
@@ -67,6 +72,14 @@ public class Board {
 	// reset to null. If that move was a pawn's initial double move,
 	// this should be updated accordingly
 	public Pair enPassant;
+	
+	public Board(Colour turn) {
+		this.board = new Piece[8][8];
+		this.whitePieces = new ArrayList<Piece>();
+		this.blackPieces = new ArrayList<Piece>();
+		this.enPassant = null;
+		this.turn = turn;
+	}
 	
 	public Board() {
 		this.board = new Piece[8][8];
@@ -80,10 +93,9 @@ public class Board {
 	 * to destSquare. Fails and returns 1 if the given move is invalid;
 	 * i.e. if the move is not in the Piece at srcSquares getMoves(), or if
 	 * there is no piece at srcSquare
-	 * @return
+	 * @return 0 if the move is successfully made, 1 otherwise
 	 */
 	public int move(Pair srcSquare, Pair destSquare) {
-		
 		// If either the source or the destination is off the board, or there is
 		// no piece at the given source square
 		if( !this.validSquare(srcSquare.first(), srcSquare.second())
@@ -93,6 +105,10 @@ public class Board {
 		}
 		else {
 			Piece piece = this.getPiece(srcSquare.first(), srcSquare.second());
+			// If the wrong colour is trying to make a move
+			if(piece.getColour() != this.turn) {
+				return 1;
+			}
 			
 			// If the destination is one of piece's valid moves
 			if(piece.getMoves().contains(destSquare)) {
@@ -136,6 +152,9 @@ public class Board {
 						this.enPassant = new Pair(srcSquare.first()+direction, srcSquare.second());
 					}
 				}
+				
+				// Flip turn
+				this.turn = (this.turn == Colour.WHITE) ? Colour.BLACK : Colour.WHITE;
 				
 				return 0;
 			}
