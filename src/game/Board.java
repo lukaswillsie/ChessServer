@@ -22,8 +22,11 @@ import utility.Pair;
  * 		Q - Queen <br>
  * 		K - King <br>
  * 		X - empty square <br>
+ * 		E - en passant square (see below) <br>
  * UPPERCASE letters represent white pieces <br>
  * LOWERCASE letters represent black pieces <br>
+ * 'E' - represents an en passant square. That is, if the LAST MOVE made was by a pawn
+ * moving two squares ahead, an E should be placed on the square the pawn hopped over.
  * <br>
  * The board should be oriented the same way as the actual board, from
  * white's perspective. That is, the first line of the file should be black's
@@ -57,10 +60,89 @@ public class Board {
 	// A list of all black Pieces currently on the board
 	private List<Piece> blackPieces;
 	
+	// Keeps track of whether or not there's a square that can be moved
+	// to as part of an "en passant" move. There should only be one
+	// of these at a time, as the ability for a player to make such
+	// a move is limited to one turn. After a move is made, it should be
+	// reset to null. If that move was a pawn's initial double move,
+	// this should be updated accordingly
+	public Pair enPassant;
+	
 	public Board() {
 		this.board = new Piece[8][8];
 		this.whitePieces = new ArrayList<Piece>();
 		this.blackPieces = new ArrayList<Piece>();
+		this.enPassant = null;
+	}
+	
+	/**
+	 * Makes the given move; attempts to move the piece at srcSquare
+	 * to destSquare. Fails and returns 1 if the given move is invalid;
+	 * i.e. if the move is not in the Piece at srcSquares getMoves(), or if
+	 * there is no piece at srcSquare
+	 * @return
+	 */
+	public int move(Pair srcSquare, Pair destSquare) {
+		
+		// If either the source or the destination is off the board, or there is
+		// no piece at the given source square
+		if( !this.validSquare(srcSquare.first(), srcSquare.second())
+		 ||  this.getPiece(srcSquare.first(), srcSquare.second()) == null
+		 || !this.validSquare(destSquare.first(), destSquare.second())) {
+			return 1;
+		}
+		else {
+			Piece piece = this.getPiece(srcSquare.first(), srcSquare.second());
+			
+			// If the destination is one of piece's valid moves
+			if(piece.getMoves().contains(destSquare)) {
+				// Tell piece that its location on the board has changed
+				piece.move(destSquare.first(), destSquare.second());
+				
+				// Check if the destination is a piece, in which case the move is a capture
+				// and we need to remove the captured piece from the proper list
+				Piece dest = this.getPiece(destSquare.first(), destSquare.second());
+				if(dest != null) {
+					List<Piece> pieceList = (dest.getColour() == Colour.WHITE) ? this.whitePieces : this.blackPieces;
+					pieceList.remove(dest);
+				}
+				// If this is an en passant capture
+				else if (destSquare.equals(this.enPassant)) {
+					Colour enemyColour = (piece.getColour() == Colour.WHITE) ? Colour.BLACK : Colour.WHITE;
+					int direction = (enemyColour == Colour.WHITE) ? 1 : -1;
+					
+					// Get the pawn which must have opened up the en passant square and capture it
+					Piece capture = this.getPiece(destSquare.first()+direction, destSquare.second());
+					List<Piece> pieceList = (capture.getColour() == Colour.WHITE) ? this.whitePieces : this.blackPieces;
+					board[capture.getRow()][capture.getColumn()] = null;
+					pieceList.remove(capture);
+				}
+				
+				// Actually move the piece on the board
+				board[piece.getRow()][piece.getColumn()] = piece;
+				board[srcSquare.first()][srcSquare.second()] = null;
+				
+				// Reset en passant after every move
+				this.enPassant = null;
+				
+				// We need to check if a new en passant square has opened up
+				if(piece instanceof Pawn) {
+					int direction = (piece.getColour() == Colour.WHITE) ? 1 : -1;
+					
+					// If the pawn moved 2 squares forward
+					if(destSquare.first() - srcSquare.first() == 2 * direction) {
+						// The new en passant square is the one between where the piece used
+						// to be and where it is now
+						this.enPassant = new Pair(srcSquare.first()+direction, srcSquare.second());
+					}
+				}
+				
+				return 0;
+			}
+			else {
+				return 1;
+			}
+		}
 	}
 	
 	// This method is for testing purposes only
@@ -118,7 +200,7 @@ public class Board {
 	 * the beginning of a correctly-formatted board data file. See class Javadoc for details.
 	 * 
 	 * @param scanner - A Scanner open to the beginning of a valid board data file
-	 * @return 0 if the initialization succeeded; no invalid input was encountered, and 1 if otherwise
+	 * @return 0 if the initialization succeeded and no invalid input was encountered, 1 if otherwise
 	 */
 	public int initialize(Scanner scanner) {
 		int row = 7;
@@ -149,6 +231,8 @@ public class Board {
 						break;
 					case 'x':
 						break;
+					case 'e':
+						this.enPassant = new Pair(row, column);
 					default:
 						return 1;
 						
@@ -646,6 +730,30 @@ public class Board {
 		return moves;
 	}
 	
+	/**
+	 * Assuming that the given square is diagonally in front of the given pawn,
+	 * compute whether or not moving to the given square is a valid EN PASSANT
+	 * move for the pawn.
+	 * 
+	 * @param square - The square under consideration
+	 * @param pawn - The pawn under consideration
+	 * @return true if and only if 
+	 */
+	public boolean isEnPassant(Pair square, Pawn pawn) {
+		if(pawn.getColour() == Colour.WHITE) {
+			// If the Pawn is White, the only en passant moves it can make are into
+			// the row directly in front of Black's pawns; row 5. This makes sure that
+			// a White pawn can never accidentally capture an ally Pawn in en passant
+			return square != null && square.equals(this.enPassant) && square.first() == 5;
+		}
+		else {
+			// If the Pawn is Black, the only en passant moves it can make are into
+			// the row directly in front of White's pawns; row 2. This makes sure that
+			// a Black pawn can never accidentally capture an ally Pawn in en passant
+			return square != null && square.equals(this.enPassant) && square.first() == 2;			
+		}
+	}
+ 	
 	/**
 	 * Return a list of every single square that pieces with the given colour
 	 * are protecting, sorted according to the ordering imposed on Pairs.
