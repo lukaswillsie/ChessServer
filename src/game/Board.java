@@ -1,5 +1,7 @@
 package game;
 
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -12,9 +14,23 @@ import utility.Pair;
  * initialize(FileOutputStream stream) method, where stream is an open
  * board data file. <br>
  * <br>
- * Board data files are formatted as follows. They are 8 rows of 8 characters
- * each, not including newlines, with letters used to represent chess pieces as
- * follows: <br>
+ * Board data files are formatted as follows. 
+ * First there are 4 lines, each of which contains a single digit; either 0 or 1.
+ * They represent boolean values (0 false, 1 true) and should be interpreted as follows:
+ * 
+ * whiteCanQueensideCastle
+ * whiteCanKingsideCastle
+ * blackCanQueensideCastle
+ * blackCanKingsideCastle
+ *
+ * Where "colourCanQueensideCastle" means that colour's King hasn't
+ * moved this game, and neither has colour's Queenside Rook. Similarly for
+ * colourCanKingsideCastle. This information needs to be stored in files,
+ * because it can't always be gleaned from just looking at the board whether
+ * or not a piece has moved, as it could have done so and returned to its initial position.
+ * 
+ * Then, there are 8 rows of 8 characters each, not including newlines, with letters used
+ * to represent chess pieces as follows: <br>
  * 		P - Pawn <br>
  * 		R - Rook <br>
  * 		N - Knight <br>
@@ -30,11 +46,18 @@ import utility.Pair;
  * <br>
  * The board should be oriented the same way as the actual board, from
  * white's perspective. That is, the first line of the file should be black's
- * back row and  the last line white's back row.
+ * back row and  the last line white's back row.<br>
  * 
- * As an example, this is what the board should look like before any moves have
+ * Finally, the last line should contain either 0 or 1; 0 if it is currently white's turn,
+ * 1 if it is currently black's turn. <br>
+ * 
+ * As an example, this is what a board file would look like before any moves have
  * been made: <br>
  * <br>
+ * 1
+ * 1
+ * 1
+ * 1
  * rnbqkbnr <br>
  * pppppppp <br>
  * XXXXXXXX <br>
@@ -43,6 +66,7 @@ import utility.Pair;
  * XXXXXXXX <br>
  * PPPPPPPP <br>
  * RNBQKBNR <br>
+ * 0
  * 
  * @author Lukas Willsie
  */
@@ -60,10 +84,10 @@ public class Board {
 	// A list of all black Pieces currently on the board
 	private List<Piece> blackPieces;
 	
-	// Keeps track of what colour's turn it is. Is set during initialization,
-	// through the constructor, and cannot be changed after that, except of
-	// course by making a move. Defaults to White.
-	private Colour turn = Colour.WHITE;
+	// Keeps track of what colour's turn it is. Is set when a game is loaded in through
+	// the initialize() method. This information is stored in a game's board data file
+	// as a 1 or 0; 1 means it's black's turn, 0 means it's white's turn
+	private Colour turn;
 	
 	// Keeps track of whether or not there's a square that can be moved
 	// to as part of an "en passant" move. There should only be one
@@ -73,13 +97,23 @@ public class Board {
 	// this should be updated accordingly
 	public Pair enPassant;
 	
-	public Board(Colour turn) {
-		this.board = new Piece[8][8];
-		this.whitePieces = new ArrayList<Piece>();
-		this.blackPieces = new ArrayList<Piece>();
-		this.enPassant = null;
-		this.turn = turn;
-	}
+	// Booleans that partially track whether or not white/black has the ability to castle.
+	// Specifically, <colour>CanQueensideCastle means that <colour>'s King hasn't
+	// moved this game, and neither has <colour>'s Queenside Rook. Similarly for
+	// <colour>CanKingsideCastle.
+	// Note that there are other conditions that must be met by the board for
+	// a given colour to actually be able to castle; the King can't be in check,
+	// all of the squares between the King and the Rook must be empty, etc. These
+	// booleans just store the prerequisites regarding whether the relevant pieces
+	// have moved.
+	// Since the information stored in these booleans cannot always be deduced from
+	// simply looking at the board, this information is stored in a game's board data file,
+	// (see above) to persist across multiple instances of Board objects, and is loaded
+	// into this object through the initialize() method.
+	private boolean whiteCanQueensideCastle;
+	private boolean whiteCanKingsideCastle;
+	private boolean blackCanQueensideCastle;
+	private boolean blackCanKingsideCastle;
 	
 	public Board() {
 		this.board = new Piece[8][8];
@@ -97,7 +131,7 @@ public class Board {
 	 */
 	public int move(Pair srcSquare, Pair destSquare) {
 		// If either the source or the destination is off the board, or there is
-		// no piece at the given source square
+		// no piece at the given source square, invalid move
 		if( !this.validSquare(srcSquare.first(), srcSquare.second())
 		 ||  this.getPiece(srcSquare.first(), srcSquare.second()) == null
 		 || !this.validSquare(destSquare.first(), destSquare.second())) {
@@ -112,6 +146,46 @@ public class Board {
 			
 			// If the destination is one of piece's valid moves
 			if(piece.getMoves().contains(destSquare)) {
+				// Check if the given move is being made by a King
+				if(piece instanceof King) {
+					// A kingside castle is characterized by a two-square
+					// move to the right by a king
+					if(destSquare.second() - srcSquare.second() == 2) {
+						return this.kingsideCastle(piece.getColour());
+					}
+					// A queenside castle is characterized by a two-square
+					// move to the left by a king
+					else if (destSquare.second() - srcSquare.second() == -2) {
+						return this.queensideCastle(piece.getColour());
+					}
+					// Otherwise, white can't castle anymore because the King
+					// has moved and we need to record this before proceeding
+					else {
+						if(piece.getColour() == Colour.WHITE) {
+							this.whiteCanKingsideCastle = false;
+							this.whiteCanQueensideCastle = false;
+						}
+						else {
+							this.blackCanKingsideCastle = false;
+							this.blackCanQueensideCastle = false;
+						}
+					}
+				}
+				else if(piece instanceof Rook) { // If a rook is moving, we may have to update our castle booleans
+					if(piece.getRow() == 0 && piece.getColumn() == 0) {
+						this.whiteCanQueensideCastle = false;
+					}
+					if(piece.getRow() == 7 && piece.getColumn() == 0) {
+						this.blackCanQueensideCastle = false;
+					}
+					if(piece.getRow() == 0 && piece.getColumn() == 7) {
+						this.whiteCanKingsideCastle = false;
+					}
+					if(piece.getRow() == 7 && piece.getColumn() == 7) {
+						this.blackCanKingsideCastle = false;
+					}
+				}				
+				
 				// Tell piece that its location on the board has changed
 				piece.move(destSquare.first(), destSquare.second());
 				
@@ -164,6 +238,95 @@ public class Board {
 		}
 	}
 	
+	/**
+	 * "Pick up" the given piece (assumed to be on the board). This means that the board
+	 * can be processed as if the piece isn't there; as if it's been literally picked up,
+	 * with
+	 * 
+	 * @param piece
+	 */
+	public void pickUp(Piece piece) {
+		board[piece.getRow()][piece.getColumn()] = null;
+	}
+	
+	/**
+	 * Attempt to execute a queenside castle on behalf of the given colour
+	 * 
+	 * @param colour - The colour that is trying to queenside castle
+	 * @return 0 if the castle is successful, 1 otherwise
+	 */
+	private int queensideCastle(Colour colour) {
+		if(!this.canQueensideCastle(colour)) {
+			return 1;
+		}
+		
+		Piece rook = this.getPiece((colour == Colour.WHITE) ? 0 : 7, 0);
+		if(rook == null) { // Check in case our data was entered incorrectly and the rook actually has moved
+			return 1;
+		}
+		
+		Piece king = this.getKing(colour);
+		if(king == null) {
+			return 1;
+		}
+		
+		// Check to make sure that the King can move over two squares
+		if(!this.validSquare(king.getRow(), king.getColumn()-2)) {
+			return 1;
+		}
+
+		// To queenside castle, move the King two squares to the left
+		// and put the queenside rook beside him, on the right
+		board[king.getRow()][king.getColumn()] = null;
+		board[king.getRow()][king.getColumn()-2] = king;
+		king.move(king.getRow(), king.getColumn()-2);
+		
+		board[rook.getRow()][rook.getColumn()] = null;
+		board[king.getRow()][king.getColumn()+1] = rook;
+		
+		rook.move(king.getRow(), king.getColumn()+1);
+		return 0;
+	}
+	
+	/**
+	 * Attempt to execute a kingside castle on behalf of the given colour
+	 * 
+	 * @param colour - The colour that is trying to kingside castle
+	 * @return 0 if the castle is successful, 1 otherwise
+	 */
+	private int kingsideCastle(Colour colour) {
+		if(!this.canKingsideCastle(colour)) {
+			return 1;
+		}
+		
+		Piece rook = this.getPiece((colour == Colour.WHITE) ? 0 : 7, 7);
+		if(rook == null) { // Check in case our data was entered incorrectly and the rook actually has moved
+			return 1;
+		}
+		
+		Piece king = this.getKing(colour);
+		if(king == null) {
+			return 1;
+		}
+		
+		// Check to make sure that the King can move over two squares
+		if(!this.validSquare(king.getRow(), king.getColumn()+2)) {
+			return 1;
+		}
+		
+		// To kingside castle, move the King two squares to the left
+		// and put the kingside rook beside him, on the right
+		board[king.getRow()][king.getColumn()] = null;
+		board[king.getRow()][king.getColumn()+2] = king;
+		king.move(king.getRow(), king.getColumn()+2);
+		
+		board[rook.getRow()][rook.getColumn()] = null;
+		board[king.getRow()][king.getColumn()-1] = rook;
+		
+		rook.move(king.getRow(), king.getColumn()-1);
+		return 0;
+	}
+	
 	// This method is for testing purposes only
 	public void setPiece(Piece piece) {
 		board[piece.getRow()][piece.getColumn()] = piece;
@@ -171,7 +334,8 @@ public class Board {
 	
 	/**
 	 * Add the given piece to the board, at the square given by
-	 * its row and column attributes.
+	 * its row and column attributes. Assumes the piece is not already
+	 * on the board.
 	 * 
 	 * Has no effect if this square is already occupied.
 	 * @param piece - The piece to add to the board
@@ -215,16 +379,50 @@ public class Board {
 	}
 	
 	/**
-	 * Initialize the board using stream, where stream is assumed to be opened at
+	 * Initialize the board using scanner, where scanner is assumed to be opened at
 	 * the beginning of a correctly-formatted board data file. See class Javadoc for details.
 	 * 
 	 * @param scanner - A Scanner open to the beginning of a valid board data file
 	 * @return 0 if the initialization succeeded and no invalid input was encountered, 1 if otherwise
 	 */
 	public int initialize(Scanner scanner) {
+		String line;
+
+		int lineNumber = 0;
+		// Read in the castle booleans
+		while(lineNumber < 4 && scanner.hasNextLine()) {
+			line = scanner.nextLine();
+			
+			try {
+				int bool = Integer.parseInt(line);
+				if(bool > 1 || bool < 0) {
+					return 1;
+				}
+				
+				
+				switch(lineNumber) {
+					case 0:
+						this.whiteCanQueensideCastle = (bool == 1) ? true : false;
+						break;
+					case 1:
+						this.whiteCanKingsideCastle = (bool == 1) ? true : false;
+						break;
+					case 2:
+						this.blackCanQueensideCastle = (bool == 1) ? true : false;
+						break;
+					case 3:
+						this.blackCanKingsideCastle = (bool == 1) ? true : false;
+						break;
+				}
+			}
+			catch(NumberFormatException e) {
+				return 1;
+			}
+			lineNumber++;
+		}
+		
 		int row = 7;
 		int column = 0;
-		String line;
 		while(scanner.hasNextLine() && row >= 0) {
 			line = scanner.nextLine();
 			while(column < 8) {
@@ -262,7 +460,82 @@ public class Board {
 			column = 0;
 		}
 		
+		// Initialize the turn variable
+		line = scanner.nextLine();
+		try {
+			int turn = Integer.parseInt(line);
+			if(turn > 1 || turn < 0) {
+				return 1;
+			}
+			
+			this.turn = (turn == 1) ? Colour.BLACK : Colour.WHITE;
+		}
+		catch(NumberFormatException e) {
+			
+		}
+		
 		return 0;
+	}
+	
+	/**
+	 * Preserve the game as it is at the moment this method is called by saving it in a file. 
+	 * The given FileOutputStream is assumed to be opened to the exact spot that this program
+	 * should start writing to
+	 * 
+	 * @param stream - The stream that this method should write the game data to
+	 * @throws IOException - If something goes wrong with stream, does not try to catch the
+	 * exception
+	 */
+	public void saveGame(FileOutputStream stream) throws IOException {
+		String line;
+		line = this.whiteCanQueensideCastle ? "1\n" : "0\n";
+		stream.write(line.getBytes());
+		
+		line = this.whiteCanKingsideCastle ? "1\n" : "0\n";
+		stream.write(line.getBytes());
+		
+		line = this.blackCanQueensideCastle ? "1\n" : "0\n";
+		stream.write(line.getBytes());
+		
+		line = this.blackCanKingsideCastle ? "1\n" : "0\n";
+		stream.write(line.getBytes());
+		
+		for(int row = 7; row >= 0; row--) {
+			for(int column = 0; column < 8; column++) {
+				Piece piece = this.getPiece(row, column);
+				if(piece instanceof Pawn) {
+					line = (piece.getColour() == Colour.WHITE) ? "P" : "p";
+					stream.write(line.getBytes());
+				}
+				else if(piece instanceof Rook) {
+					line = (piece.getColour() == Colour.WHITE) ? "R" : "r";
+					stream.write(line.getBytes());				
+				}
+				else if(piece instanceof Knight) {
+					line = (piece.getColour() == Colour.WHITE) ? "N" : "n";
+					stream.write(line.getBytes());
+				}
+				else if(piece instanceof Bishop) {
+					line = (piece.getColour() == Colour.WHITE) ? "B" : "b";
+					stream.write(line.getBytes());
+				}
+				else if(piece instanceof Queen) {
+					line = (piece.getColour() == Colour.WHITE) ? "Q" : "q";
+					stream.write(line.getBytes());
+				}
+				else if(piece instanceof King) {
+					line = (piece.getColour() == Colour.WHITE) ? "K" : "k";
+					stream.write(line.getBytes());
+				}
+				else {
+					stream.write("X".getBytes());
+				}
+			}
+			stream.write("\n".getBytes());
+		}
+		
+		line = (this.turn == Colour.WHITE) ? "0\n" : "1\n";
+		stream.write(line.getBytes());
 	}
 	
 	/**
@@ -274,33 +547,16 @@ public class Board {
 	 * is in check
 	 */
 	public boolean isCheck(Colour colour) {
-		List<Piece> pieceList;
-		if(colour == Colour.WHITE) {
-			pieceList = this.whitePieces;
-		}
-		else {
-			pieceList = this.blackPieces;
-		}
+		// Get the list of enemy pieces
+		List<Piece> pieceList = (colour == Colour.WHITE) ? this.blackPieces : this.whitePieces;
 		
-		// Find what square the given colour's king is on
-		Pair kingSquare = null;
 		for(Piece piece : pieceList) {
-			if(piece instanceof King) {
-				kingSquare = new Pair(piece.getRow(), piece.getColumn());
-				break;
+			if(piece.isCheckingKing()) {
+				return true;
 			}
 		}
-		// If the given colour has NO king, then simply return false, because this is
-		// an incorrect game state
-		if(kingSquare == null) {
-			return false;
-		}
-				
-		Colour enemyColour = (colour == Colour.WHITE) ? Colour.BLACK : Colour.WHITE;
-		List<Pair> enemyMoves = this.getMoves(enemyColour);
 		
-		// Check if any enemy can capture the king
-		return Collections.binarySearch(enemyMoves, kingSquare) >= 0;
+		return false;
 	}
 	
 	/**
@@ -311,10 +567,9 @@ public class Board {
 	 */
 	public boolean isCheckmate(Colour colour) {
 		// A colour is in checkmate if its King is in check, all the squares
-		// around it are protected by enemy pieces (it's getMoves() is emtpy),
+		// around it are protected by enemy pieces (it's getMoves() is empty),
 		// and no allied pieces can move and block or break the check
 		return this.getKing(colour) != null
-			&& this.getKing(colour).getMoves().size() == 0
 			&& this.getMoves(colour).size() == 0;
 	}
 	
@@ -376,8 +631,8 @@ public class Board {
 	public List<Pair> getLegal(List<Pair> moves, Colour colour) {
 		if(this.isCheck(colour)) {
 			List<Piece> checkingPieces = this.getCheckingPieces(colour);
-			if(checkingPieces.size() > 1) {   // If the colour's King is being checked by multiple pieces
-				return new ArrayList<Pair>(); // The only valid move for that whole colour is for the King
+			if(checkingPieces.size() > 1) {   // If the colour's King is being checked by multiple pieces,
+				return new ArrayList<Pair>(); // the only valid move for that whole colour is for the King
 			}								  // to move and escape check
 			
 			Piece checkingPiece = checkingPieces.get(0);
@@ -470,7 +725,7 @@ public class Board {
 	 * @param colour - The colour whose King should be searched for.
 	 * @return A reference to the King with the given colour
 	 */
-	private Piece getKing(Colour colour) {
+	public Piece getKing(Colour colour) {
 		List<Piece> pieceList = (colour == Colour.WHITE) ? this.whitePieces : this.blackPieces;
 		
 		for(Piece piece : pieceList) {
@@ -517,6 +772,106 @@ public class Board {
 		return piece instanceof Queen
 			|| piece instanceof Bishop
 			|| piece instanceof Rook;
+	}
+	
+	/**
+	 * Compute whether or not the given colour can castle on the queenside
+	 * 
+	 * @param colour - The colour of concern
+	 * @return true if and only if the given colour is able to castle on the
+	 * queenside at this moment in the game
+	 */
+	public boolean canQueensideCastle(Colour colour) {
+		// First check that the given colour's King and queenside Rook haven't moved
+		boolean piecesHaventMoved = (colour == Colour.WHITE) ? this.whiteCanQueensideCastle : this.blackCanQueensideCastle;
+		if(!piecesHaventMoved) {
+			System.out.println("Can't Queenside castle because pieces have moved");
+			return false;
+		}
+		
+		Piece king = this.getKing(colour);
+		if(king == null) {
+			System.out.println("Can't castle because no king");
+			return false;
+		}
+		
+		// We need to check 3 things:
+		// 1) That the King isn't in check
+		// 2) That all the squares between the King and Rook are empty
+		// 3) That none of the squares between the King and Rook are being
+		//	  attacked by the enemy colour
+		boolean check = this.isCheck(colour);
+		if(check) {
+			return false;
+		}
+		
+		Colour enemyColour = (colour == Colour.WHITE) ? Colour.BLACK : Colour.WHITE;
+		List<Pair> enemyProtectedSquares = this.getProtectedSquares(enemyColour);
+		
+		// Iterate to the left of the King until just short of the Rook (who we know hasn't moved),
+		// making sure that every square is empty and un-attacked by the enemy
+		int row = king.getRow();
+		int column = king.getColumn()-1;
+		while(column > 0) {
+			if(!isEmpty(row, column)
+			||  Collections.binarySearch(enemyProtectedSquares, new Pair(row, column)) >= 0) {
+				System.out.println("Can't castle because " + new Pair(row,column) + " is not empty or is attacked");
+				return false;
+			}
+			column -= 1;
+		}
+		
+		return true;
+	}
+	
+	/**
+	 * Compute whether or not the given colour can castle on the kingside
+	 * 
+	 * @param colour - The colour of concern
+	 * @return true if and only if the given colour is able to castle on the
+	 * kingside at this moment in the game
+	 */
+	public boolean canKingsideCastle(Colour colour) {
+		// First check that the given colour's King and queenside Rook haven't moved
+		boolean piecesHaventMoved = (colour == Colour.WHITE) ? this.whiteCanKingsideCastle : this.blackCanKingsideCastle;
+		if(!piecesHaventMoved) {
+			System.out.println("Can't castle because pieces have moved");
+			return false;
+		}
+		
+		Piece king = this.getKing(colour);
+		if(king == null) {
+			System.out.println("Can't castle because no king");
+			return false;
+		}
+		// We need to check 3 things:
+		// 1) That the King isn't in check
+		// 2) That all the squares between the King and Rook are empty
+		// 3) That none of the squares between the King and Rook are being
+		//	  attacked by the enemy colour
+		boolean check = this.isCheck(colour);
+		if(check) {
+			return false;
+		}
+		
+		Colour enemyColour = (colour == Colour.WHITE) ? Colour.BLACK : Colour.WHITE;
+		List<Pair> enemyProtectedSquares = this.getProtectedSquares(enemyColour);
+		
+		// Iterate to the right of the King until just short of the Rook (who we know hasn't moved),
+		// making sure that every square is empty and un-attacked by the enemy
+		int row = king.getRow();
+		int column = king.getColumn()+1;
+		while(column < 7) {
+			if(!isEmpty(row, column)
+			||  Collections.binarySearch(enemyProtectedSquares, new Pair(row, column)) >= 0) {
+				System.out.println("Can't castle because " + new Pair(row, column) + " is not empty or is attacked");
+				return false;
+			}
+			column += 1;
+		}
+		
+		System.out.println("Can kingside castle");
+		return true;
 	}
 	
 	/**

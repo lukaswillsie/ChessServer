@@ -258,4 +258,79 @@ public class Queen extends Piece {
 	public String toString () {
 		return (colour == Colour.WHITE) ? "Q" : "q";
 	}
+
+	@Override
+	public boolean isCheckingKing() {
+		// Get a reference to the enemy King
+		Piece enemyKing = board.getKing((colour == Colour.WHITE) ? Colour.BLACK : Colour.WHITE);
+		if(enemyKing == null) {
+			return false;
+		}				
+
+		// Arrays used to automate checking the Queen's row and column
+		int[] rowIncrements = 	  {0, 1,  0, -1};
+		int[] columnIncrements = {1, 0, -1,  0};
+		
+		// Iterate from the Queen outward in both directions along its row
+		// and column until the edge of the board or a piece is reached,
+		// adding all empty squares and ally pieces encountered
+		int checkRow = row;
+		int checkColumn = column;
+		int rowIncrement = 0;
+		int columnIncrement = 0;
+		for(int i = 0; i < rowIncrements.length; i++) {
+			rowIncrement = rowIncrements[i];
+			columnIncrement = columnIncrements[i];
+			
+			checkRow += rowIncrement;
+			checkColumn += columnIncrement;
+			// Iterate until we hit the edge of the board or a piece
+			while(board.isEmpty(checkRow, checkColumn)) {						
+				checkRow += rowIncrement;
+				checkColumn += columnIncrement;
+			}
+			// Check if we've run into an ally piece that we are protecting
+			if(board.isPiece(checkRow, checkColumn) &&
+			   board.getPiece(checkRow, checkColumn) == enemyKing) {
+				return true;
+			}
+			
+			checkRow = row;
+			checkColumn = column;
+		}
+		
+		// Iterate along all 4 diagonals until the edge of the
+		// board or another piece is reached
+		int[] row_offsets =    {1,  1, -1, -1};
+		int[] column_offsets = {1, -1, -1,  1};
+		
+		
+		// Iterate from the Queen outward along all diagonals until we hit
+		// a piece or the edge of the board, and add any allied pieces
+		// encountered this way
+		checkRow = row;
+		checkColumn = column;
+		for(int i = 0; i < row_offsets.length; i++) {
+			rowIncrement = row_offsets[i];
+			columnIncrement = column_offsets[i];
+			
+			checkRow += rowIncrement;
+			checkColumn += columnIncrement;
+			while(board.isEmpty(checkRow, checkColumn)) { 				
+				checkRow += rowIncrement;
+				checkColumn += columnIncrement;
+			}
+			
+			// Check if we've found the enemy king
+			if(board.isPiece(checkRow, checkColumn) &&
+			   board.getPiece(checkRow, checkColumn) == enemyKing) {
+				return true;
+			}
+			
+			checkRow = row;
+			checkColumn = column;
+		}
+		
+		return false;
+	}
 }

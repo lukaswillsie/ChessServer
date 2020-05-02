@@ -86,17 +86,46 @@ public class Knight extends Piece {
 				// Add a square to the list if it's empty or occupied by an allied piece
 				if((board.isPiece(row+direction, column+offset)
 				&&  board.getPiece(row+direction, column+offset).getColour() == colour)
-				||  board.isMovable(row+direction, column+offset, colour)) {
+				||  board.isEmpty(row+direction, column+offset)) {
 					protectedSquares.add(new Pair(row+direction, column+offset));
 				}
 				if((board.isPiece(row+offset, column+direction)
 				&&  board.getPiece(row+offset, column+direction).getColour() == colour)
-				||  board.isMovable(row+offset, column+direction, colour)) {
+				||  board.isEmpty(row+offset, column+direction)) {
 					protectedSquares.add(new Pair(row+offset, column+direction));
 				}
 			}
 		}
 		
 		return protectedSquares;
+	}
+
+	@Override
+	public boolean isCheckingKing() {		
+		// Use arrays to generalize the process of checking each square
+		// the knight can move to
+		int[] directions = {1,-1};
+		int[] offsets =    {2,-2};
+		
+		Piece enemyKing = board.getKing((colour == Colour.WHITE) ? Colour.BLACK : Colour.WHITE);
+		if(enemyKing == null) {
+			return false;
+		}
+		
+		for(int offset : offsets) {
+			for(int direction : directions) {
+				// Check each square we can move to for the enemy King
+				if(board.validSquare(row+direction, column+offset)
+				&& board.getPiece(row+direction, column+offset) == enemyKing) {
+					return true;
+				}
+				if(board.validSquare(row+offset, column+direction)
+				&& board.getPiece(row+offset, column+direction) == enemyKing) {
+					return true;
+				}
+			}
+		}
+		
+		return false;
 	}
 }

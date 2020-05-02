@@ -209,4 +209,46 @@ public class Bishop extends Piece {
 	public String toString () {
 		return (colour == Colour.WHITE) ? "B" : "b";
 	}
+
+	@Override
+	public boolean isCheckingKing() {		
+		// Iterate along all 4 diagonals until the edge of the
+		// board or another piece is reached
+		int[] row_increments =    {1,  1, -1, -1};
+		int[] column_increments = {1, -1, -1,  1};
+		
+		// Get a reference to the enemy King
+		Piece enemyKing = board.getKing((colour == Colour.WHITE) ? Colour.BLACK : Colour.WHITE);
+		if(enemyKing == null) {
+			return false;
+		}
+		
+		// Iterate from the bishop outward along all diagonals until we hit the edge
+		// of the board or a piece, checking for the enemy King along the way
+		int checkRow = row;
+		int checkColumn = column;
+		int row_increment, column_increment;
+		for(int i = 0; i < row_increments.length; i++) {
+			row_increment = row_increments[i];
+			column_increment = column_increments[i];
+			
+			checkRow += row_increment;
+			checkColumn += column_increment;
+			while(board.isEmpty(checkRow, checkColumn)) {
+				checkRow += row_increment;
+				checkColumn += column_increment;
+			}
+			
+			if(board.isPiece(checkRow, checkColumn)
+			&& board.getPiece(checkRow, checkColumn) == enemyKing) {
+				return true;
+			}
+					
+			
+			checkRow = row;
+			checkColumn = column;
+		}
+		
+		return false;
+	}
 }

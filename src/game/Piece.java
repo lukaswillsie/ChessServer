@@ -50,6 +50,23 @@ public abstract class Piece {
 	 */
 	public abstract List<Pair> getProtectedSquares();
 	
+	/**
+	 * Compute whether or not this piece is giving check to the enemy King. Note that this is
+	 * a little subtle. The piece does not have to actually be able to capture the enemy King
+	 * to be attacking it. As an example, a pinned piece that can't actually move at all can still
+	 * be giving check. To demonstrate:
+	 * 
+	 * kXX
+	 * XrX
+	 * XXB
+	 * XKX
+	 * 
+	 * Here, the black Rook is pinned by the white Bishop, but white is still in check because the black
+	 * Rook and white King are in the same column, so the Rook is attacking the white King. 
+	 * @return
+	 */
+	public abstract boolean isCheckingKing();
+	
 	public void move(int row, int column) {
 		this.row = row;
 		this.column = column;

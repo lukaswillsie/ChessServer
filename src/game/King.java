@@ -38,6 +38,9 @@ public class King extends Piece {
 		// to move to, so fetch all of them
 		List<Pair> enemyProtectedSquares = board.getProtectedSquares(enemy_colour);
 		
+		// We can put the King back on the board now
+		board.addPiece(this);
+		
 		int[] row_offsets = {-1,1};
 		int[] column_offsets= {-1,0,1};
 		
@@ -55,6 +58,7 @@ public class King extends Piece {
 			}
 		}
 		
+		
 		// Check the square in the same row and to the right of the King
 		if(board.isMovable(this.row, this.column+1, this.colour)
 		&& Collections.binarySearch(enemyProtectedSquares, new Pair(this.row, this.column+1)) < 0) {
@@ -67,8 +71,15 @@ public class King extends Piece {
 			moves.add(new Pair(this.row, this.column - 1));
 		}
 		
-		// We can't forget to put the king back on the board
-		board.addPiece(this);
+		// If the King can castle, the convention in chess apps is to include the square that the King
+		// ends up on after the castle as a square the King can move to
+		if(board.canKingsideCastle(colour)) {
+			moves.add(new Pair(this.getRow(), this.getColumn()+2));
+		}
+		
+		if(board.canQueensideCastle(colour)) {
+			moves.add(new Pair(this.getRow(), this.getColumn() - 2));
+		}
 		
 		return moves;
 	}
@@ -147,5 +158,12 @@ public class King extends Piece {
 	 */
 	public String toString() {
 		return (colour == Colour.WHITE) ? "K" : "k";
+	}
+
+	@Override
+	public boolean isCheckingKing() {
+		// It's impossible for a King to be checking the enemy King, since this would
+		// require one of the King's to have moved themselves into check
+		return false;
 	}
 }

@@ -200,4 +200,45 @@ public class Rook extends Piece {
 	public String toString() {
 		return (colour == Colour.WHITE) ? "R" : "r";
 	}
+
+	@Override
+	public boolean isCheckingKing() {
+		Piece enemyKing = board.getKing((colour == Colour.WHITE) ? Colour.BLACK : Colour.WHITE);
+		if(enemyKing == null) {
+			return false;
+		}
+		
+		// Arrays used to automate checking the Rook's row and column
+		int[] rowIncrements = 	  {0, 1,  0, -1};
+		int[] columnIncrements =  {1, 0, -1,  0};
+		
+		// Iterate from the Rook outward in both directions along its row
+		// and column, checking for the enemy King along the way
+		int checkRow = row;
+		int checkColumn = column;
+		int rowIncrement = 0;
+		int columnIncrement = 0;
+		for(int i = 0; i < rowIncrements.length; i++) {
+			rowIncrement = rowIncrements[i];
+			columnIncrement = columnIncrements[i];
+			
+			checkRow += rowIncrement;
+			checkColumn += columnIncrement;
+			// Iterate until we run into the edge of the board or a piece
+			while(board.isEmpty(checkRow, checkColumn)) {
+				checkRow += rowIncrement;
+				checkColumn += columnIncrement;
+			}
+			// Check if we've run into the enemy King
+			if(board.isPiece(checkRow, checkColumn) &&
+			   board.getPiece(checkRow, checkColumn) == enemyKing) {
+				return true;
+			}
+			
+			checkRow = row;
+			checkColumn = column;
+		}
+		
+		return false;
+	}
 }

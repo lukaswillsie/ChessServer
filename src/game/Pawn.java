@@ -205,4 +205,33 @@ public class Pawn extends Piece {
 	public String toString() {
 		return (colour == Colour.WHITE) ? "P" : "p";
 	}
+
+	@Override
+	public boolean isCheckingKing() {
+		Piece enemyKing = board.getKing((colour == Colour.WHITE) ? Colour.BLACK : Colour.WHITE);
+		if(enemyKing == null) {
+			return false;
+		}
+		
+		// Stores the direction of the pawn's movement (varies from white to 
+		// black pawns). White pawns move up the board and black pawns move down
+		int direction = (this.colour == Colour.WHITE) ? 1 : -1;
+		
+		// Check the square in front and to the left (from white's perspective)
+		// of the pawn to see if it's the enemy king
+		if(board.validSquare(this.row+direction, this.column-1)
+		&& board.getPiece(this.row+direction, this.column-1) == enemyKing) {
+			return true;
+		}
+		
+		// Check the square in front and to the right (from white's perspective)
+		// of the pawn to see if it's the enemy king
+		if(board.validSquare(this.row+direction, this.column+1)
+		&& board.getPiece(this.row+direction, this.column+1) == enemyKing) {
+			return true;
+		}
+		
+		
+		return false;
+	}
 }
