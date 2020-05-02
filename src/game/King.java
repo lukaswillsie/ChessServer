@@ -7,6 +7,7 @@ import java.util.List;
 import utility.Pair;
 
 public class King extends Piece {
+	public static final char charRep = 'k';
 
 	public King(int row, int column, Colour colour, Board board) {
 		super(row, column, colour, board);

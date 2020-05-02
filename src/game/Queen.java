@@ -6,6 +6,7 @@ import java.util.List;
 import utility.Pair;
 
 public class Queen extends Piece {
+	public static final char charRep = 'q';
 
 	public Queen(int row, int column, Colour colour, Board board) {
 		super(row, column, colour, board);

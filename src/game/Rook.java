@@ -6,6 +6,8 @@ import java.util.List;
 import utility.Pair;
 
 public class Rook extends Piece {
+	public static final char charRep = 'r';
+	
 	public Rook(int row, int column, Colour colour, Board board) {
 		super(row, column, colour, board);
 	}

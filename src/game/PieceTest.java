@@ -14,6 +14,8 @@ public class PieceTest {
 		String input = in.nextLine();
 		Board board = null;
 		
+		boolean promotionRequired = false;
+		
 		/*
 		 * Operations:
 		 * load a board - load filename
@@ -23,6 +25,7 @@ public class PieceTest {
 		 * print check - check colour
 		 * print checkmate - checkmate colour
 		 * move piece - move row,col->row,col
+		 * promote pawn - promote charRep
 		 */
 		while(!input.equalsIgnoreCase("q")) {
 			String[] splitted = input.split(" ");
@@ -132,16 +135,42 @@ public class PieceTest {
 					Pair dest = new Pair(Integer.parseInt(rest.split("->")[1].split(",")[0]), Integer.parseInt(rest.split("->")[1].split(",")[1]));
 					
 					int result = board.move(src, dest);
-					if(result == 1) {
-						System.out.println("Invalid move");
-					}
-					else {
-						System.out.println(board);
-						System.out.println("Move executed");
+					switch(result) {
+						case -1:
+							System.out.println(board);
+							System.out.println("A promotion is now required. Please use the \"promote\" command to promote your pawn");
+							promotionRequired = true;
+							break;
+						case 0:
+							System.out.println(board);
+							System.out.println("Move executed");
+							break;
+						case 1:
+							System.out.println(board);
+							System.out.println("That is an invalid move");
+							break;
+						case 2:
+							System.out.println(board);
+							System.out.println("A promotion must be made before any moves can be processed.");
+							promotionRequired = true;
+							break;
+						case 3:
+							System.out.println(board);
+							System.out.println("It is the other colour's turn");
+							break;
 					}
 				}
 				catch(NumberFormatException e) {
 					System.out.println("Invalid format");
+				}
+			}
+			else if (command.equals("promote")) {
+				if(promotionRequired) {
+					board.promote(rest.charAt(0));
+					System.out.println(board);
+				}
+				else {
+					System.out.println("No promotion is required");
 				}
 			}
 			else if(command.equals("save")) {

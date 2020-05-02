@@ -89,6 +89,9 @@ public class Board {
 	// as a 1 or 0; 1 means it's black's turn, 0 means it's white's turn
 	private Colour turn;
 	
+	// A reference to a pawn that needs to be promoted, if one exists. Is null otherwise.
+	private Pawn needsToBePromoted;
+	
 	// Keeps track of whether or not there's a square that can be moved
 	// to as part of an "en passant" move. There should only be one
 	// of these at a time, as the ability for a player to make such
@@ -123,11 +126,58 @@ public class Board {
 	}
 	
 	/**
+	 * If a pawn needs to be promoted, promote it to the piece corresponding to the
+	 * given character. A Pawn can be promoted to any piece other than a King or Pawn.
+	 * Consult the charRep fields of the Piece classes to see what characters correspond
+	 * to which pieces. The given character must be among these fields.
+	 * 
+	 * @param piece - The 'charRep' of one of the Piece classes
+	 * @return 0 if the promotion was successful
+	 * 		   1 if the promotion was unsuccessful because no piece needs to be promoted
+	 * 		   2 if the given character is invalid
+	 */
+	public int promote(char piece) {
+		if(this.needsToBePromoted != null) {
+			int row = this.needsToBePromoted.getRow();
+			int column = this.needsToBePromoted.getColumn();
+			Colour colour = this.needsToBePromoted.getColour();
+			
+			this.removePiece(this.needsToBePromoted);
+			switch(piece) {
+				case Rook.charRep:
+					this.addPiece(new Rook(row, column, colour , this));
+					this.needsToBePromoted = null;
+					return 0;
+				case Knight.charRep:
+					this.addPiece(new Knight(row, column, colour, this));
+					this.needsToBePromoted = null;
+					return 0;
+				case Bishop.charRep:
+					this.addPiece(new Bishop(row, column, colour, this));
+					this.needsToBePromoted = null;
+					return 0;
+				case Queen.charRep:
+					this.addPiece(new Queen(row, column, colour, this));
+					this.needsToBePromoted = null;
+					return 0;
+				default:
+					return 2;
+			}
+		}
+		return 1;
+	}
+	
+	/**
 	 * Makes the given move; attempts to move the piece at srcSquare
 	 * to destSquare. Fails and returns 1 if the given move is invalid;
 	 * i.e. if the move is not in the Piece at srcSquares getMoves(), or if
 	 * there is no piece at srcSquare
-	 * @return 0 if the move is successfully made, 1 otherwise
+	 * @return -1 if the move is successfully made, and a promotion is now required <>
+	 * 			0 if the move is successfully made <br>
+	 * 		   	1 if the move is invalid (source square is empty, move is not valid for
+	 * 		   	the piece at srcSquare, etc.) <br>
+	 * 		   	2 if a promotion needs to be handled before any moves can be made <br>
+	 * 		   	3 if the move is being made out of turn
 	 */
 	public int move(Pair srcSquare, Pair destSquare) {
 		// If either the source or the destination is off the board, or there is
@@ -137,11 +187,15 @@ public class Board {
 		 || !this.validSquare(destSquare.first(), destSquare.second())) {
 			return 1;
 		}
+		// If a pawn needs to be promoted, no other moves can be made
+		else if(this.needsToBePromoted != null) {
+			return 2;
+		}
 		else {
 			Piece piece = this.getPiece(srcSquare.first(), srcSquare.second());
 			// If the wrong colour is trying to make a move
 			if(piece.getColour() != this.turn) {
-				return 1;
+				return 3;
 			}
 			
 			// If the destination is one of piece's valid moves
@@ -224,6 +278,12 @@ public class Board {
 						// The new en passant square is the one between where the piece used
 						// to be and where it is now
 						this.enPassant = new Pair(srcSquare.first()+direction, srcSquare.second());
+					}
+					// If a pawn has reached the back row and needs to be promoted
+					else if((piece.getColour() == Colour.WHITE && piece.getRow() == 7)
+						||  (piece.getColour() == Colour.BLACK && piece.getRow() == 0)) {
+						this.needsToBePromoted = (Pawn)piece;
+						return -1;
 					}
 				}
 				
@@ -428,22 +488,27 @@ public class Board {
 			while(column < 8) {
 				Colour colour = Character.isLowerCase(line.charAt(column)) ? Colour.BLACK : Colour.WHITE;
 				switch((line.toLowerCase()).charAt(column)) {
-					case 'p':
+					case Pawn.charRep:
 						this.addPiece(new Pawn(row, column, colour,this));
+						// We might be loading a game that has an unpromoted pawn in it
+						if((colour == Colour.WHITE && row == 7)
+						|| (colour == Colour.BLACK && row == 0)) {
+							this.needsToBePromoted = (Pawn)this.getPiece(row, column);
+						}
 						break;
-					case 'r':
+					case Rook.charRep:
 						this.addPiece(new Rook(row, column, colour,this));
 						break;
-					case 'n':
+					case Knight.charRep:
 						this.addPiece(new Knight(row, column, colour,this));
 						break;
-					case 'b':
+					case Bishop.charRep:
 						this.addPiece(new Bishop(row, column, colour,this));
 						break;
-					case 'q':
+					case Queen.charRep:
 						this.addPiece(new Queen(row, column, colour,this));
 						break;
-					case 'k':
+					case King.charRep:
 						this.addPiece(new King(row, column, colour,this));
 						break;
 					case 'x':

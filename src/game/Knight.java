@@ -6,6 +6,8 @@ import java.util.List;
 import utility.Pair;
 
 public class Knight extends Piece {
+	public static final char charRep = 'n';
+	
 	public Knight(int row, int column, Colour colour, Board board) {
 		super(row, column, colour, board);
 	}
