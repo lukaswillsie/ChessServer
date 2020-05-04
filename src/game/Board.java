@@ -176,8 +176,8 @@ public class Board {
 	 * 			0 if the move is successfully made <br>
 	 * 		   	1 if the move is invalid (source square is empty, move is not valid for
 	 * 		   	the piece at srcSquare, etc.) <br>
-	 * 		   	2 if a promotion needs to be handled before any moves can be made <br>
-	 * 		   	3 if the move is being made out of turn
+	 * 		   	2 if the move is being made out of turn <br>
+	 * 		   	3 if a promotion needs to be handled before any moves can be made
 	 */
 	public int move(Pair srcSquare, Pair destSquare) {
 		// If either the source or the destination is off the board, or there is
@@ -187,15 +187,15 @@ public class Board {
 		 || !this.validSquare(destSquare.first(), destSquare.second())) {
 			return 1;
 		}
-		// If a pawn needs to be promoted, no other moves can be made
-		else if(this.needsToBePromoted != null) {
-			return 2;
-		}
 		else {
 			Piece piece = this.getPiece(srcSquare.first(), srcSquare.second());
 			// If the wrong colour is trying to make a move
 			if(piece.getColour() != this.turn) {
 				return 3;
+			}
+			// If a pawn needs to be promoted, no other moves can be made
+			else if(this.needsToBePromoted != null) {
+				return 2;
 			}
 			
 			// If the destination is one of piece's valid moves

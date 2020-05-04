@@ -87,29 +87,29 @@ class ChessProtocol implements Protocol {
 	 */
 	private void joinGame(String gameID) {
 		if(manager == null) {
-			out.println("0 No user has been logged in.");
+			out.println("-2");
 			return;
 		}
 		
 		int result = manager.joinGame(gameID);
 		if(result == 0) {
-			out.println("1");
+			out.println("0");
 			Log.log(manager.getUsername() + " joined game " + gameID);
 		}
 		else if(result == 1) {
-			out.println("0 That game does not exist.");
+			out.println("1");
 			Log.log(manager.getUsername() + " tried to join game " + gameID + " which does not exist");
 		}
 		else if (result == 2) {
-			out.println("0 That game is full.");
+			out.println("2");
 			Log.log(manager.getUsername() + " tried to join game " + gameID + " which is already full");
 		}
 		else if (result == 3) {
-			out.println(" 0 You are already in that game");
+			out.println("3");
 			Log.log(manager.getUsername() + " tried to join game " + gameID + " which they have already joined");
 		}
 		else {
-			out.println("0 An error occurred. Please try again later.");
+			out.println("-1");
 		}
 	}
  
@@ -127,15 +127,15 @@ class ChessProtocol implements Protocol {
 		
 		int result = manager.createGame(gameID);
 		if(result == 0) {
-			out.println("1");
+			out.println("0");
 			Log.log(manager.getUsername() + " created game " + gameID);
 		}
 		else if (result == 1) {
-			out.println("0 That game already exists.");
+			out.println("1");
 			Log.log("Could not create game " + gameID + " for " + manager.getUsername() + ". Game already exists.");
 		}
 		else {
-			out.println("0 An error occurred. Please try again later.");
+			out.println("-1");
 		}
 	}
 

@@ -3,6 +3,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.Socket;
+import java.net.SocketException;
 
 import protocol.Protocol;
 import protocol.ProtocolFactory;
@@ -36,6 +37,9 @@ public class ChessServerThread extends Thread {
 				Log.log("Received command \"" + input + "\" from " + socket.getInetAddress());
 				protocol.processCommand(input);
 			}
+		}
+		catch(SocketException e) {
+			Log.log("Client " + socket.getInetAddress() + " disconnected.");
 		}
 		catch(IOException e) {
 			e.printStackTrace();
