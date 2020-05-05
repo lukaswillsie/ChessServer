@@ -1,18 +1,38 @@
 package protocol;
 
+import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 
 import data.AccountManager;
 import data.AccountManagerFactory;
 import data.ClientManager;
 import data.ClientManagerFactory;
+import data.GameData;
+import protocol.Protocol;
 import utility.Log;
 
+/**
+ * This class is an implementation of the Protocol interface (in this package) that
+ * processes commands and issues responses on behalf of a chess server. It is responsible
+ * only for parsing input and issuing output. Processing and data manipulation is handed off
+ * to a ClientManager when necessary
+ * 
+ * @author Lukas Willsie
+ *
+ */
 class ChessProtocol implements Protocol {
-	private PrintWriter out;
+	// The tool this object will use to write to the client
+	private DataOutputStream out;
+	
+	// The socket that this object is writing to. Is used for logging purposes
+	private Socket socket;
+	
+	// The object responsible for 
 	private ClientManager manager;
 	
 	private static final String[] KEYWORDS =
@@ -24,7 +44,7 @@ class ChessProtocol implements Protocol {
 			"loadgame",		// Usage: loadgame gameID
 			"move",			// Usage: TODO
 			"logout"		// Usage: logout
-		};
+		};	
 	
 	/**
 	 * Create a new ChessProtocol object to write to the given
@@ -32,7 +52,10 @@ class ChessProtocol implements Protocol {
 	 * @param socket The socket that this ChessProtocol object will write to
 	 */
 	ChessProtocol(Socket socket) {
-		try{out = new PrintWriter(socket.getOutputStream(), true);}
+		try{
+			out = new DataOutputStream(socket.getOutputStream());
+			this.socket = socket;
+		}
 		catch(IOException e) {
 			e.printStackTrace();
 			System.exit(-1);
@@ -41,25 +64,30 @@ class ChessProtocol implements Protocol {
 	
 	/**
 	 * Process the given command
+	 * 
+	 * @param command - The command to process
+	 * @return 0 if the socket that this object is writing to is still connected <br>
+	 *         1 if the socket is found to have disconnected
 	 */
 	@Override
-	public void processCommand(String command) {
+	public int processCommand(String command) {
 		int space = command.indexOf(' ');
 		if(space != -1) {
 			String keyword = command.substring(0, space);
-			String rest = command.substring(space+1);
+			String rest = command.substring(space+1).trim();
+			
 			if(Arrays.asList(KEYWORDS).contains(keyword)) {
 				if(keyword.equals("login")) {
-					loginUser(rest);
+					return processLogin(rest);
 				}
 				else if(keyword.equals("create")) {
-					createUser(rest);
+					return processCreateUser(rest);
 				}
 				else if(keyword.equals("creategame")) {
-					createGame(rest);
+					// return processCreateGame(rest);
 				}
 				else if(keyword.equals("joingame")) {
-					joinGame(rest);
+					// return processJoingame(rest);
 				}
 				else if(keyword.equals("loadgame")) {
 					
@@ -68,6 +96,7 @@ class ChessProtocol implements Protocol {
 					
 				}
 			}
+			return 0;
 			// If keyword is not in the list of valid keywords, do nothing
 		}
 		else {
@@ -75,69 +104,34 @@ class ChessProtocol implements Protocol {
 				// Reassign manager reference so that manager can be garbage-collected
 				manager = null;
 			}
+			return 0;
 			// Otherwise do nothing as we have received an invalid command
 		}
 	}
 	
-	/**
-	 * Process a "joingame gameID" request. gameID is of course
-	 * assumed to be the "gameID" part of the joingame request
-	 * 
-	 * @param gameID
-	 */
-	private void joinGame(String gameID) {
-		if(manager == null) {
-			out.println("-2");
-			return;
-		}
-		
-		int result = manager.joinGame(gameID);
-		if(result == 0) {
-			out.println("0");
-			Log.log(manager.getUsername() + " joined game " + gameID);
-		}
-		else if(result == 1) {
-			out.println("1");
-			Log.log(manager.getUsername() + " tried to join game " + gameID + " which does not exist");
-		}
-		else if (result == 2) {
-			out.println("2");
-			Log.log(manager.getUsername() + " tried to join game " + gameID + " which is already full");
-		}
-		else if (result == 3) {
-			out.println("3");
-			Log.log(manager.getUsername() + " tried to join game " + gameID + " which they have already joined");
-		}
-		else {
-			out.println("-1");
-		}
-	}
+//	/**
+//	 * Process a "joingame gameID" request. gameID is of course
+//	 * assumed to be the "gameID" part of the joingame request
+//	 * 
+//	 * @param gameID
+//	 * @return 0 if the socket that this object is writing to is still connected <br>
+//	 *         1 if the socket is found to have been disconnected
+//	 */
+//	private int processJoingame(String gameID) {
+//		
+//	}
  
-	/**
-	 * Process a "creategame gameID" request. gameID is of course
-	 * assumed to be the "gameID" part of the creategame request
-	 * 
-	 * @param gameID - The gameID of the new game to create
-	 */
-	private void createGame(String gameID) {
-		if(manager == null) {
-			out.println("0 No user has been logged in.");
-			return;
-		}
-		
-		int result = manager.createGame(gameID);
-		if(result == 0) {
-			out.println("0");
-			Log.log(manager.getUsername() + " created game " + gameID);
-		}
-		else if (result == 1) {
-			out.println("1");
-			Log.log("Could not create game " + gameID + " for " + manager.getUsername() + ". Game already exists.");
-		}
-		else {
-			out.println("-1");
-		}
-	}
+//	/**
+//	 * Process a "creategame gameID" request. gameID is of course
+//	 * assumed to be the "gameID" part of the creategame request
+//	 * 
+//	 * @param gameID - The gameID of the new game to create
+//	 * @return 0 if the socket that this object is writing to is still connected <br>
+//	 *         1 if the socket is found to have been disconnected
+//	 */
+//	private int processCreateGame(String gameID) {
+//		
+//	}
 
 	/**
 	 * Process a "create username password" request. rest is assumed
@@ -145,40 +139,37 @@ class ChessProtocol implements Protocol {
 	 * 
 	 * @param rest - A String containing the part of the create command
 	 * following "create"
+	 * @return 0 if the socket that this object is writing to is still connected <br>
+	 *         1 if the socket is found to have been disconnected
 	 */
-	private void createUser(String rest) {
-		String username, password;
+	private int processCreateUser(String rest) {
+		String[] splitted = rest.split(" ");
 		
-		int space = rest.indexOf(' ');
-		if(space == -1) {
-			out.println("0 Invalid input");
-			return;
+		// Check input for validity; we should have
+		if(splitted.length != 2) {
+			return this.writeToClient(FORMAT_INVALID);
 		}
 		
-		username = rest.substring(0,space);
-		password = rest.substring(space+1);
-		
+		String username = splitted[0];
+		String password = splitted[1];
 		AccountManager accountManager = AccountManagerFactory.build();
 		
-		if(!(accountManager.validPassword(password) && accountManager.validUsername(username))) {
-			out.println("0 Invalid format. Usernames and passwords must be non-empty.");
-			Log.log("\"create " + username + " " + password + "\" request failed. Invalid format.");
-			return;
+		// Check that the desired username and password are correctly formatted
+		if(!accountManager.validUsername(username) || !accountManager.validPassword(password)) {
+			return this.writeToClient(Create.FORMAT_INVALID);
 		}
 		
-		int created = accountManager.addAccount(username, password);
-		if(created == 0) {
-			out.println("1");
-			Log.log("Account " + username + "," + password + " created.");
+		int result = accountManager.addAccount(username, password);
+		if(result == 0) {
+			this.manager = ClientManagerFactory.build(username);
+			return this.writeToClient(Create.SUCCESS);
 		}
-		else if (created == 1) {
-			out.println("0 That username is taken.");
-			Log.log("\"create " + username + " " + password + "\" command failed. Username is taken.");
+		else if (result == 1) {
+			return this.writeToClient(Create.USERNAME_IN_USE);
 		}
 		else {
-			out.println("0 An error occurred, please try again later.");
+			return this.writeToClient(SERVER_ERROR);
 		}
-		
 	}
 
 	/**
@@ -186,36 +177,134 @@ class ChessProtocol implements Protocol {
 	 * the "username password" portion of the login command
 	 * 
 	 * @param rest - A String containing the part of the login command following "login "
+	 * @return 0 if the socket that this object is writing to is still connected <br>
+	 *         1 if the socket is found to have been disconnected
 	 */
-	private void loginUser(String rest) {
-		String username, password;
+	private int processLogin(String rest) {
+		String[] splitted = rest.split(" ");
 		
-		int space = rest.indexOf(' ');
-		if(space == -1) {
-			out.println("0 Invalid input");
-			return;
+		// Check input for validity
+		if(splitted.length != 2) {
+			Log.log("Command from " + socket.getInetAddress() + " is invalid");
+			return this.writeToClient(FORMAT_INVALID);
 		}
 		
-		username = rest.substring(0,space);
-		password = rest.substring(space+1);
-		
+		String username = splitted[0];
+		String password = splitted[1];
 		AccountManager accountManager = AccountManagerFactory.build();
 		
-		int result = accountManager.validCredentials(username, password);
-		
-		// User's credentials are invalid
+		// Check whether or not the given username exists
+		int result = accountManager.usernameExists(username);
 		if(result == 0) {
-			out.println("0 That username and password do not match.");
-			Log.log("Could not log in user " + username + "," + password);
+			Log.log("Username " + username + " does not exist.");
+			return this.writeToClient(Login.USERNAME_DOES_NOT_EXIST);
 		}
-		// User's credentials are valid; notify the client and begin to send board data
+		else if (result == 2) {
+			Log.log("ERROR: Server error encountered in AccountManager.usernameExists()");
+			return this.writeToClient(SERVER_ERROR);
+		}
+		
+		// Check whether the given username-password combo is valid
+		result = accountManager.validCredentials(username, password);
+		if(result == 0) {
+			Log.log("Username,password combination " + username + "," + password + " is invalid.");
+			return this.writeToClient(Login.PASSWORD_INVALID);
+		}
 		else if (result == 1) {
-			out.println("1");
-			Log.log("Logged in user " + username);
-			manager = ClientManagerFactory.build(username);
+			// Write the success code to the client, but don't return unless they disconnected.
+			// We have more data to send
+			Log.log("Login request " + username + "," + password + " is valid. Notifying client...");
+			if(this.writeToClient(Login.SUCCESS) == 1) {
+				return 1;
+			}
 		}
 		else {
-			out.println("0 An error occurred. Please try again later.");
+			Log.log("ERROR: Server error encountered in AccountManager.validCredentials()");
+			return this.writeToClient(SERVER_ERROR);
+		}
+		
+		// If the user has successfully been logged in, we need to send the client all of
+		// the user's game data
+		this.manager = ClientManagerFactory.build(username);
+		List<HashMap<GameData, Object>> games = manager.getGameData();
+		
+		// First we send the user the number of games to expect to receive
+		writeToClient(games.size());
+		
+		// Then we take each game and write all of its data to the client in the proper order
+		int status;
+		for(HashMap<GameData, Object> game : games) {
+			for(GameData data : GameData.order) {
+				if(data.type == 'i') {
+					status = writeToClient((Integer)game.get(data));
+					if(status == 1) {
+						return 1;
+					}
+				}
+				else {
+					status = writeToClient((String)game.get(data));
+					if(status == 1) {
+						return 1;
+					}
+				}
+			}
+		}
+		
+		return 0;
+	}
+	
+	/**
+	 * Write the given integer to this object's DataOutputStream. Returns an integer
+	 * according to the state of the connection with the client. Calls System.exit(1)
+	 * if the write fails due to an IOException
+	 * @param code - The int to write to the client
+	 * @return 0 if the write succeeds and the connection with the client remains intact <br>
+	 * 		   1 if the client is found to have disconnected
+	 */
+	private int writeToClient(int code) {
+		try {
+			 out.writeInt(code);
+			 return 0;
+		}
+		catch(SocketException e) {
+			return 1;
+		}
+		catch(IOException e) {
+			e.printStackTrace();
+			Log.log("Encountered exception writing to " + socket.getInetAddress());
+			System.exit(1);
+			return 1; // We'll never get here, but have to do this to make the compiler happy
+		}
+	}
+	
+	/**
+	 * Write the given String as a full line of data to the client's socket. Here,
+	 * "writing" means writing each character in msg to the socket as a ONE-BYTE character
+	 * (by throwing away the most significant byte of each 2-byte char), followed by a
+	 * network newline, "\r\n".
+	 * 
+	 * Note that the original message does NOT need to include a network newline.
+	 * @param msg - The message to be written to the client
+	 * @return 0 if the write succeeds and the connection with the client remains intact <br>
+	 * 		   1 if the client is found to have disconnected
+	 */
+	private int writeToClient(String msg) {
+		try {
+			for(int i = 0; i < msg.length(); i++) {
+				out.write(msg.charAt(i));
+			}
+			out.write('\r');
+			out.write('\n');
+			return 0;
+		}
+		catch(SocketException e) {
+			return 1;
+		}
+		catch(IOException e) {
+			e.printStackTrace();
+			Log.log("Encountered exception writing to " + socket.getInetAddress());
+			System.exit(1);
+			return 1; // We'll never get here, but have to do this to make the compiler happy
 		}
 	}
 }

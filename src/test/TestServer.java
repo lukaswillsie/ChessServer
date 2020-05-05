@@ -2,13 +2,10 @@ package test;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
-import java.util.Scanner;
 
-import main.ChessServerThread;
 import utility.Log;
 
 public class TestServer {
@@ -38,7 +35,6 @@ public class TestServer {
 					out.writeInt(9);
 					out.writeInt(10);
 					System.out.println("Done writing...");
-					(new Scanner(System.in)).nextLine();
 					
 				}
 				catch(SocketException e) {
@@ -49,11 +45,5 @@ public class TestServer {
 			System.out.println("Could not listen on port " + port);
 			e.printStackTrace();
 		}		
-	}
-	
-	private static void write(DataOutputStream out, String str) throws IOException {
-		for(int i = 0; i < str.length(); i++) {
-			out.write((byte)str.charAt(i));
-		}
 	}
 }

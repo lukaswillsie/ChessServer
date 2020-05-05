@@ -20,6 +20,7 @@ public interface AccountManager {
 	
 	/**
 	 * Check if the given username is already being used in the system
+	 * 
 	 * @param username - The username to check
 	 * @return One of the following: <br>
 	 * 		0 - username does not exist <br>
@@ -31,28 +32,36 @@ public interface AccountManager {
 	/**
 	 * Create a new account under the given username and password.
 	 * 
-	 * Returns a boolean indicating whether or not account creation was successful
+	 * Returns an integer indicating whether or not account creation was successful
 	 * 
 	 * @param username - The username to create the new account under
 	 * @param password - The password to create the new account under
-	 * @return One of the following:
-	 * 		0 - the account was successfully created
-	 * 		1 - the account cannot be created because the given username already exists
-	 * 		2 - an error/exception occurred
+	 * @return One of the following: <br>
+	 * 		0 - the account was successfully created <br>
+	 * 		1 - the account cannot be created because the given username already exists <br>
+	 * 		2 - an error/exception occurred <br>
 	 */
 	int addAccount(String username, String password);
 	
 	/**
-	 * Checks whether or not the given username is properly formatted
+	 * An implementation of this interface should implement this method and the one below so 
+	 * that users are able to check that a given username,password combination is properly
+	 * formatted and won't cause any problems for the implementation before attempting to
+	 * create a new account for a user.
+	 * 
 	 * @param username - The username to check
 	 * @return Whether or not the given username is properly formatted
 	 */
 	boolean validUsername(String username);
 	
 	/**
-	 * Checks whether or not the given password is properly formatted
-	 * @param password - The password to check
-	 * @return Whether or not the given password is properly formatted
+	 * An implementation of this interface should implement this method and the one above so 
+	 * that users are able to check that a given username,password combination is properly
+	 * formatted and won't cause any problems for the implementation before attempting to
+	 * create a new account for a user.
+	 * 
+	 * @param username - The username to check
+	 * @return Whether or not the given username is properly formatted
 	 */
 	boolean validPassword(String password);
 }

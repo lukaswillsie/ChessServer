@@ -99,7 +99,8 @@ public class FileAccountManager implements AccountManager {
 	}
 	
 	/**
-	 * Create a new account under the given username and password.
+	 * Create a new account under the given username and password. username and password should satisfy
+	 * validUsername(username) and validPassword(password) respectively, before this method is called.
 	 * 
 	 * Returns a boolean indicating whether or not account creation was successful
 	 * 
@@ -132,15 +133,33 @@ public class FileAccountManager implements AccountManager {
 			return 2;
 		}
 	}
-
+	
+	/**
+	 * Return whether or not the given String is a validly formatted username, according to this implementation
+	 * of AccountManager.
+	 * In this case, valid format means the username has non-zero length and does not contain any spaces
+	 * or commas
+	 * 
+	 * @param password - The String to evaluate
+	 * @return true if and only if the given username can be used to create an account
+	 */
 	@Override
 	public boolean validUsername(String username) {
-		return username.length() >= 1;
+		return username.length() >= 1 && username.indexOf(',') == -1 && username.indexOf(' ') == -1;
 	}
 
+	/**
+	 * Return whether or not the given String is a validly formatted password, according to this implementation
+	 * of AccountManager.
+	 * In this case, valid format means the password has non-zero length and does not contain any spaces
+	 * or commas
+	 * 
+	 * @param password - The String to evaluate
+	 * @return true if and only if the given password can be used to create an account
+	 */
 	@Override
 	public boolean validPassword(String password) {
-		return password.length() >= 1;
+		return password.length() >= 1 && password.indexOf(',') == -1 && password.indexOf(' ') == -1;
 	}
 
 }

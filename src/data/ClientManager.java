@@ -1,21 +1,30 @@
 package data;
 
 import java.util.HashMap;
+import java.util.List;
 
 public abstract class ClientManager {
 	// The username of the user this Manager is managing
 	String username;
 	
 	/**
-	 * Return an array of all games this Manager's user is participating in.
-	 * Games are represented as HashMaps, with keys taking values in the 
-	 * GameData enum, and the values being Strings. The GameData enum
-	 * contains things like GAMEID, TURN_NUMBER, the names of the
-	 * participants, etc.
+	 * Return a List of all games this Manager's user is participating in.
+	 * Each game is represented as a HashMap. Keys take values in the GameData
+	 * enum, which defines exactly what pieces of data define a game. The values are
+	 * Objects, guaranteed to either be Strings or Integers, and represent the value 
+	 * taken on by the corresponding key.
+	 * 
+	 * So the pair {GAMEID=lukas's} means that the game's ID is "lukas's".
+	 * 
+	 * Each HashMap within the List has as many key,value pairs as the GameData enum has values,
+	 * one for each
+	 * 
+	 * Returns null if an error is encountered (for example, if the underlying data cannot be
+	 * accessed or has been corrupted in some way).
 	 * 
 	 * @return - The array of HashMaps corresponding to all games being played by this user
 	 */
-	public abstract HashMap<GameData,String>[] getGameData();
+	public abstract List<HashMap<GameData,Object>> getGameData();
 	
 	/**
 	 * Create a game with the given gameID under the user's name

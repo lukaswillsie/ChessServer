@@ -23,7 +23,13 @@ import utility.Log;
  */
 class FileClientManager extends ClientManager {
 	private static final String GAMES_FILENAME = "serverdata/active_games.csv";
+	private String username;
 	private File games;
+	
+	public static void main(String[] args) {
+		FileClientManager test = new FileClientManager("Vaskar");
+		System.out.println(test.getGameData());
+	}
 	
 	/**
 	 * Create a new FileClientManager on behalf of the user with the given username
@@ -33,11 +39,82 @@ class FileClientManager extends ClientManager {
 		this.username = username;
 		games = new File(GAMES_FILENAME);
 	}
-
+	
+	/**
+	 * Return a List of all games this Manager's user is participating in.
+	 * Each game is represented by a list of HashMaps. Each
+	 * HashMap represents a piece of data about the game, like the ID of the game,
+	 * or the name of the user playing white, etc. Keys take values in the GameData
+	 * enum, which defines exactly what pieces of data define a game. The values are
+	 * Objects, guaranteed to either be Strings or Integers, and represent the value 
+	 * taken on by the corresponding key.
+	 * 
+	 * So the pair {GAMEID: lukas's} means that the game's ID is "lukas's".
+	 * 
+	 * Each List within the overall List has as many elements as the GameData enum has values.
+	 * 
+	 * Returns null if an error is encountered (for example, if the underlying data cannot be
+	 * accessed or has been corrupted in some way).
+	 * 
+	 * @return - The array of HashMaps corresponding to all games being played by this user
+	 */
 	@Override
-	public HashMap<GameData, String>[] getGameData() {
-		// TODO Auto-generated method stub
-		return null;
+	public List<HashMap<GameData, Object>> getGameData() {
+		List<HashMap<GameData, Object>> games = new ArrayList<HashMap<GameData, Object>>();
+		
+		Scanner scanner;
+		try {
+			scanner = new Scanner(this.games);
+		}
+		catch(IOException e) {
+			e.printStackTrace();
+			Log.log("ERROR: Could not open active_games file for reading in getGameData().");
+			return null;
+		}
+		
+		String line;
+		int lineNum = 1;
+		String[] data;
+		while(scanner.hasNextLine()) {
+			line = scanner.nextLine();
+			// Split line of csv into columns
+			data = line.split(",");
+			
+			// We should have as many columns as we do GameData values
+			if(data.length != GameData.values().length) {
+				Log.log("ERROR: Error in active_games file. Line number " + lineNum + " does not have correct number of columns.");
+				scanner.close();
+				return null;
+			}
+			
+			// If this object's user is involved in the game
+			if(data[GameData.WHITE.getColumn()].equals(this.username)
+			|| data[GameData.BLACK.getColumn()].equals(this.username)) {
+				// Create a HashMap, then iterate through all GameData values, getting their
+				// value from the file, and adding the key,value pair to the HashMap
+				HashMap<GameData, Object> game = new HashMap<GameData, Object>();
+				for(GameData dataType : GameData.values()) {
+					if(dataType.type == 'i') {
+						try {game.put(dataType, Integer.parseInt(data[dataType.getColumn()]));}
+						catch(NumberFormatException e) {
+							Log.log("ERROR: In active_games file, line " + lineNum + ", couldn't cast data " + dataType + " to int");
+							scanner.close();
+							return null;
+						}
+					}
+					else {
+						game.put(dataType, data[dataType.getColumn()]);
+					}
+				}
+				
+				games.add(game);
+			}
+			lineNum++;
+		}
+		
+		
+		scanner.close();
+		return games;
 	}
 	
 	/**
