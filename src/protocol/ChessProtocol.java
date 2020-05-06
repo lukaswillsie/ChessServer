@@ -15,6 +15,7 @@ import data.ClientManagerFactory;
 import data.GameData;
 import protocol.Protocol;
 import utility.Log;
+import utility.Pair;
 
 /**
  * This class is an implementation of the Protocol interface (in this package) that
@@ -99,7 +100,7 @@ class ChessProtocol implements Protocol {
 					return processLoadgame(rest);
 				}
 				else if(keyword.equals("move")) {
-					
+					return processMove(rest);
 				}
 				else if(keyword.equals("promote")) {
 					
@@ -405,6 +406,49 @@ class ChessProtocol implements Protocol {
 	 * 		   1 if the client is found to have disconnected during the execution of this method
 	 */
 	private int processMove(String rest) {
+		// The client can't create a game if it hasn't logged in a user, so check if
+		// it's logged anyone in and send the appropriate return code if they haven't.
+		if(this.manager == null) {
+			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot make a move.");
+			return this.writeToClient(NO_USER);
+		}
+		
+		// First, parse rest into its components, error-checking along the way
+		int space = rest.indexOf(' ');
+		if(space == -1) {
+			Log.log("Command from " + socket.getInetAddress() + " is invalid.");
+			return this.writeToClient(FORMAT_INVALID);
+		}
+		
+		String gameID = rest.substring(0,space);
+		String move = rest.substring(space+1);
+		
+		int arrow = move.indexOf("->");
+		if(arrow == -1) {
+			Log.log("Command from " + socket.getInetAddress() + " is invalid.");
+			return this.writeToClient(FORMAT_INVALID);
+		}
+		
+		String src = move.substring(0,arrow);
+		String dest = move.substring(arrow+2);
+		
+		int src_comma = src.indexOf(',');
+		int dest_comma = dest.indexOf(',');
+		if(src_comma == -1 || dest_comma == -1) {
+			Log.log("Command from " + socket.getInetAddress() + " is invalid.");
+			return this.writeToClient(FORMAT_INVALID);
+		}
+		
+		try {
+			Pair src_square = new Pair(Integer.parseInt(src.substring(0,src_comma)), Integer.parseInt(src.substring(src_comma+1)));
+			Pair dest_square = new Pair(Integer.parseInt(dest.substring(0,dest_comma)), Integer.parseInt(dest.substring(dest_comma+1)));
+		}
+		catch(NumberFormatException e) {
+			Log.log("Command from " + socket.getInetAddress() + " is invalid. NumberFormatException");
+			return this.writeToClient(FORMAT_INVALID);
+		}
+		
+		
 		return 0;
 	}
 	

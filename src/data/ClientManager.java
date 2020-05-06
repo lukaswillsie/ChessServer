@@ -3,6 +3,8 @@ package data;
 import java.util.HashMap;
 import java.util.List;
 
+import utility.Pair;
+
 public abstract class ClientManager {
 	// The username of the user this Manager is managing
 	String username;
@@ -88,8 +90,21 @@ public abstract class ClientManager {
 	 */
 	public abstract List<Object> loadGame(String gameID);
 	
-	// TODO: Determine what this method's signature should be
-	public abstract void makeMove(String gameID, String move);
+	/**
+	 * Try and make the given move in the given game. src is the square occupied by the piece
+	 * making the move, and dest is the square it is moving to. This method returns a variety of
+	 * integers to represent various possible problems with the move command.
+	 * 
+	 * @param gameID - The game to try and make the move in
+	 * @param src - The square the piece that is moving occupies
+	 * @param dest - The square that the piece is moving to
+	 * @return  0 if the move was successfully made; game has been updated <br>
+				1 if the move is invalid (one of the squares is not on the board, the move is invalid for the selected piece, etc.)
+				2 if it is not the user’s turn to make a move 
+				3 if it is the user’s turn, but they need to promote a pawn rather than make a normal move
+				4 if the given game does not exist
+	 */
+	public abstract int makeMove(String gameID, Pair src, Pair dest);
 	
 	public String getUsername() {
 		return username;

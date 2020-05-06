@@ -84,7 +84,7 @@ public interface Protocol {
 	}
 	
 	/**
-	 * Defines return codes specific to the "joingmae gameID" command, for joining existing
+	 * Defines return codes specific to the "joingame gameID" command, for joining existing
 	 * games
 	 * @author Lukas Willsie
 	 *
@@ -108,5 +108,30 @@ public interface Protocol {
 		public static final int SUCCESS = 0;
 		public static final int GAME_DOES_NOT_EXIST = 1;
 		public static final int USER_NOT_IN_GAME = 2;
+	}
+	
+	/**
+	 * Defines return codes specific to the "move gameID src_row,src_col->dest_row,dest_col"
+	 * command, for making moves in a game
+	 * 
+	 * @author Lukas Willsie
+	 *
+	 */
+	public static class Move {
+		// Return code if the move is successfully made and the game is updated
+		public static final int SUCCESS = 0;
+		
+		// Return code if the requested move is invalid
+		public static final int MOVE_INVALID = 1;
+		
+		// Return code if it is not the user's turn
+		public static final int NOT_USER_TURN = 2;
+		
+		// Return code if it is the user's turn, but they have to promote a piece,
+		// not make a normal move
+		public static final int HAS_TO_PROMOTE = 3;
+		
+		// Return code if the game specified in the command does not exist
+		public static final int GAME_DOES_NOT_EXIST = 4;
 	}
 }

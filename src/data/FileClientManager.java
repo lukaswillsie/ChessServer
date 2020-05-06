@@ -17,6 +17,7 @@ import game.Pawn;
 import game.Queen;
 import game.Rook;
 import utility.Log;
+import utility.Pair;
 
 /**
  * This class is responsible for accessing and managing data on behalf of the server
@@ -575,9 +576,8 @@ class FileClientManager extends ClientManager {
 	}
 
 	@Override
-	public void makeMove(String gameID, String move) {
-		// TODO Auto-generated method stub
-
+	public int makeMove(String gameID, Pair src, Pair dest) {
+		return 0;
 	}
 	
 	/**
