@@ -441,12 +441,11 @@ class FileClientManager extends ClientManager {
 			Log.error("ERROR: games_folder is not a directory, path must be wrong.");
 			return null;
 		}
-		System.out.println("Games folder is directory");
+
 		String data_filename = this.getFilename(gameID);
 		
 		// Get a File reference to the board data file for this game
 		File data_file = null;
-		System.out.println("Just before");
 		File[] files = this.games_folder.listFiles();
 		for(File file : files) {
 			System.out.println("File: " + file.getName());
