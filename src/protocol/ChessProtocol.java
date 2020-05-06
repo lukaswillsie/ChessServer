@@ -32,8 +32,14 @@ class ChessProtocol implements Protocol {
 	// The socket that this object is writing to. Is used for logging purposes
 	private Socket socket;
 	
-	// The object responsible for 
+	// The object responsible for actually managing and accessing data for the client.
+	// This oject is only initialized once the client logs in a user. So if this field
+	// has null value, we know the client hasn't logged in a user
 	private ClientManager manager;
+	
+	// The username of whatever user is logged in by the client at the moment.
+	// Used for logging purposes.
+	private String username;
 	
 	private static final String[] KEYWORDS =
 		{
@@ -84,16 +90,19 @@ class ChessProtocol implements Protocol {
 					return processCreateUser(rest);
 				}
 				else if(keyword.equals("creategame")) {
-					// return processCreateGame(rest);
+					return processCreateGame(rest);
 				}
 				else if(keyword.equals("joingame")) {
-					// return processJoingame(rest);
+					return processJoingame(rest);
 				}
 				else if(keyword.equals("loadgame")) {
-					
+					return processLoadgame(rest);
 				}
 				else if(keyword.equals("move")) {
 					
+				}
+				else {
+					Log.log("Command \"" + command + "\" is invalid.");
 				}
 			}
 			return 0;
@@ -102,36 +111,144 @@ class ChessProtocol implements Protocol {
 		else {
 			if(command.equals("logout")) {
 				// Reassign manager reference so that manager can be garbage-collected
-				manager = null;
+				this.manager = null;
+				this.username = null;
+				Log.log("Logged out user " + this.username + " for client " + socket.getInetAddress());
 			}
 			return 0;
 			// Otherwise do nothing as we have received an invalid command
 		}
 	}
 	
-//	/**
-//	 * Process a "joingame gameID" request. gameID is of course
-//	 * assumed to be the "gameID" part of the joingame request
-//	 * 
-//	 * @param gameID
-//	 * @return 0 if the socket that this object is writing to is still connected <br>
-//	 *         1 if the socket is found to have been disconnected
-//	 */
-//	private int processJoingame(String gameID) {
-//		
-//	}
+	private int processLoadgame(String gameID) {
+		// The client can't create a game if it hasn't logged in a user, so check if
+		// it's logged anyone in and send the appropriate return code if they haven't.
+		if(this.manager == null) {
+			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot load a game.");
+			return this.writeToClient(NO_USER);
+		}
+		
+		int code = this.manager.canLoadGame(gameID);
+		System.out.println("Came out of canLoadGame. Code = " + code);
+		if(code == 0) {
+			System.out.println("Went into first if");
+			List<Object> lines = this.manager.loadGame(gameID);
+			System.out.println("Came out of loadgame");
+			// Since we check canLoadGame() first, we know that if lines is null an error occurred
+			if(lines == null) {
+				Log.error("ERROR: An error occurred in ClientManager.loadGame()");
+				return 0;
+			}
+			
+			// The definition of loadGame() in ClientManager tells us that everything in lines
+			// is guaranteed to either be an Integer or String
+			for(Object o : lines) {
+				if(o instanceof Integer) {
+					code = this.writeToClient((Integer)o);
+					if(code == 1) {
+						return 1;
+					}
+				}
+				else if (o instanceof String) {
+					code = this.writeToClient((String)o);
+					if(code == 1) {
+						return 1;
+					}
+				}
+			}
+			
+			return 0;
+		}
+		else if (code == 1) {
+			Log.log("Game \"" + gameID + "\" does not exist, so it couldn't be joined");
+			return this.writeToClient(LoadGame.GAME_DOES_NOT_EXIST);
+		}
+		else if(code == 2) {
+			Log.log("User " + username + " is not in game \"" + gameID + "\", so game wasn't loaded");
+			return this.writeToClient(LoadGame.USER_NOT_IN_GAME);
+		}
+		else {
+			Log.log("ERROR: Error encountered in ClientManager.canLoadGame()");
+			return this.writeToClient(SERVER_ERROR);
+		}
+	}
+	
+	/**
+	 * Process a "joingame gameID" request. gameID is of course
+	 * assumed to be the "gameID" part of the joingame request
+	 * 
+	 * @param gameID
+	 * @return 0 if the socket that this object is writing to is still connected <br>
+	 *         1 if the socket is found to have been disconnected
+	 */
+	private int processJoingame(String gameID) {
+		// The client can't create a game if it hasn't logged in a user, so check if
+		// it's logged anyone in and send the appropriate return code if they haven't.
+		if(this.manager == null) {
+			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot create a game.");
+			return this.writeToClient(NO_USER);
+		}
+		
+		int code = manager.joinGame(gameID);
+		if(code == 0) {
+			Log.log("User " + this.username + " joined game \"" + gameID + "\" successfully");
+			return this.writeToClient(JoinGame.SUCCESS);
+		}
+		else if (code == 1) {
+			Log.log("Game \"" + gameID + "\" does not exist, so it could not be joined.");
+			return this.writeToClient(JoinGame.GAME_DOES_NOT_EXIST);
+		}
+		else if (code == 2) {
+			Log.log("Game \"" + gameID + "\" is already full, so it could not be joined");
+			return this.writeToClient(JoinGame.GAME_FULL);
+		}
+		else if (code == 3) {
+			Log.log("User " + this.username + " is already in game \"" + gameID + "\"");
+			return this.writeToClient(JoinGame.USER_ALREADY_IN_GAME);
+		}
+		else {
+			Log.error("ERROR: error encountered in manager.joinGame()");
+			return this.writeToClient(SERVER_ERROR);
+		}
+	}
  
-//	/**
-//	 * Process a "creategame gameID" request. gameID is of course
-//	 * assumed to be the "gameID" part of the creategame request
-//	 * 
-//	 * @param gameID - The gameID of the new game to create
-//	 * @return 0 if the socket that this object is writing to is still connected <br>
-//	 *         1 if the socket is found to have been disconnected
-//	 */
-//	private int processCreateGame(String gameID) {
-//		
-//	}
+	/**
+	 * Process a "creategame gameID" request. gameID is assumed to be the
+	 * "gameID" part of the creategame request
+	 * 
+	 * @param gameID - The gameID of the new game to create
+	 * @return 0 if the socket that this object is writing to is still connected <br>
+	 *         1 if the socket is found to have been disconnected
+	 */
+	private int processCreateGame(String gameID) {
+		// The client can't create a game if it hasn't logged in a user, so check if
+		// it's logged anyone in and send the appropriate return code if they haven't.
+		if(this.manager == null) {
+			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot create a game.");
+			return this.writeToClient(NO_USER);
+		}
+		
+		// gameIDs that contain commas are invalid (messes up the .csv file),
+		// as are those that are just empty strings
+		if(gameID.indexOf(',') != -1 || gameID.length() == 0) {
+			Log.log("GameID \"" + gameID + "\" is invalidly formatted");
+			return this.writeToClient(CreateGame.FORMAT_INVALID);
+		}
+		
+		int code = this.manager.createGame(gameID);
+		if(code == 0) {
+			Log.log("Game \"" + gameID + "\" successfully created.");
+			return this.writeToClient(CreateGame.SUCCESS);
+		}
+		else if (code == 1) {
+			Log.log("GameID \"" + gameID + "\" is already in use.");
+			return this.writeToClient(CreateGame.GAMEID_IN_USE);
+		}
+		else {
+			Log.error("ERROR: error encountered in ClientManager.createGame()");
+			return this.writeToClient(SERVER_ERROR);
+		}
+	}
 
 	/**
 	 * Process a "create username password" request. rest is assumed
@@ -147,6 +264,7 @@ class ChessProtocol implements Protocol {
 		
 		// Check input for validity; we should have
 		if(splitted.length != 2) {
+			Log.log("Command from " + socket.getInetAddress() + " is invalid");
 			return this.writeToClient(FORMAT_INVALID);
 		}
 		
@@ -156,18 +274,23 @@ class ChessProtocol implements Protocol {
 		
 		// Check that the desired username and password are correctly formatted
 		if(!accountManager.validUsername(username) || !accountManager.validPassword(password)) {
+			Log.log("One of " + username + "," + password + " is invalidly formatted");
 			return this.writeToClient(Create.FORMAT_INVALID);
 		}
 		
 		int result = accountManager.addAccount(username, password);
 		if(result == 0) {
+			Log.log("Adding account " + username + "," + password);
 			this.manager = ClientManagerFactory.build(username);
+			this.username = username;
 			return this.writeToClient(Create.SUCCESS);
 		}
 		else if (result == 1) {
+			Log.log("Username " + username + " is already in use.");
 			return this.writeToClient(Create.USERNAME_IN_USE);
 		}
 		else {
+			Log.error("ERROR: error encountered in AccountManager.addAccount()");
 			return this.writeToClient(SERVER_ERROR);
 		}
 	}
@@ -200,7 +323,7 @@ class ChessProtocol implements Protocol {
 			return this.writeToClient(Login.USERNAME_DOES_NOT_EXIST);
 		}
 		else if (result == 2) {
-			Log.log("ERROR: Server error encountered in AccountManager.usernameExists()");
+			Log.error("ERROR: Server error encountered in AccountManager.usernameExists()");
 			return this.writeToClient(SERVER_ERROR);
 		}
 		
@@ -219,13 +342,15 @@ class ChessProtocol implements Protocol {
 			}
 		}
 		else {
-			Log.log("ERROR: Server error encountered in AccountManager.validCredentials()");
+			Log.error("ERROR: Server error encountered in AccountManager.validCredentials()");
 			return this.writeToClient(SERVER_ERROR);
 		}
 		
 		// If the user has successfully been logged in, we need to send the client all of
 		// the user's game data
 		this.manager = ClientManagerFactory.build(username);
+		this.username = username;
+		
 		List<HashMap<GameData, Object>> games = manager.getGameData();
 		
 		// First we send the user the number of games to expect to receive
@@ -257,24 +382,26 @@ class ChessProtocol implements Protocol {
 	 * Write the given integer to this object's DataOutputStream. Returns an integer
 	 * according to the state of the connection with the client. Calls System.exit(1)
 	 * if the write fails due to an IOException
-	 * @param code - The int to write to the client
+	 * @param num - The int to write to the client
 	 * @return 0 if the write succeeds and the connection with the client remains intact <br>
 	 * 		   1 if the client is found to have disconnected
 	 */
-	private int writeToClient(int code) {
-		try {
-			 out.writeInt(code);
-			 return 0;
-		}
-		catch(SocketException e) {
-			return 1;
-		}
-		catch(IOException e) {
-			e.printStackTrace();
-			Log.log("Encountered exception writing to " + socket.getInetAddress());
-			System.exit(1);
-			return 1; // We'll never get here, but have to do this to make the compiler happy
-		}
+	private int writeToClient(int num) {
+//		try {
+//			 out.writeInt(code);
+//			 return 0;
+//		}
+//		catch(SocketException e) {
+//			return 1;
+//		}
+//		catch(IOException e) {
+//			e.printStackTrace();
+//			Log.log("Encountered exception writing to " + socket.getInetAddress());
+//			System.exit(1);
+//			return 1; // We'll never get here, but have to do this to make the compiler happy
+//		}
+		System.out.println(num);
+		return 0;
 	}
 	
 	/**
@@ -289,22 +416,24 @@ class ChessProtocol implements Protocol {
 	 * 		   1 if the client is found to have disconnected
 	 */
 	private int writeToClient(String msg) {
-		try {
-			for(int i = 0; i < msg.length(); i++) {
-				out.write(msg.charAt(i));
-			}
-			out.write('\r');
-			out.write('\n');
-			return 0;
-		}
-		catch(SocketException e) {
-			return 1;
-		}
-		catch(IOException e) {
-			e.printStackTrace();
-			Log.log("Encountered exception writing to " + socket.getInetAddress());
-			System.exit(1);
-			return 1; // We'll never get here, but have to do this to make the compiler happy
-		}
+//		try {
+//			for(int i = 0; i < msg.length(); i++) {
+//				out.write(msg.charAt(i));
+//			}
+//			out.write('\r');
+//			out.write('\n');
+//			return 0;
+//		}
+//		catch(SocketException e) {
+//			return 1;
+//		}
+//		catch(IOException e) {
+//			e.printStackTrace();
+//			Log.log("Encountered exception writing to " + socket.getInetAddress() + ". Exiting thread");
+//			System.exit(1);
+//			return 1; // We'll never get here, but have to do this to make the compiler happy
+//		}
+		System.out.println(msg);
+		return 0;
 	}
 }

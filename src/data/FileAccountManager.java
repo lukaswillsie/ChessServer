@@ -41,7 +41,7 @@ public class FileAccountManager implements AccountManager {
 				line = scanner.nextLine();
 				int comma = line.indexOf(',');
 				if(comma == -1) {
-					Log.log("Accounts file is incorrectly formatted");
+					Log.error("Accounts file is incorrectly formatted");
 					return 2;
 				}
 				
@@ -57,7 +57,7 @@ public class FileAccountManager implements AccountManager {
 		}
 		catch(IOException e) {
 			e.printStackTrace();
-			Log.log("Encountered exception while validating credentials:\nUsername: " + username + "\nPassword: " + password);
+			Log.error("Encountered exception while validating credentials:\nUsername: " + username + "\nPassword: " + password);
 			return 2;
 		}
 	}
@@ -79,7 +79,7 @@ public class FileAccountManager implements AccountManager {
 				line = scanner.nextLine();
 				int comma = line.indexOf(',');
 				if(comma == -1) {
-					Log.log("Accounts file is incorrectly formatted");
+					Log.error("Accounts file is incorrectly formatted");
 					return 2;
 				}
 				
@@ -93,7 +93,7 @@ public class FileAccountManager implements AccountManager {
 		}
 		catch(IOException e) {
 			e.printStackTrace();
-			Log.log("Encountered exception while checking if username \"" + username + "\" exists ");
+			Log.error("Encountered exception while checking if username \"" + username + "\" exists ");
 			return 2;
 		}
 	}
@@ -123,13 +123,13 @@ public class FileAccountManager implements AccountManager {
 				case 1:
 					return 1;
 				default:
-					Log.log("Error encountered in usernameExists while trying to add account:\nUsername: " + username + "\nPassword: " + password);
+					Log.error("Error encountered in usernameExists while trying to add account:\nUsername: " + username + "\nPassword: " + password);
 					return 2;
 			}
 			
 		}
 		catch(IOException e) {
-			Log.log("Error adding account:\nUsername: " + username + "\nPassword: " + password);
+			Log.error("Error adding account:\nUsername: " + username + "\nPassword: " + password);
 			return 2;
 		}
 	}

@@ -32,7 +32,8 @@ public interface Protocol {
 	int processCommand(String command);
 	
 	/**
-	 * Defines return codes specific to the "login" command
+	 * Defines return codes specific to the "login username password" command, for
+	 * logging in existing users
 	 * @author Lukas Willsie
 	 *
 	 */
@@ -48,8 +49,9 @@ public interface Protocol {
 	}
 	
 	/**
-	 * Defines return codes specific to the "create" command
-	 * @author Lukas Willsie
+	 * Defines return codes specific to the "create username password" command,
+	 * for creating new user accounts
+	 * @author Lukas Willsie Willsie
 	 *
 	 */
 	public static class Create {
@@ -62,5 +64,49 @@ public interface Protocol {
 		// Return code if either the username or password is formatted incorrectly
 		// For example, is empty or contains a comma
 		public static final int FORMAT_INVALID = 2;
+	}
+	
+	/**
+	 * Defines return codes specific to the "creategame gameID" command, for creating
+	 * new games
+	 * @author Lukas Willsie
+	 *
+	 */
+	public static class CreateGame {
+		// Return code on successful game creation
+		public static final int SUCCESS = 0;
+		
+		// Return code if the gameID provided in the command is already in use
+		public static final int GAMEID_IN_USE = 1;
+		
+		// Return code if the provided gameID is invalidly formatted
+		public static final int FORMAT_INVALID = 2;
+	}
+	
+	/**
+	 * Defines return codes specific to the "joingmae gameID" command, for joining existing
+	 * games
+	 * @author Lukas Willsie
+	 *
+	 */
+	public static class JoinGame {
+		// Return code if the user was able to successfully join the given games
+		public static final int SUCCESS = 0;
+		
+		// Return code if provided gameID does not represent an existing game
+		public static final int GAME_DOES_NOT_EXIST = 1;
+		
+		// Return code if the given gameID already has two players
+		public static final int GAME_FULL = 2;
+		
+		// Return code if the user has already joined the game represented by the
+		// provided gameID
+		public static final int USER_ALREADY_IN_GAME = 3;
+	}
+	
+	public static class LoadGame {
+		public static final int SUCCESS = 0;
+		public static final int GAME_DOES_NOT_EXIST = 1;
+		public static final int USER_NOT_IN_GAME = 2;
 	}
 }
