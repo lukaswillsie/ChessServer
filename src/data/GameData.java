@@ -25,7 +25,8 @@ public enum GameData {
 	PROMOTION_NEEDED("0", 12, 'i');	// 1 if the player whose turn it is needs to promote a piece before their turn can end
 	
 	// This array contains all the GameData values, in the order in which they should be sent to clients,
-	// and the order in which they should appear in the active_games.csv file
+	// and the order in which they should appear in the active_games.csv file. This is the exact same as
+	// the order in which they are declared in the enum, but we choose to make it explicit here.
 	public static final GameData[] order = {GAMEID, WHITE, BLACK, STATE, TURN, WHITE_ARCHIVED, BLACK_ARCHIVED, DRAWN, WINNER, WHITE_CHK, BLACK_CHK, PROMOTION_NEEDED};
 	
 	// The initial value that this piece of GameData should take upon creation of a new game
