@@ -27,7 +27,7 @@ public enum GameData {
 	// This array contains all the GameData values, in the order in which they should be sent to clients,
 	// and the order in which they should appear in the active_games.csv file. This is the exact same as
 	// the order in which they are declared in the enum, but we choose to make it explicit here.
-	public static final GameData[] order = {GAMEID, WHITE, BLACK, STATE, TURN, WHITE_ARCHIVED, BLACK_ARCHIVED, DRAWN, WINNER, WHITE_CHK, BLACK_CHK, PROMOTION_NEEDED};
+	public static final GameData[] order = {GAMEID, WHITE, BLACK, STATE, TURN, WHITE_ARCHIVED, BLACK_ARCHIVED, DRAW_OFFERED, DRAWN, WINNER, WHITE_CHK, BLACK_CHK, PROMOTION_NEEDED};
 	
 	// The initial value that this piece of GameData should take upon creation of a new game
 	private String initial;

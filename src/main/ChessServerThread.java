@@ -35,6 +35,7 @@ public class ChessServerThread extends Thread {
 		{
 			while((input = in.readLine()) != null) {
 				Log.log("Received command \"" + input + "\" from " + socket.getInetAddress());
+				Log.command(socket.getInetAddress().toString(), input);
 				protocol.processCommand(input);
 			}
 		}

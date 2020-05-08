@@ -182,6 +182,10 @@ class ChessProtocol implements Protocol {
 		this.username = username;
 		
 		List<HashMap<GameData, Object>> games = manager.getGameData();
+		if(games == null) {
+			Log.error("ERROR: Error encountered in ClientManager.getGameData()");
+			return this.writeToClient(SERVER_ERROR);
+		}
 		
 		// First we send the user the number of games to expect to receive
 		writeToClient(games.size());
