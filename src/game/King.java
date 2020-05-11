@@ -33,14 +33,14 @@ public class King extends Piece {
 		// a square that the rook can move to at the moment, but the King still
 		// can't move there because if he did he would be in check. We need
 		// to remove the King from the board to catch such subtleties. 
-		board.removePiece(this);
+		board.pickUp(this);
 		
 		// By definition, protected squares are the squares which a King is not allowed
 		// to move to, so fetch all of them
 		List<Pair> enemyProtectedSquares = board.getProtectedSquares(enemy_colour);
 		
 		// We can put the King back on the board now
-		board.addPiece(this);
+		board.restore(this);
 		
 		int[] row_offsets = {-1,1};
 		int[] column_offsets= {-1,0,1};

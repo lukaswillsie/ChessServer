@@ -29,13 +29,12 @@ public abstract class ClientManager {
 	public abstract List<HashMap<GameData,Object>> getGameData();
 	
 	/**
-	 * Create a game with the given gameID under the user's name
+	 * Create a game with the given gameID under the user's name.
 	 * 
 	 * @param gameID - The ID of the game to create
-	 * @return An integer corresponding to one of the following values:<br>
-	 * 		0 - game created successfully <br>
-	 * 		1 - game already exists and hence cannot be created
-	 * 		2 - an error/exception occurred
+	 * @return 	Protocol.SERVER_ERROR 				- an error is encountered <br>
+	 * 			Protocol.CreateGame.SUCCESS 		- game created successfully <br>
+	 * 			Protocol.CreateGame.GAMEID_IN_USE 	- game already exists and hence cannot be created
 	 */
 	public abstract int createGame(String gameID);
 	
@@ -43,12 +42,11 @@ public abstract class ClientManager {
 	 * Try to have the user join the game with the given gameID
 	 * 
 	 * @param gameID - The ID of the game to join
-	 * @return An integer corresponding to one of the following values: <br>
-	 * 		0 - game joined successfully <br>
-	 * 		1 - game does not exist <br>
-	 * 		2 - game is already full <br>
-	 * 		3 - The user has already joined that game <br>
-	 * 		4 - an error/exception occurred
+	 * @return 	Protocol.SERVER_ERROR 					- an error is encountered <br>
+	 * 			Protocol.JoinGame.SUCCESS 				- game joined successfully <br>
+	 * 			Protocol.JoinGame.GAME_DOES_NOT_EXIST 	- game does not exist <br>
+	 * 			Protocol.JoinGame.GAME_FULL 			- game is already full <br>
+	 * 			Protocol.JoinGame.USER_ALREADY_IN_GAME 	- the user has already joined that game
 	 */
 	public abstract int joinGame(String gameID);
 	
@@ -59,10 +57,10 @@ public abstract class ClientManager {
 	 * THIS METHOD SHOULD BE CALLED before calling loadGame().
 	 * 
 	 * @param gameID - The game to check
-	 * @return 0 if and only if the user is a player in the given game, which exists <br>
-	 * 		   1 if the given game does not exist <br>
-	 * 		   2 if the user is not in the given game <br>
-	 * 		   3 if an error is encountered
+	 * @return 	Protocol.SERVER_ERROR 					- if an error is encountered <br>
+	 * 			Protocol.LoadGame.SUCCESS 				- if and only if the user is a player in the given game, which exists <br>
+	 * 		   	Protocol.LoadGame.GAME_DOES_NOT_EXIST	- if the given game does not exist <br>
+	 * 		    Protocol.LoadGame.USER_NOT_IN_GAME 		- if the user is not in the given game
  	 */
 	public abstract int canLoadGame(String gameID);
 	
@@ -98,11 +96,15 @@ public abstract class ClientManager {
 	 * @param gameID - The game to try and make the move in
 	 * @param src - The square the piece that is moving occupies
 	 * @param dest - The square that the piece is moving to
-	 * @return  0 if the move was successfully made; game has been updated <br>
-				1 if the move is invalid (one of the squares is not on the board, the move is invalid for the selected piece, etc.)
-				2 if it is not the user’s turn to make a move 
-				3 if it is the user’s turn, but they need to promote a pawn rather than make a normal move
-				4 if the given game does not exist
+	 * @return 	Protocol.Move.SUCCESS				- if the move is successfully made, and the game records are properly updated <br>
+	 *			Protocol.Move.GAME_DOES_NOT_EXIST	- if the given game does not exist <br>
+	 *			Protocol.Move.USER_NOT_IN_GAME		- if the user this object is managing is not in the given game <br>
+	 *			Protocol.Move.NO_OPPONENT			- if the user is in the given game, but does not have an opponent yet <br>
+	 *			Protocol.Move.GAME_IS_OVER			- if the given game is already over <br>
+	 *			Protocol.Move.NOT_USER_TURN			- if it is not the user's turn to make a move <br>
+	 *			Protocol.Move.HAS_TO_PROMOTE		- if it is the user's turn, but they have to promote a pawn rather than make a normal move <br>
+	 *			Protocol.Move.RESPOND_TO_DRAW		- if is is the user's turn, but they have to respond to a draw offer <br>
+	 *			Protocol.Move.MOVE_INVALID			- if the given move is invalid (for example, the selected piece can't move to the selected square) <br>
 	 */
 	public abstract int makeMove(String gameID, Pair src, Pair dest);
 	

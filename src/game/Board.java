@@ -300,13 +300,21 @@ public class Board {
 	
 	/**
 	 * "Pick up" the given piece (assumed to be on the board). This means that the board
-	 * can be processed as if the piece isn't there; as if it's been literally picked up,
-	 * with
+	 * can be processed as if the piece isn't there; as if it's been literally picked up.
 	 * 
 	 * @param piece
 	 */
-	public void pickUp(Piece piece) {
+	void pickUp(Piece piece) {
 		board[piece.getRow()][piece.getColumn()] = null;
+	}
+	
+	/**
+	 * Assuming the given piece has already been picked up (see above method), place
+	 * it back on the board
+	 * @param piece
+	 */
+	void restore(Piece piece) {
+		board[piece.getRow()][piece.getColumn()] = piece;
 	}
 	
 	/**
@@ -1233,7 +1241,7 @@ public class Board {
 	 * @param list
 	 * @param pair
 	 */
-	public void insert(List<Pair> list, Pair pair) {
+	private void insert(List<Pair> list, Pair pair) {
 		int i = 0;
 		while(i < list.size() && list.get(i).compareTo(pair) < 0) {
 			i++;

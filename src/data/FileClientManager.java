@@ -11,11 +11,18 @@ import java.util.NoSuchElementException;
 import java.util.Scanner;
 
 import game.Bishop;
+import game.Board;
+import game.Colour;
 import game.King;
 import game.Knight;
 import game.Pawn;
 import game.Queen;
 import game.Rook;
+import protocol.Protocol;
+import protocol.Protocol.CreateGame;
+import protocol.Protocol.JoinGame;
+import protocol.Protocol.LoadGame;
+import protocol.Protocol.Move;
 import utility.Log;
 import utility.Pair;
 
@@ -140,10 +147,9 @@ class FileClientManager extends ClientManager {
 	 * Create a game with the given gameID under the user's name.
 	 * 
 	 * @param gameID - The ID of the game to create
-	 * @return An integer corresponding to one of the following values:<br>
-	 * 		0 - game created successfully <br>
-	 * 		1 - game already exists and hence cannot be created
-	 * 		2 - an error/exception occurred
+	 * @return 	Protocol.SERVER_ERROR 				- an error is encountered <br>
+	 * 			Protocol.CreateGame.SUCCESS 		- game created successfully <br>
+	 * 			Protocol.CreateGame.GAMEID_IN_USE 	- game already exists and hence cannot be created
 	 */
 	@Override
 	public int createGame(String gameID) {
@@ -157,19 +163,19 @@ class FileClientManager extends ClientManager {
 				int comma = line.indexOf(',');
 				if(comma == -1) {
 					Log.error("active_games file is incorrectly formatted");
-					return 2;
+					return Protocol.SERVER_ERROR;
 				}
 				
 				id = line.substring(0, comma);
 				if(id.equals(gameID)) {
-					return 1;
+					return CreateGame.GAMEID_IN_USE;
 				}
 			}
 		}
 		catch(IOException e) {
 			e.printStackTrace();
 			Log.error("Error opening active_games file.");
-			return 2;
+			return Protocol.SERVER_ERROR;
 		}
 		
 		try {
@@ -203,7 +209,7 @@ class FileClientManager extends ClientManager {
 		catch(IOException e) {
 			e.printStackTrace();
 			Log.error("ERROR: Failed to open/write to active_games file. New game could not be created.");
-			return 2;
+			return Protocol.SERVER_ERROR;
 		}
 		
 		// Create a board data file for the new game
@@ -213,7 +219,7 @@ class FileClientManager extends ClientManager {
 		}
 		catch(IOException e) {
 			Log.error("ERROR: Could not create board data file for game \"" + gameID + "\"");
-			return 2;
+			return Protocol.SERVER_ERROR;
 		}
 		
 		// Open the file that defines what newly-created board data files should look like for reading
@@ -224,7 +230,7 @@ class FileClientManager extends ClientManager {
 		}
 		catch(FileNotFoundException e) {
 			Log.error("ERROR: Couldn't open new_board file. Path is probably wrong.");
-			return 2;
+			return Protocol.SERVER_ERROR;
 		}
 		
 		// Create a FileOutputStream for initializing the new board data file
@@ -233,9 +239,9 @@ class FileClientManager extends ClientManager {
 			out = new FileOutputStream(game_file);
 		}
 		catch(FileNotFoundException e) {
-			Log.error("Could not open new board data file for initialization");
+			Log.error("ERROR: Could not open new board data file for initialization");
 			scanner.close();
-			return 2;
+			return Protocol.SERVER_ERROR;
 		}
 		
 		// Copy the contents of new_board into the new 
@@ -250,7 +256,7 @@ class FileClientManager extends ClientManager {
 					Log.error("ERROR: Failed to close FileOutputStream");
 				}
 				scanner.close();
-				return 2;
+				return Protocol.SERVER_ERROR;
 			}
 		}
 		
@@ -260,19 +266,18 @@ class FileClientManager extends ClientManager {
 			Log.error("Couldn't close FileOutputStream. Changes to new board data file may not have been saved.");
 		}
 		scanner.close();
-		return 0;
+		return CreateGame.SUCCESS;
 	}
 
 	/**
 	 * Try to have the user join the game with the given gameID
 	 * 
 	 * @param gameID - The ID of the game to join
-	 * @return An integer corresponding to one of the following values:<br>
-	 * 		0 - game joined successfully
-	 * 		1 - game does not exist
-	 * 		2 - game is already full
-	 * 		3 - The user has already joined that game
-	 * 		4 - an error/exception occurred
+	 * @return 	Protocol.SERVER_ERROR 					- an error is encountered <br>
+	 * 			Protocol.JoinGame.SUCCESS 				- game joined successfully <br>
+	 * 			Protocol.JoinGame.GAME_DOES_NOT_EXIST 	- game does not exist <br>
+	 * 			Protocol.JoinGame.GAME_FULL 			- game is already full <br>
+	 * 			Protocol.JoinGame.USER_ALREADY_IN_GAME 	- the user has already joined that game
 	 */
 	@Override
 	public int joinGame(String gameID) {
@@ -300,7 +305,7 @@ class FileClientManager extends ClientManager {
 					if(data[GameData.WHITE.getColumn()].equals(username) ||
 					   data[GameData.BLACK.getColumn()].equals(username)) {
 						writeLines(out, lines);
-						return 3;
+						return JoinGame.USER_ALREADY_IN_GAME;
 					}
 					
 					// If the game has no black player yet
@@ -314,13 +319,13 @@ class FileClientManager extends ClientManager {
 						
 						writeLines(out, lines);
 						out.close();
-						return 0;
+						return JoinGame.SUCCESS;
 					}
 					
 					// If the game is already full, simply restore the file and return accordingly
 					else {
 						writeLines(out, lines);
-						return 2;
+						return JoinGame.GAME_FULL;
 					}
 				}
 			}
@@ -328,12 +333,12 @@ class FileClientManager extends ClientManager {
 			// We've looped through the whole file and not found the game
 			// So restore the file and return accordingly
 			writeLines(out, lines);
-			return 1;
+			return JoinGame.GAME_DOES_NOT_EXIST;
 		}
 		catch(IOException e) {
 			e.printStackTrace();
 			Log.error("Error processing active_games file");
-			return 4;
+			return Protocol.SERVER_ERROR;
 		}
 	}
 	
@@ -345,9 +350,14 @@ class FileClientManager extends ClientManager {
 	 * @throws IOException On failure of stream.write()
 	 */
 	private void writeLines(FileOutputStream stream, List<String> lines) throws IOException {
+		StringBuffer all = new StringBuffer();
 		for(String line : lines) {
-			stream.write((line + "\n").getBytes());
+			all.append(line + "\n");
 		}
+		
+		// Write everything to the file all at once to avoid partially writing the data
+		// before encountering an error
+		stream.write(all.toString().getBytes());
 	}
 	
 	/**
@@ -372,16 +382,17 @@ class FileClientManager extends ClientManager {
 	}
 	
 	/**
-	 * Checks two things: <br>
-	 * 1) That the given gameID exists <br>
-	 * 2) That this object's user is a player in the game <br>
-	 * And returns a different value according to the result
-	 * @param gameID - Represents the game to check
-	 * @return 0 if and only if the user is a player in the given game, which exists <br>
-	 * 		   1 if the given game does not exist <br>
-	 * 		   2 if the user is not in the given game <br>
-	 * 		   3 if an error is encountered
-	 */
+	 * Checks whether or not it's appropriate for the user this client is managing to load the given game.
+	 * In particular, checks that the given game exists and that this client's user is a player in the game.
+	 * 
+	 * THIS METHOD SHOULD BE CALLED before calling loadGame().
+	 * 
+	 * @param gameID - The game to check
+	 * @return 	Protocol.SERVER_ERROR 					- if an error is encountered <br>
+	 * 			Protocol.LoadGame.SUCCESS 				- if and only if the user is a player in the given game, which exists <br>
+	 * 		   	Protocol.LoadGame.GAME_DOES_NOT_EXIST	- if the given game does not exist <br>
+	 * 		    Protocol.LoadGame.USER_NOT_IN_GAME 		- if the user is not in the given game
+ 	 */
 	@Override
 	public int canLoadGame(String gameID) {
 		try(Scanner scanner = new Scanner(this.active_games)) {
@@ -397,16 +408,16 @@ class FileClientManager extends ClientManager {
 				data = line.split(",");
 				if(data.length != GameData.values().length) {
 					Log.error("ERROR: Error in active_games file. Line number " + lineNumber + " does not have the right number of columns");
-					return 3;
+					return Protocol.SERVER_ERROR;
 				}
 				if(data[GameData.GAMEID.getColumn()].equals(gameID)) {
 					// If this object's user is a player in the game
 					if(data[GameData.WHITE.getColumn()].equals(this.username)
 					|| data[GameData.BLACK.getColumn()].equals(this.username)) {
-						return 0;
+						return LoadGame.SUCCESS;
 					}
 					else {
-						return 2;
+						return LoadGame.USER_NOT_IN_GAME;
 					}
 				}
 				lineNumber++;
@@ -414,11 +425,11 @@ class FileClientManager extends ClientManager {
 			
 			// If we never found a line of the active_games file with the given gameID,
 			// the game doesn't exist
-			return 1;
+			return LoadGame.GAME_DOES_NOT_EXIST;
 		}
 		catch(FileNotFoundException e) {
 			Log.error("Could not find active_games file");
-			return 3;
+			return Protocol.SERVER_ERROR;
 		}
 	}
 	
@@ -534,6 +545,7 @@ class FileClientManager extends ClientManager {
 		}
 		catch(NoSuchElementException e) {
 			Log.error("ERROR: End of file " + data_filename + " reached too early");
+			scanner.close();
 			return null;
 		}
 		
@@ -574,10 +586,276 @@ class FileClientManager extends ClientManager {
 			|| Character.toLowerCase(c) == King.charRep
 			|| c == 'X'; // Empty square character
 	}
-
+	
+	/**
+	 * Try and make the given move in the given game. src is the square occupied by the piece
+	 * making the move, and dest is the square it is moving to. This method returns a variety of
+	 * integers to represent various possible problems with the move command.
+	 * 
+	 * @param gameID - The game to try and make the move in
+	 * @param src - The square the piece that is moving occupies
+	 * @param dest - The square that the piece is moving to
+	 * @return 	Protocol.SERVER_ERROR 				- if an error is encountered <br>
+	 * 			Protocol.Move.SUCCESS				- if the move is successfully made, and the game records are properly updated <br>
+	 *			Protocol.Move.GAME_DOES_NOT_EXIST	- if the given game does not exist <br>
+	 *			Protocol.Move.USER_NOT_IN_GAME		- if the user this object is managing is not in the given game <br>
+	 *			Protocol.Move.NO_OPPONENT			- if the user is in the given game, but does not have an opponent yet <br>
+	 *			Protocol.Move.GAME_IS_OVER			- if the given game is already over <br>
+	 *			Protocol.Move.NOT_USER_TURN			- if it is not the user's turn to make a move <br>
+	 *			Protocol.Move.HAS_TO_PROMOTE		- if it is the user's turn, but they have to promote a pawn rather than make a normal move <br>
+	 *			Protocol.Move.RESPOND_TO_DRAW		- if is is the user's turn, but they have to respond to a draw offer <br>
+	 *			Protocol.Move.MOVE_INVALID			- if the given move is invalid (for example, the selected piece can't move to the selected square)
+	 */
 	@Override
 	public int makeMove(String gameID, Pair src, Pair dest) {
-		return 0;
+		Scanner scanner;
+		try {
+			scanner = new Scanner(this.active_games);
+		}
+		catch(FileNotFoundException e) {
+			Log.error("ERROR: Couldn't open active_games file");
+			return Protocol.SERVER_ERROR;
+		}
+		boolean found = false;
+		
+		// We iterate through the active_games file, searching for the line corresponding to the given game
+		// We keep a list of every line in the file, so that if we need to change some data for the given game
+		// as a result of the move, we don't have to iterate through the file again for overwriting
+		int lineNumber = 1; // Will keep track of what line of the file corresponds to the given game
+		List<String> lines = new ArrayList<String>();
+		String line = "";
+		String[] data = {}; // Will store the data associated with the given game, split into columns
+		while(scanner.hasNextLine()) {
+			line = scanner.nextLine();
+			lines.add(line);
+			if(!found) {
+				data = line.split(",");
+				
+				if(data.length != GameData.order.length) {
+					Log.error("ERROR: Line number " + lineNumber + " does not have correct number of columns");
+					scanner.close();
+					return Protocol.SERVER_ERROR;
+				}
+				
+				if(data[GameData.GAMEID.getColumn()].equals(gameID)) {
+					found = true; 	// Setting found to true means that for the rest of the loop we're just reading lines from the file
+									// Also freezes lineNumber and data, so they refer to the line we want when the loop ends
+					// If the current user isn't involved in the game
+					if(!data[GameData.WHITE.getColumn()].equals(this.username) && !data[GameData.BLACK.getColumn()].equals(this.username)) {
+						scanner.close();
+						return Move.USER_NOT_IN_GAME;
+					}
+				}
+				else {
+					lineNumber++;
+				}
+			}
+		}
+		if(!found) {
+			scanner.close();
+			return Move.GAME_DOES_NOT_EXIST;
+		}
+		
+		try {
+			// If the user is the only player in the game
+			if (data[GameData.BLACK.getColumn()].length() == 0 || data[GameData.WHITE.getColumn()].length() == 0) {
+				scanner.close();
+				return Move.NO_OPPONENT;
+			}
+			// If the game is drawn, or a winner has been declared, the game is over and no more moves can be accepted
+			else if(this.gameIsOver(data)) {
+				scanner.close();
+				return Move.GAME_IS_OVER;
+			}
+			// If it's not the user's turn, return the appropriate error code
+			else if(!this.isUserTurn(data, this.username)) {
+				scanner.close();
+				return Move.NOT_USER_TURN;
+			}			
+			// If it is the user's turn, but a promotion is needed rather than a normal move
+			else if(Integer.parseInt(data[GameData.PROMOTION_NEEDED.getColumn()]) == 1) {
+				scanner.close();
+				return Move.HAS_TO_PROMOTE;
+			}
+			// If it is the user's turn, but they need to respond to a draw offer rather than make a normal move
+			else if (Integer.parseInt(data[GameData.DRAW_OFFERED.getColumn()]) == 1) {
+				scanner.close();
+				return Move.RESPOND_TO_DRAW;
+			}
+			
+		}
+		catch(NumberFormatException e) {
+			Log.error("ERROR: Line number " + lineNumber + " contains an entry that could not be converted to int");
+			return Protocol.SERVER_ERROR;
+		}
+		
+		// Now that we've error-checked every aspect of the move request except the validity of the move
+		// in the context of chess, we proceed.
+		if(!this.games_folder.isDirectory()) {
+			Log.error("ERROR: games folder is not directory. Path might be wrong.");
+			scanner.close();
+			return Protocol.SERVER_ERROR;
+		}
+		
+		
+		try {
+			scanner = new Scanner(new File(this.games_folder, this.getFilename(gameID)));
+		} catch (FileNotFoundException e) {
+			Log.error("ERROR: Could not open game file for game: " + gameID);
+			return Protocol.SERVER_ERROR;
+		}
+		Board board = new Board();
+		board.initialize(scanner);
+		
+		int result = board.move(src, dest);
+		
+		if(result == 1) {
+			return Move.MOVE_INVALID;
+		}
+		else if(result == 2) {
+			return Move.NOT_USER_TURN;
+		}
+		else if(result == 3) {
+			System.out.println("Board says promotion needed");
+			return Move.HAS_TO_PROMOTE;
+		}
+		// The other possible return codes, 0 and -1, mean that the move was valid and we can proceed
+		// with updating our records.
+		// We need to update the board's data file, and the game's listing in our active_games.csv file
+		// The data we may need to change:
+		// 1) State - the boolean keeping track of whose turn it is (if a promotion is now necessary, we don't flip it.
+		//	  Otherwise, we do)
+		// 2) Turn number - increment if it was black's turn
+		// 3) Winner - check if the enemy colour has been checkmated
+		// 4) White & Black check - simply call board and check if either colour is in check
+		// 5) Promotion needed - check if the player who made the move now needs to promote a pawn
+		
+		
+		// 1) STATE
+		// If result is -1, the player who just moved still needs to promote a pawn, so we don't change the state
+		// of the game
+		if(result != -1) {
+			try {
+				int state = Integer.parseInt(data[GameData.STATE.getColumn()]);
+				if(state != 0 && state != 1) {
+					Log.error("Line number " + lineNumber + " of active_games.csv has STATE value that isn't 0 or 1.");
+					return Protocol.SERVER_ERROR;
+				}
+				
+				// Simply flip the state bit
+				data[GameData.STATE.getColumn()] = (state == 0) ? "1" : "0";
+			}
+			catch(NumberFormatException e) {
+				Log.error("Line number " + lineNumber + " of active_games.csv has STATE value that could not be converted to int.");
+				return Protocol.SERVER_ERROR;
+			}
+		}
+		
+		// 2) TURN
+		// If result == -1, whoever just made a move still has to promote, which means their
+		// turn hasn't ended and we shouldn't increment the turn counter
+		if(result != -1) {
+			try {
+				int state = Integer.parseInt(data[GameData.STATE.getColumn()]);
+				
+				// If it's black's turn, we increment the turn counter
+				if(state == 1) {
+					int turn = Integer.parseInt(data[GameData.TURN.getColumn()]);
+					turn++;
+					
+					data[GameData.TURN.getColumn()] = Integer.toString(turn);
+				}
+			}
+			catch(NumberFormatException e) {
+				Log.error("Line number " + lineNumber + " of active_games.csv has STATE or TURN value that could not be converted to int.");
+				return Protocol.SERVER_ERROR;
+			}
+		}
+		
+		// 3) WINNER
+		// We just check if whoever made the move has checkmated their opponent
+		try {
+			int state = Integer.parseInt(data[GameData.STATE.getColumn()]);
+			if(state != 0 && state != 1) {
+				Log.error("Line number " + lineNumber + " of active_games.csv has STATE value that isn't 0 or 1.");
+				return Protocol.SERVER_ERROR;
+			}
+			
+			Colour enemy = (state == 0) ? Colour.BLACK : Colour.WHITE;
+			if(board.isCheckmate(enemy)) {
+				data[GameData.WINNER.getColumn()] = this.username;
+			}
+		}
+		catch(NumberFormatException e) {
+			Log.error("Line number " + lineNumber + " of active_games.csv has STATE value that could not be converted to int.");
+			return Protocol.SERVER_ERROR;
+		}
+		
+		// 4) WHITE_CHK & BLACK_CHK
+		data[GameData.WHITE_CHK.getColumn()] = (board.isCheck(Colour.WHITE)) ? "1" : "0";
+		data[GameData.BLACK_CHK.getColumn()] = (board.isCheck(Colour.BLACK)) ? "1" : "0";
+		
+		// 5) PROMOTION_NEEDED
+		data[GameData.PROMOTION_NEEDED.getColumn()] = (result == -1) ? "1" : "0";
+		
+		lines.set(lineNumber-1, this.toCSV(data));
+		// lines now has the updated listing for the given game
+		
+		// We proceed with actually saving our new data to the relevant files.
+		FileOutputStream active_games_stream;
+		FileOutputStream board_data_stream;
+		try {
+			active_games_stream = new FileOutputStream(this.active_games);
+			board_data_stream = new FileOutputStream(new File(this.games_folder, this.getFilename(gameID)));
+		} catch (FileNotFoundException e) {
+			Log.error("ERROR: Couldn't open either active_games file or board data file for game \"" + gameID + "\"");
+			return Protocol.SERVER_ERROR;
+		}
+		
+		try {
+			this.writeLines(active_games_stream, lines);
+			active_games_stream.close();
+		} catch (IOException e) {
+			Log.error("ERROR: Couldn't write to active_games file");
+			return Protocol.SERVER_ERROR;
+		}
+		
+		try {
+			board.saveGame(board_data_stream);
+			board_data_stream.close();
+		}
+		catch(IOException e) {
+			Log.error("ERROR: Couldn't write to board data file for game \"" + gameID + "\"");
+			return Protocol.SERVER_ERROR;
+		}
+		
+		scanner.close();
+		return Move.SUCCESS;
+	}
+	
+	/**
+	 * Return whether or not it's the given user's turn. Assumes data is a valid line from the active_games.csv file,
+	 * split into its columns, and username is a player in the given game.
+	 * @param data
+	 * @param username
+	 * @return
+	 */
+	private boolean isUserTurn(String[] data, String username) {
+		// It's the user's turn if it's white's turn and the user is white, or it's black's turn and the user is black
+		return (Integer.parseInt(data[GameData.STATE.getColumn()]) == 0 && data[GameData.WHITE.getColumn()].equals(this.username))
+		   ||  (Integer.parseInt(data[GameData.STATE.getColumn()]) == 1 && data[GameData.BLACK.getColumn()].equals(this.username));
+	}
+	
+	/**
+	 * Compute whether or not the given game is over. data is assumed to be a valid line from the
+	 * active_games.csv file, split into its columns
+	 * @param data
+	 * @return
+	 */
+	private boolean gameIsOver(String[] data) {
+		// Game is over if it's been drawn, or winner has been declared
+		return Integer.parseInt(data[GameData.DRAWN.getColumn()]) == 1
+			|| data[GameData.WINNER.getColumn()].length() > 0;
 	}
 	
 	/**

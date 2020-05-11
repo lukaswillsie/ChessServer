@@ -230,19 +230,19 @@ class ChessProtocol implements Protocol {
 		}
 		
 		int code = manager.joinGame(gameID);
-		if(code == 0) {
+		if(code == JoinGame.SUCCESS) {
 			Log.log("User " + this.username + " joined game \"" + gameID + "\" successfully");
 			return this.writeToClient(JoinGame.SUCCESS);
 		}
-		else if (code == 1) {
+		else if (code == JoinGame.GAME_DOES_NOT_EXIST) {
 			Log.log("Game \"" + gameID + "\" does not exist, so it could not be joined.");
 			return this.writeToClient(JoinGame.GAME_DOES_NOT_EXIST);
 		}
-		else if (code == 2) {
+		else if (code == JoinGame.GAME_FULL) {
 			Log.log("Game \"" + gameID + "\" is already full, so it could not be joined");
 			return this.writeToClient(JoinGame.GAME_FULL);
 		}
-		else if (code == 3) {
+		else if (code == JoinGame.USER_ALREADY_IN_GAME) {
 			Log.log("User " + this.username + " is already in game \"" + gameID + "\"");
 			return this.writeToClient(JoinGame.USER_ALREADY_IN_GAME);
 		}
@@ -324,11 +324,11 @@ class ChessProtocol implements Protocol {
 		}
 		
 		int code = this.manager.createGame(gameID);
-		if(code == 0) {
+		if(code == CreateGame.SUCCESS) {
 			Log.log("Game \"" + gameID + "\" successfully created.");
 			return this.writeToClient(CreateGame.SUCCESS);
 		}
-		else if (code == 1) {
+		else if (code == CreateGame.GAMEID_IN_USE) {
 			Log.log("GameID \"" + gameID + "\" is already in use.");
 			return this.writeToClient(CreateGame.GAMEID_IN_USE);
 		}
@@ -357,7 +357,7 @@ class ChessProtocol implements Protocol {
 		}
 		
 		int code = this.manager.canLoadGame(gameID);
-		if(code == 0) {
+		if(code == LoadGame.SUCCESS) {
 			List<Object> lines = this.manager.loadGame(gameID);
 			// Since we check canLoadGame() first, we know that if lines is null an error occurred
 			if(lines == null) {
@@ -384,11 +384,11 @@ class ChessProtocol implements Protocol {
 			
 			return 0;
 		}
-		else if (code == 1) {
+		else if (code == LoadGame.GAME_DOES_NOT_EXIST) {
 			Log.log("Game \"" + gameID + "\" does not exist, so it couldn't be joined");
 			return this.writeToClient(LoadGame.GAME_DOES_NOT_EXIST);
 		}
-		else if(code == 2) {
+		else if(code == LoadGame.USER_NOT_IN_GAME) {
 			Log.log("User " + username + " is not in game \"" + gameID + "\", so game wasn't loaded");
 			return this.writeToClient(LoadGame.USER_NOT_IN_GAME);
 		}
@@ -400,7 +400,7 @@ class ChessProtocol implements Protocol {
 	
 	/**
 	 * Process a "move gameID src_row,src_col->dest_row,dest_col" command. rest
-	 * is assumed to be that "gameID src_row,src_col->dest_row,dest_col" part of the
+	 * is assumed to be the "gameID src_row,src_col->dest_row,dest_col" part of the
 	 * command, but is not assumed to be formatted correctly, so no pre-processing
 	 * is necessary.
 	 * 
@@ -443,17 +443,50 @@ class ChessProtocol implements Protocol {
 			return this.writeToClient(FORMAT_INVALID);
 		}
 		
+		Pair src_square;
+		Pair dest_square;
 		try {
-			Pair src_square = new Pair(Integer.parseInt(src.substring(0,src_comma)), Integer.parseInt(src.substring(src_comma+1)));
-			Pair dest_square = new Pair(Integer.parseInt(dest.substring(0,dest_comma)), Integer.parseInt(dest.substring(dest_comma+1)));
+			src_square = new Pair(Integer.parseInt(src.substring(0,src_comma)), Integer.parseInt(src.substring(src_comma+1)));
+			dest_square = new Pair(Integer.parseInt(dest.substring(0,dest_comma)), Integer.parseInt(dest.substring(dest_comma+1)));
 		}
 		catch(NumberFormatException e) {
 			Log.log("Command from " + socket.getInetAddress() + " is invalid. NumberFormatException");
 			return this.writeToClient(FORMAT_INVALID);
 		}
 		
-		
-		return 0;
+		int result = this.manager.makeMove(gameID, src_square, dest_square);
+		switch(result) {
+				case Move.SUCCESS:
+					Log.log("Move " + src + "->" + dest + " successfully made by user \"" + this.username + "\"");
+					return this.writeToClient(Move.SUCCESS);
+				case Move.GAME_DOES_NOT_EXIST:
+					Log.log("Game \"" + gameID + "\" does not exist");
+					return this.writeToClient(Move.GAME_DOES_NOT_EXIST);
+				case Move.USER_NOT_IN_GAME:
+					Log.log("User \"" + this.username + "\" is not in game \"" + gameID + "\". Move couldn't be made.");
+					return this.writeToClient(Move.USER_NOT_IN_GAME);
+				case Move.NO_OPPONENT:
+					Log.log("User \"" + this.username + "\" has no opponent in game \"" + gameID + "\". Move couldn't be made.");
+					return this.writeToClient(Move.NO_OPPONENT);
+				case Move.GAME_IS_OVER:
+					Log.log("Game \"" + gameID + "\" is already over. Move couldn't be made.");
+					return this.writeToClient(Move.GAME_IS_OVER);
+				case Move.NOT_USER_TURN:
+					Log.log("It is not user \"" + this.username + "\"'s turn in game \"" + gameID + "\". Move couldn't be made");
+					return this.writeToClient(Move.NOT_USER_TURN);
+				case Move.HAS_TO_PROMOTE:
+					Log.log("User \"" + this.username + "\" has to promote a pawn. Move couldn't be made.");
+					return this.writeToClient(Move.HAS_TO_PROMOTE);
+				case Move.RESPOND_TO_DRAW:
+					Log.log("User \"" + this.username + "\" has to respond to a draw offer. Move couldn't be made.");
+					return this.writeToClient(Move.RESPOND_TO_DRAW);
+				case Move.MOVE_INVALID:
+					Log.log("The move " + src + "->" + dest + "is invalid");
+					return this.writeToClient(Move.MOVE_INVALID);
+				default: // The only other case is server error
+					Log.log("Error encountered in ClientManager.makeMove");
+					return this.writeToClient(SERVER_ERROR);
+		}
 	}
 	
 	/**
