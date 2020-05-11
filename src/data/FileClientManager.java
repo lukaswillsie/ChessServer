@@ -28,10 +28,7 @@ import utility.Pair;
 
 /**
  * This class is responsible for accessing and managing data on behalf of the server
- * for a particular client. It interacts with the file "serverdata/active_games.csv",
- * which stores all currently active games in the following manner:
- * 
- * gameID | White Player | Black Player | State | Turn | White check | White checkmate | Black check | Black checkmate
+ * for a particular client.
  * 
  * See the GameData enum for details
  * @author lukas
@@ -865,5 +862,190 @@ class FileClientManager extends ClientManager {
 	 */
 	private String getFilename(String gameID) {
 		return gameID + ".txt";
+	}
+
+	
+	/**
+	 * Attempt to promote a pawn to the piece given by charRep, in the given game, on behalf of the user. 
+	 * 
+	 * @param gameID - The game in which to try to make the promotion
+	 * @param charRep - A character denoting which piece to upgrade into. One of 'r', 'n', 'b', or 'q'
+	 * @return 	Protocol.SERVER_ERROR 					- if an error is encountered
+				Protocol.Promote.SUCCESS 				- if promotion is successful
+				Protocol.Promote.GAME_DOES_NOT_EXIST 	- if given game does not exist
+				Protocol.Promote.USER_NOT_IN_GAME 		- if the user isn't a player in the given game
+				Protocol.Promote.NO_OPPONENT			- if the user doesn't have an opponent yet in the game
+				Protocol.Promote.NOT_USER_TURN 			- if it's not the user's turn
+				Protocol.Promote.NO_PROMOTION 			- if no promotion is able to be made
+				Protocol.Promote.CHAR_REP_INVALID 		- if the given charRep is not valid
+	 */
+	@Override
+	public int promote(String gameID, char charRep) {
+		Scanner scanner;
+		try {
+			scanner = new Scanner(this.active_games);
+		}
+		catch(FileNotFoundException e) {
+			Log.error("ERROR: Couldn't open active_games file for reading");
+			return Protocol.SERVER_ERROR;
+		}
+		
+		// This will keep a list of every line in the file, so that if we need to edit the game's listing
+		// we can do it easily, without iterating over the file again
+		List<String> lines = new ArrayList<String>();
+		String line = "";
+		String[] data = {};
+		int lineNumber = 1;
+		boolean found = false;
+		while(scanner.hasNextLine()) {
+			line = scanner.nextLine();
+			lines.add(line);
+			
+			if(!found) {
+				data = line.split(",");
+				
+				// If we have the incorrect number of columns
+				if(data.length != GameData.values().length) {
+					Log.error("ERROR: Line number " + lineNumber + " of active_games file has incorrect number of columns.");
+					return Protocol.SERVER_ERROR;
+				}
+				
+				// If this line corresponds to the game we're looking for
+				if(data[GameData.GAMEID.getColumn()].equals(gameID)) {
+					found = true; 	// Setting found to true freezes lineNumber and data so that when we finish the loop
+									// They contain information about the line we are interested in
+					
+					// If the user isn't involved in the game
+					if(!data[GameData.WHITE.getColumn()].equals(this.username) && !data[GameData.BLACK.getColumn()].equals(this.username)) {
+						return Protocol.Promote.USER_NOT_IN_GAME;
+					}
+					// If the user is involved in the game, but they don't have an opponent yet (either the white or black column is empty)
+					else if (data[GameData.WHITE.getColumn()].length() == 0 || data[GameData.WHITE.getColumn()].length() == 0) {
+						return Protocol.Promote.NO_OPPONENT;
+					}
+				}
+				else {
+					lineNumber++;
+				}
+			}
+		}
+		// If we never found the game we were looking for
+		if(!found) {
+			scanner.close();
+			return Protocol.Promote.GAME_DOES_NOT_EXIST;
+		}
+		
+		// Check if a promotion is actually needed
+		try {
+			int promotion = Integer.parseInt(data[GameData.PROMOTION_NEEDED.getColumn()]);
+			if(promotion != 0 && promotion != 1) {
+				Log.error("ERROR: Line number " + lineNumber + " of active_games file has " + GameData.PROMOTION_NEEDED + " value not 0 or 1");
+				return Protocol.SERVER_ERROR;
+			}
+			
+			// If no promotion is needed
+			if(promotion == 0) {
+				return Protocol.Promote.NO_PROMOTION;
+			}
+		}
+		catch(NumberFormatException e) {
+			Log.error("ERROR: Line number " + lineNumber + " of active_games file has " + GameData.PROMOTION_NEEDED + " value that couldn't be converted to int.");
+			return Protocol.SERVER_ERROR;
+		}
+		
+		// Now we actually process the promotion order
+		
+		if(!this.games_folder.isDirectory()) {
+			Log.error("ERROR: games folder is not directory. Path might be wrong.");
+			scanner.close();
+			return Protocol.SERVER_ERROR;
+		}
+		
+		// Create a Board and initialize it to the game we're interested in
+		try {
+			scanner = new Scanner(new File(this.games_folder, this.getFilename(gameID)));
+		} catch (FileNotFoundException e) {
+			Log.error("ERROR: Could not open game file for game: " + gameID);
+			return Protocol.SERVER_ERROR;
+		}
+		Board board = new Board();
+		board.initialize(scanner);
+		
+		int result = board.promote(charRep);
+		if(result == 0) {
+			// This means the promotion succeeded. All we need to do is update the game's listing in the
+			// active_games file and its board data file
+			data[GameData.PROMOTION_NEEDED.getColumn()] = "0"; 	// No more than a single piece can require promotion at a time,
+																// so we can safely set this to 0
+			
+			// We need to update other data about the game, like whose turn it is, the turn counter, whether or not
+			// either colour is in check, and whether or not either player has been checkmated
+			try {
+				// Update whose turn it is
+				int state = Integer.parseInt(data[GameData.STATE.getColumn()]);
+				if(state != 0 && state != 1) {
+					Log.error("ERROR: Line number " + lineNumber + " has " + GameData.STATE + " value that is not 0 or 1.");
+					return Protocol.SERVER_ERROR;
+				}
+				data[GameData.STATE.getColumn()] = (state == 0) ? "1" : "0";
+				
+				// Update the turn counter, if necessary
+				int turnNum = Integer.parseInt(data[GameData.TURN.getColumn()]);
+				// Increment the turn counter if this was black's move
+				data[GameData.TURN.getColumn()] = (state == 1) ? Integer.toString(turnNum+1) : Integer.toString(turnNum);
+			
+				// Update the white & black check boolean
+				data[GameData.WHITE_CHK.getColumn()] = (board.isCheck(Colour.WHITE)) ? "1" : "0";
+				data[GameData.BLACK_CHK.getColumn()] = (board.isCheck(Colour.BLACK)) ? "1" : "0";
+				
+				// Check if the promotion checkmated the enemy
+				Colour enemy = (state == 0) ? Colour.BLACK : Colour.WHITE;
+				if(board.isCheckmate(enemy)) {
+					data[GameData.WINNER.getColumn()] = this.username;
+				}
+			}
+			catch(NumberFormatException e) {
+				Log.error("ERROR: Line number " + lineNumber + " of active_games.csv has value that couldn't be converted to int.");
+				return Protocol.SERVER_ERROR;
+			}
+			
+			lines.set(lineNumber-1, this.toCSV(data));			// Update the actual line of the file corresponding to the game
+																// We'll use this list to write to the file later
+			// Try to update the active_games file
+			FileOutputStream stream;
+			try {
+				stream = new FileOutputStream(this.active_games);
+				this.writeLines(stream, lines);
+			}
+			catch(FileNotFoundException e) {
+				Log.error("ERROR: Couldn't open active_games file for writing.");
+				return Protocol.SERVER_ERROR;
+			}
+			catch(IOException e) {
+				Log.error("ERROR: Couldn't write to active_games file to save changes");
+				return Protocol.SERVER_ERROR;
+			}
+			
+			// Try to update the game's board data file
+			try {
+				stream = new FileOutputStream(new File(this.games_folder, this.getFilename(gameID)));
+				board.saveGame(stream);
+			}
+			catch(FileNotFoundException e) {
+				Log.error("ERROR: Couldn't open file " + this.getFilename(gameID) + " for writing.");
+				return Protocol.SERVER_ERROR;
+			} catch (IOException e) {
+				Log.error("ERROR: Couldn't write to file " + this.getFilename(gameID));
+				return Protocol.SERVER_ERROR;
+			}
+			
+			return Protocol.Promote.SUCCESS;
+		}
+		else if (result == 1) {
+			return Protocol.Promote.NO_PROMOTION;
+		}
+		else {
+			return Protocol.Promote.CHAR_REP_INVALID;
+		}
 	}
 }

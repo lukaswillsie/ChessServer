@@ -49,7 +49,8 @@ class ChessProtocol implements Protocol {
 			"creategame",	// Usage: creategame gameID
 			"joingame",		// Usage: joingame gameID
 			"loadgame",		// Usage: loadgame gameID
-			"move",			// Usage: TODO
+			"move",			// Usage: move gameID src_row,src_col->dest_row,dest_col
+			"promote",		// Usage: promote gameID charRep
 			"logout"		// Usage: logout
 		};	
 	
@@ -103,7 +104,7 @@ class ChessProtocol implements Protocol {
 					return processMove(rest);
 				}
 				else if(keyword.equals("promote")) {
-					
+					return processPromotion(rest);
 				}
 				else {
 					Log.log("Command \"" + command + "\" is invalid.");
@@ -124,6 +125,44 @@ class ChessProtocol implements Protocol {
 		}
 	}
 	
+	public int processPromotion(String rest) {
+		String[] splitted = rest.split(" ");
+		if(splitted.length != 2 || splitted[1].length() != 1) {
+			Log.log("Command from " + socket.getInetAddress() + " is invalid");
+			return this.writeToClient(FORMAT_INVALID);
+		}
+		String gameID = splitted[0];
+		String charRep = splitted[1];
+		
+		int code = this.manager.promote(gameID, charRep.charAt(0));
+		switch(code) {
+			case Promote.SUCCESS:
+				Log.log("Promotion to " + charRep + " successful");
+				return this.writeToClient(Promote.SUCCESS);
+			case Promote.GAME_DOES_NOT_EXIST:
+				Log.log("Game \"" + gameID + "\" does not exist. Promotion wasn't successful");
+				return this.writeToClient(Promote.GAME_DOES_NOT_EXIST);
+			case Promote.USER_NOT_IN_GAME:
+				Log.log("User \"" + this.username + "\" is not in game \"" + gameID + "\". Promotion wasn't successful");
+				return this.writeToClient(Promote.USER_NOT_IN_GAME);
+			case Promote.NO_OPPONENT:
+				Log.log("User \"" + this.username + "\" does not have opponent in game \"" + gameID + "\". Promotion wasn't successful");
+				return this.writeToClient(Promote.NO_OPPONENT);
+			case Promote.NOT_USER_TURN:
+				Log.log("It is not user \"" + this.username + "\"'s turn in game \"" + gameID + "\". Promotion wasn't successful");
+				return this.writeToClient(Promote.NOT_USER_TURN);
+			case Promote.NO_PROMOTION:
+				Log.log("No promotion is necessary in game \"" + gameID + "\". Promotion wasn't successful");
+				return this.writeToClient(Promote.NO_PROMOTION);
+			case Promote.CHAR_REP_INVALID:
+				Log.log("charRep " + charRep + " is invalid. Promotion wasn't successful");
+				return this.writeToClient(Promote.CHAR_REP_INVALID);
+			default: // Only other case is server error
+				Log.error("ERROR: Error encountered in ClientManager.promote()");
+				return this.writeToClient(SERVER_ERROR);
+		}
+	}
+
 	/**
 	 * Process a "login username password" request. rest is assumed to be
 	 * the "username password" portion of the login command. This String is 

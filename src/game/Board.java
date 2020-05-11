@@ -191,11 +191,11 @@ public class Board {
 			Piece piece = this.getPiece(srcSquare.first(), srcSquare.second());
 			// If the wrong colour is trying to make a move
 			if(piece.getColour() != this.turn) {
-				return 3;
+				return 2;
 			}
 			// If a pawn needs to be promoted, no other moves can be made
 			else if(this.needsToBePromoted != null) {
-				return 2;
+				return 3;
 			}
 			
 			// If the destination is one of piece's valid moves

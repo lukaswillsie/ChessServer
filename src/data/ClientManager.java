@@ -96,7 +96,8 @@ public abstract class ClientManager {
 	 * @param gameID - The game to try and make the move in
 	 * @param src - The square the piece that is moving occupies
 	 * @param dest - The square that the piece is moving to
-	 * @return 	Protocol.Move.SUCCESS				- if the move is successfully made, and the game records are properly updated <br>
+	 * @return 	Protocol.SERVER_ERROR				- if an error is encountered
+	 * 			Protocol.Move.SUCCESS				- if the move is successfully made, and the game records are properly updated <br>
 	 *			Protocol.Move.GAME_DOES_NOT_EXIST	- if the given game does not exist <br>
 	 *			Protocol.Move.USER_NOT_IN_GAME		- if the user this object is managing is not in the given game <br>
 	 *			Protocol.Move.NO_OPPONENT			- if the user is in the given game, but does not have an opponent yet <br>
@@ -107,6 +108,22 @@ public abstract class ClientManager {
 	 *			Protocol.Move.MOVE_INVALID			- if the given move is invalid (for example, the selected piece can't move to the selected square) <br>
 	 */
 	public abstract int makeMove(String gameID, Pair src, Pair dest);
+	
+	/**
+	 * Attempt to promote a pawn to the piece given by charRep, in the given game, on behalf of the user. 
+	 * 
+	 * @param gameID - The game in which to try to make the promotion
+	 * @param charRep - A character denoting which piece to upgrade into. One of 'r', 'n', 'b', or 'q'
+	 * @return 	Protocol.SERVER_ERROR 					- if an error is encountered
+				Protocol.Promote.SUCCESS 				- if promotion is successful
+				Protocol.Promote.GAME_DOES_NOT_EXIST 	- if given game does not exist
+				Protocol.Promote.USER_NOT_IN_GAME 		- if the user isn't a player in the given game
+				Protocol.Promote.NO_OPPONENT			- if the user doesn't have an opponent yet in the game
+				Protocol.Promote.NOT_USER_TURN 			- if it's not the user's turn
+				Protocol.Promote.NO_PROMOTION 			- if no promotion is able to be made
+				Protocol.Promote.CHAR_REP_INVALID 		- if the given charRep is not valid
+	 */
+	public abstract int promote(String gameID, char charRep);
 	
 	public String getUsername() {
 		return username;

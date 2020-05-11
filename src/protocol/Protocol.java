@@ -150,4 +150,35 @@ public interface Protocol {
 		// Return code if the requested move is invalid
 		public static final int MOVE_INVALID = 8;
 	}
+	
+	/**
+	 * Defines return codes specific to the "promote gameID charRep" command.
+	 * charRep must be one of 'r', 'n', 'b', 'q', as a pawn can be promoted
+	 * to a Rook, Knight, Bishop, or Queen respectively.
+	 * 
+	 * @author lukas
+	 *
+	 */
+	public static class Promote {
+		// Return code if promotion is successful
+		public static final int SUCCESS = 0;
+		
+		// Return code if given game does not exist
+		public static final int GAME_DOES_NOT_EXIST = 1;
+		
+		// Return code if the user isn't a player in the given game
+		public static final int USER_NOT_IN_GAME = 2;
+		
+		// Return code if the the user doesn't have an opponent in the given game yet
+		public static final int NO_OPPONENT = 3;
+		
+		// Return code if it's not the user's turn
+		public static final int NOT_USER_TURN = 4;
+		
+		// Return code if no promotion is able to be made
+		public static final int NO_PROMOTION = 5;
+		
+		// Return code if the given charRep is not valid
+		public static final int CHAR_REP_INVALID = 6;
+	}
 }
