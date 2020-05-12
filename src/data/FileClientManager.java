@@ -1126,7 +1126,7 @@ class FileClientManager extends ClientManager {
 		}
 		else {
 			if((Integer)gameData.get("lineNumber") == 0) {
-				return Protocol.Promote.GAME_DOES_NOT_EXIST;
+				return Protocol.Draw.GAME_DOES_NOT_EXIST;
 			}
 		}
 		// Extract the necessary data from the HashMap
@@ -1203,6 +1203,83 @@ class FileClientManager extends ClientManager {
 			return Protocol.SERVER_ERROR;
 		}
 		
-		return Protocol.Promote.SUCCESS;
+		return Protocol.Draw.SUCCESS;
+	}
+
+	/**
+	 * Attempt to forfeit the given game on behalf of the user.
+	 * 
+	 * @param gameID - the game to forfeit
+	 * @return  Protocol.SERVER_ERROR 					- if an error is encountered
+				Protocol.Forfeit.FORFEIT 				- if forfeiture is successful
+				Protocol.Forfeit.GAME_DOES_NOT_EXIST 	- if the given game does not exist
+				Protocol.Forfeit.USER_NOT_IN_GAME 		- if the user is not in the given game
+				Protocol.Forfeit.NO_OPPONENT 			- if the user does not have an opponent in the given game
+				Protocol.Forfeit.GAME_IS_OVER 			- if the given game is already over
+				Protocol.Forfeit.NOT_USER_TURN 			- if it is not the user’s turn
+	 */
+	@Override
+	public int forfeit(String gameID) {
+		// This will keep a list of every line in the file, so that if we need to edit the game's listing
+		// we can do it easily, without iterating over the file again
+		List<String> lines;
+		String[] data;
+		int lineNumber;
+		HashMap<String, Object> gameData = this.getGameData(gameID);
+		// Check the returned HashMap for signs that an error occurred or the game doesn't exist
+		if((Integer)gameData.get("error") == 1) {
+			return Protocol.SERVER_ERROR;
+		}
+		else {
+			if((Integer)gameData.get("lineNumber") == 0) {
+				return Protocol.Forfeit.GAME_DOES_NOT_EXIST;
+			}
+		}
+		// Extract the necessary data from the HashMap
+		data = (String[])gameData.get("data");
+		lines = (ArrayList<String>)gameData.get("lines");
+		lineNumber = (Integer)gameData.get("lineNumber");
+		
+		if(!data[GameData.BLACK.getColumn()].equals(this.username)
+		&& !data[GameData.WHITE.getColumn()].equals(this.username)) {
+			return Protocol.Forfeit.USER_NOT_IN_GAME;
+		}
+		// Otherwise, one of the players is our user.
+		// So if one of the entries is empty, we know the user doesn't have an opponent
+		if(data[GameData.BLACK.getColumn()].length() == 0
+		|| data[GameData.WHITE.getColumn()].length() == 0) {
+			return Protocol.Forfeit.NO_OPPONENT;
+		}
+		if(this.gameIsOver(data)) {
+			return Protocol.Forfeit.GAME_IS_OVER;
+		}
+		if(!this.isUserTurn(data, this.username)) {
+			return Protocol.Forfeit.NOT_USER_TURN;
+		}
+		
+		// Get the name of the user's opponent, and record that they have won the game
+		String enemyName = (data[GameData.WHITE.getColumn()].equals(this.username)) ? data[GameData.BLACK.getColumn()] : data[GameData.WHITE.getColumn()];
+		data[GameData.WINNER.getColumn()] = enemyName;
+		
+		FileOutputStream stream;
+		try {
+			stream = new FileOutputStream(this.active_games);
+		}
+		catch(FileNotFoundException e) {
+			Log.error("ERROR: Couldn't open active_games file for writing");
+			return Protocol.SERVER_ERROR;
+		}
+		
+		// Update the line corresponding to the given game
+		lines.set(lineNumber-1, this.toCSV(data));
+		
+		try {
+			this.writeLines(stream, lines);
+		} catch (IOException e) {
+			Log.error("ERROR: Couldn't write to active_games file");
+			return Protocol.SERVER_ERROR;
+		}
+		
+		return Protocol.Forfeit.SUCCESS;
 	}
 }

@@ -145,8 +145,31 @@ class ChessProtocol implements Protocol {
 	}
 
 	private int processForfeit(String rest) {
-		// TODO Auto-generated method stub
-		return 0;
+		int code = this.manager.forfeit(rest);
+		
+		switch(code) {
+			case Forfeit.SUCCESS:
+				Log.log("Forfeit successful in game \"" + rest + "\"." );
+				return this.writeToClient(Forfeit.SUCCESS);
+			case Forfeit.GAME_DOES_NOT_EXIST:
+				Log.log("Game \"" + rest + "\" does not exist. Forfeit was not successful." );
+				return this.writeToClient(Forfeit.GAME_DOES_NOT_EXIST);
+			case Forfeit.USER_NOT_IN_GAME:
+				Log.log("User \"" + this.username + "\" is not in game \"" + rest + "\". Forfeit was not successful.");
+				return this.writeToClient(Forfeit.USER_NOT_IN_GAME);
+			case Forfeit.NO_OPPONENT:
+				Log.log("User \"" + this.username + "\" has no opponent in game \"" + rest + "\". Forfeit was not successful.");
+				return this.writeToClient(Forfeit.NO_OPPONENT);
+			case Forfeit.GAME_IS_OVER:
+				Log.log("Game \"" + rest + "\" is already over. Forfeit was not successful.");
+				return this.writeToClient(Forfeit.GAME_IS_OVER);
+			case Forfeit.NOT_USER_TURN:
+				Log.log("It is not user \"" + this.username + "\"'s turn in game \"" + rest + "\". Forfeit was not successful.");
+				return this.writeToClient(Forfeit.NOT_USER_TURN);
+			default: 
+				Log.error("ERROR: Error encountered in ClientManager.draw(). Forfeit was not successful.");
+				return this.writeToClient(SERVER_ERROR);
+		}
 	}
 	
 	/**
@@ -174,11 +197,14 @@ class ChessProtocol implements Protocol {
 			case Draw.NO_OPPONENT:
 				Log.log("User \"" + this.username + "\" has no opponent in game \"" + rest + "\". Draw offer/accept was not successful.");
 				return this.writeToClient(Draw.NO_OPPONENT);
+			case Draw.GAME_IS_OVER:
+				Log.log("Game \"" + rest + "\" is already over. Draw offer/accept was not successful.");
+				return this.writeToClient(Draw.GAME_IS_OVER);
 			case Draw.NOT_USER_TURN:
 				Log.log("It is not user \"" + this.username + "\"'s turn in game \"" + rest + "\". Draw offer/accept was not successful.");
 				return this.writeToClient(Draw.NOT_USER_TURN);
 			default: 
-				Log.error("ERROR: Error encountered in ClientManager.draw(). Draw offer/accept was not successful");
+				Log.error("ERROR: Error encountered in ClientManager.draw(). Draw offer/accept was not successful.");
 				return this.writeToClient(SERVER_ERROR);
 		}
 	}

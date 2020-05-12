@@ -210,4 +210,30 @@ public interface Protocol {
 		// Return code if the user doesn't have an opponent in the given game yet
 		public static final int NOT_USER_TURN = 5;
 	}
+	
+	/**
+	 * Defines return codes specific to the "forfeit gameID" command.
+	 * 
+	 * @author lukas
+	 *
+	 */
+	public static class Forfeit {
+		// Return code if the forfeit is successful
+		public static final int SUCCESS = 0;
+		
+		// Return code if given game does not exist
+		public static final int GAME_DOES_NOT_EXIST = 1;
+		
+		// Return code if the user isn't a player in the given game
+		public static final int USER_NOT_IN_GAME = 2;
+		
+		// Return code if the user doesn't have an opponent in the given game yet
+		public static final int NO_OPPONENT = 3;
+		
+		// Return code if the given game is already over
+		public static final int GAME_IS_OVER = 4;
+		
+		// Return code if the user doesn't have an opponent in the given game yet
+		public static final int NOT_USER_TURN = 5;
+	}
 }

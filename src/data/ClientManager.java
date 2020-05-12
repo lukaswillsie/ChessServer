@@ -5,6 +5,17 @@ import java.util.List;
 
 import utility.Pair;
 
+/**
+ * Defines what a ClientManager should be able to do. In general terms, the ClientManager is the
+ * object that does the dirty work when executing commands on behalf of the user. The Protocol object
+ * parses the command to determine what the client wants done, and then hands the request off to one of
+ * these objects to handle the details. For example, the Protocol instance might receive a move request and
+ * hand it off to this object, which will go through the process of retrieving the necessary game data,
+ * checking if the move is a valid move, and updating the relevant files/data if necessary.
+ * 
+ * @author Lukas Willsie
+ *
+ */
 public abstract class ClientManager {
 	// The username of the user this Manager is managing
 	String username;
@@ -110,6 +121,23 @@ public abstract class ClientManager {
 	public abstract int makeMove(String gameID, Pair src, Pair dest);
 	
 	/**
+	 * Attempt to promote a pawn to the piece given by charRep, in the given game, on behalf of the user. 
+	 * 
+	 * @param gameID - The game in which to try to make the promotion
+	 * @param charRep - A character denoting which piece to upgrade into. One of 'r', 'n', 'b', or 'q'.
+	 * @return 	Protocol.SERVER_ERROR 					- if an error is encountered
+				Protocol.Promote.SUCCESS 				- if promotion is successful
+				Protocol.Promote.GAME_DOES_NOT_EXIST 	- if given game does not exist
+				Protocol.Promote.USER_NOT_IN_GAME 		- if the user isn't a player in the given game
+				Protocol.Promote.NO_OPPONENT			- if the user doesn't have an opponent yet in the game
+				Protocol.Promote.GAME_IS_OVER			- if the given game is already over
+				Protocol.Promote.NOT_USER_TURN 			- if it's not the user's turn
+				Protocol.Promote.NO_PROMOTION 			- if no promotion is able to be made
+				Protocol.Promote.CHAR_REP_INVALID 		- if the given charRep is not valid
+	 */
+	public abstract int promote(String gameID, char charRep);
+	
+	/**
 	 * Attempt to offer/accept a draw on behalf of the user in the given game.
 	 * @param gameID - the game in which to offer/accept a draw
 	 * @return 	Protocol.SERVER_ERROR 				- if an error is encountered  <br>
@@ -120,19 +148,21 @@ public abstract class ClientManager {
 				Protocol.Draw.GAME_IS_OVER			- if the given game is already over
 				Protocol.Draw.NOT_USER_TURN 		- if it's not the user's turn in the given game
 	 */
-	public abstract int promote(String gameID, char charRep);
+	public abstract int draw(String gameID);
 	
 	/**
-	 * Attempt to offer/accept a draw on behalf of the user in the given game.
-	 * @param gameID - the game in which to offer/accept a draw
-	 * @return 	Protocol.SERVER_ERROR - if an error is encountered  <br>
-				Protocol.Draw.SUCCESS - if draw offer/accept is successful  <br>
-				Protocol.Draw.GAME_DOES_NOT_EXIST - if given game does not exist  <br>
-				Protocol.Draw.USER_NOT_IN_GAME - if the user isn't a player in the given game  <br>
-				Protocol.Draw.NO_OPPONENT - if the user doesn't have an opponent in the given game yet  <br>
-				Protocol.Draw.NOT_USER_TURN - if the user doesn't have an opponent in the given game yet
+	 * Attempt to forfeit the given game on behalf of the user.
+	 * 
+	 * @param gameID - the game to forfeit
+	 * @return  Protocol.SERVER_ERROR 					- if an error is encountered
+				Protocol.Forfeit.FORFEIT 				- if forfeiture is successful
+				Protocol.Forfeit.GAME_DOES_NOT_EXIST 	- if the given game does not exist
+				Protocol.Forfeit.USER_NOT_IN_GAME 		- if the user is not in the given game
+				Protocol.Forfeit.NO_OPPONENT 			- if the user does not have an opponent in the given game
+				Protocol.Forfeit.GAME_IS_OVER 			- if the given game is already over
+				Protocol.Forfeit.NOT_USER_TURN 			- if it is not the user’s turn
 	 */
-	public abstract int draw(String gameID);
+	public abstract int forfeit(String gameID);
 	
 	public String getUsername() {
 		return username;
