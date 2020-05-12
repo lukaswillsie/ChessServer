@@ -45,5 +45,6 @@ public class ChessServerThread extends Thread {
 		catch(IOException e) {
 			e.printStackTrace();
 		}
+		Log.log("Client " + socket.getInetAddress() + " disconnected.");
 	}
 }

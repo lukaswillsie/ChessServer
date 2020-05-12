@@ -49,10 +49,6 @@ class FileClientManager extends ClientManager {
 	private File active_games;
 	private File games_folder;
 	
-	public static void main(String[] args) {
-		FileClientManager test = new FileClientManager("Vaskar");
-	}
-	
 	/**
 	 * Create a new FileClientManager on behalf of the user with the given username
 	 * @param username - The username to create this FileClientManager for
@@ -1218,6 +1214,7 @@ class FileClientManager extends ClientManager {
 				Protocol.Forfeit.GAME_IS_OVER 			- if the given game is already over
 				Protocol.Forfeit.NOT_USER_TURN 			- if it is not the user’s turn
 	 */
+	@SuppressWarnings("unchecked")
 	@Override
 	public int forfeit(String gameID) {
 		// This will keep a list of every line in the file, so that if we need to edit the game's listing
@@ -1281,5 +1278,73 @@ class FileClientManager extends ClientManager {
 		}
 		
 		return Protocol.Forfeit.SUCCESS;
+	}
+	
+	/**
+	 * Attempt to mark the given game as archived for the user.
+	 * 
+	 * @param gameID - the game to mark as archived
+	 * @return 	Protocol.SERVER_ERROR 					– if an error is encountered
+	 *			Protocol.Archive.SUCCESS 				– if the archive is successful
+	 *			Protocol.Archive.GAME_DOES_NOT_EXIST 	– if the given game does not exist
+	 *			Protocol.Archive.USER_NOT_IN_GAME 		– if the user is not in the given game
+	 */
+	@SuppressWarnings("unchecked")
+	@Override
+	public int archive(String gameID) {
+		// This will keep a list of every line in the file, so that if we need to edit the game's listing
+		// we can do it easily, without iterating over the file again
+		List<String> lines;
+		int lineNumber;
+		String[] data;
+		HashMap<String, Object> gameData = this.getGameData(gameID);
+		// Check the returned HashMap for signs that an error occurred or the game doesn't exist
+		if((Integer)gameData.get("error") == 1) {
+			return Protocol.SERVER_ERROR;
+		}
+		else {
+			if((Integer)gameData.get("lineNumber") == 0) {
+				return Protocol.Archive.GAME_DOES_NOT_EXIST;
+			}
+		}
+		// Extract the necessary data from the HashMap
+		data = (String[])gameData.get("data");
+		lines = (ArrayList<String>)gameData.get("lines");
+		lineNumber = (Integer)gameData.get("lineNumber");
+		
+		// Check that the user is actually in the given game
+		if(!data[GameData.WHITE.getColumn()].equals(this.username)
+		&& !data[GameData.BLACK.getColumn()].equals(this.username)) {
+			return Protocol.Archive.USER_NOT_IN_GAME;
+		}
+		
+		// Set either WHITE_ARCHIVED or BLACK_ARCHIVED according to what colour the user is playing
+		if(data[GameData.WHITE.getColumn()].equals(this.username)) {
+			data[GameData.WHITE_ARCHIVED.getColumn()] = "1";
+		}
+		else {
+			data[GameData.BLACK_ARCHIVED.getColumn()] = "1";
+		}
+		
+		FileOutputStream stream;
+		try {
+			stream = new FileOutputStream(this.active_games);
+		}
+		catch(FileNotFoundException e) {
+			Log.error("ERROR: Couldn't open active_games file for writing");
+			return Protocol.SERVER_ERROR;
+		}
+		
+		// Update the line corresponding to the given game
+		lines.set(lineNumber-1, this.toCSV(data));
+		
+		try {
+			this.writeLines(stream, lines);
+		} catch (IOException e) {
+			Log.error("ERROR: Couldn't write to active_games file");
+			return Protocol.SERVER_ERROR;
+		}
+		
+		return Protocol.Archive.SUCCESS;
 	}
 }

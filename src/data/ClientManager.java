@@ -126,14 +126,14 @@ public abstract class ClientManager {
 	 * @param gameID - The game in which to try to make the promotion
 	 * @param charRep - A character denoting which piece to upgrade into. One of 'r', 'n', 'b', or 'q'.
 	 * @return 	Protocol.SERVER_ERROR 					- if an error is encountered
-				Protocol.Promote.SUCCESS 				- if promotion is successful
-				Protocol.Promote.GAME_DOES_NOT_EXIST 	- if given game does not exist
-				Protocol.Promote.USER_NOT_IN_GAME 		- if the user isn't a player in the given game
-				Protocol.Promote.NO_OPPONENT			- if the user doesn't have an opponent yet in the game
-				Protocol.Promote.GAME_IS_OVER			- if the given game is already over
-				Protocol.Promote.NOT_USER_TURN 			- if it's not the user's turn
-				Protocol.Promote.NO_PROMOTION 			- if no promotion is able to be made
-				Protocol.Promote.CHAR_REP_INVALID 		- if the given charRep is not valid
+	 *			Protocol.Promote.SUCCESS 				- if promotion is successful
+	 *			Protocol.Promote.GAME_DOES_NOT_EXIST 	- if given game does not exist
+	 *			Protocol.Promote.USER_NOT_IN_GAME 		- if the user isn't a player in the given game
+	 *			Protocol.Promote.NO_OPPONENT			- if the user doesn't have an opponent yet in the game
+	 *			Protocol.Promote.GAME_IS_OVER			- if the given game is already over
+	 *			Protocol.Promote.NOT_USER_TURN 			- if it's not the user's turn
+	 *			Protocol.Promote.NO_PROMOTION 			- if no promotion is able to be made
+	 *			Protocol.Promote.CHAR_REP_INVALID 		- if the given charRep is not valid
 	 */
 	public abstract int promote(String gameID, char charRep);
 	
@@ -141,12 +141,12 @@ public abstract class ClientManager {
 	 * Attempt to offer/accept a draw on behalf of the user in the given game.
 	 * @param gameID - the game in which to offer/accept a draw
 	 * @return 	Protocol.SERVER_ERROR 				- if an error is encountered  <br>
-				Protocol.Draw.SUCCESS 				- if draw offer/accept is successful  <br>
-				Protocol.Draw.GAME_DOES_NOT_EXIST 	- if given game does not exist  <br>
-				Protocol.Draw.USER_NOT_IN_GAME 		- if the user isn't a player in the given game  <br>
-				Protocol.Draw.NO_OPPONENT 			- if the user doesn't have an opponent in the given game yet  <br>
-				Protocol.Draw.GAME_IS_OVER			- if the given game is already over
-				Protocol.Draw.NOT_USER_TURN 		- if it's not the user's turn in the given game
+	 *			Protocol.Draw.SUCCESS 				- if draw offer/accept is successful  <br>
+	 *			Protocol.Draw.GAME_DOES_NOT_EXIST 	- if given game does not exist  <br>
+	 *			Protocol.Draw.USER_NOT_IN_GAME 		- if the user isn't a player in the given game  <br>
+	 *			Protocol.Draw.NO_OPPONENT 			- if the user doesn't have an opponent in the given game yet  <br>
+	 *			Protocol.Draw.GAME_IS_OVER			- if the given game is already over
+	 *			Protocol.Draw.NOT_USER_TURN 		- if it's not the user's turn in the given game
 	 */
 	public abstract int draw(String gameID);
 	
@@ -155,14 +155,25 @@ public abstract class ClientManager {
 	 * 
 	 * @param gameID - the game to forfeit
 	 * @return  Protocol.SERVER_ERROR 					- if an error is encountered
-				Protocol.Forfeit.FORFEIT 				- if forfeiture is successful
-				Protocol.Forfeit.GAME_DOES_NOT_EXIST 	- if the given game does not exist
-				Protocol.Forfeit.USER_NOT_IN_GAME 		- if the user is not in the given game
-				Protocol.Forfeit.NO_OPPONENT 			- if the user does not have an opponent in the given game
-				Protocol.Forfeit.GAME_IS_OVER 			- if the given game is already over
-				Protocol.Forfeit.NOT_USER_TURN 			- if it is not the user’s turn
+	 *			Protocol.Forfeit.FORFEIT 				- if forfeiture is successful
+	 *			Protocol.Forfeit.GAME_DOES_NOT_EXIST 	- if the given game does not exist
+	 *			Protocol.Forfeit.USER_NOT_IN_GAME 		- if the user is not in the given game
+	 *			Protocol.Forfeit.NO_OPPONENT 			- if the user does not have an opponent in the given game
+	 * 			Protocol.Forfeit.GAME_IS_OVER 			- if the given game is already over
+	 *			Protocol.Forfeit.NOT_USER_TURN 			- if it is not the user’s turn
 	 */
 	public abstract int forfeit(String gameID);
+	
+	/**
+	 * Attempt to mark the given game as archived for the user.
+	 * 
+	 * @param gameID - the game to mark as archived
+	 * @return 	Protocol.SERVER_ERROR 					– if an error is encountered
+	 *			Protocol.Archive.SUCCESS 				– if the archive is successful
+	 *			Protocol.Archive.GAME_DOES_NOT_EXIST 	– if the given game does not exist
+	 *			Protocol.Archive.USER_NOT_IN_GAME 		– if the user is not in the given game
+	 */
+	public abstract int archive(String gameID);
 	
 	public String getUsername() {
 		return username;

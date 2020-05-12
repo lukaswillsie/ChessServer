@@ -156,7 +156,7 @@ public interface Protocol {
 	 * charRep must be one of 'r', 'n', 'b', 'q', as a pawn can be promoted
 	 * to a Rook, Knight, Bishop, or Queen respectively.
 	 * 
-	 * @author lukas
+	 * @author Lukas Willsie
 	 *
 	 */
 	public static class Promote {
@@ -188,7 +188,7 @@ public interface Protocol {
 	/**
 	 * Defines return codes specific to the "draw gameID" command.
 	 * 
-	 * @author lukas
+	 * @author Lukas Willsie
 	 *
 	 */
 	public static class Draw {
@@ -214,7 +214,7 @@ public interface Protocol {
 	/**
 	 * Defines return codes specific to the "forfeit gameID" command.
 	 * 
-	 * @author lukas
+	 * @author Lukas Willsie
 	 *
 	 */
 	public static class Forfeit {
@@ -235,5 +235,22 @@ public interface Protocol {
 		
 		// Return code if the user doesn't have an opponent in the given game yet
 		public static final int NOT_USER_TURN = 5;
+	}
+	
+	/**
+	 * Defines return codes specific to the "archive gameID" command.
+	 * 
+	 * @author Lukas Willsie
+	 *
+	 */
+	public static class Archive {
+		// Return code if the archive is successful
+		public static final int SUCCESS = 0;
+		
+		// Return code if the given game does not exist
+		public static final int GAME_DOES_NOT_EXIST = 1;
+		
+		// Return code if the user is not in the given game
+		public static final int USER_NOT_IN_GAME = 2;
 	}
 }

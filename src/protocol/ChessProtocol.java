@@ -129,10 +129,11 @@ class ChessProtocol implements Protocol {
 		}
 		else {
 			if(command.equals("logout")) {
+				Log.log("Logged out user " + this.username + " for client " + socket.getInetAddress());
+				
 				// Reassign manager reference so that manager can be garbage-collected
 				this.manager = null;
 				this.username = null;
-				Log.log("Logged out user " + this.username + " for client " + socket.getInetAddress());
 			}
 			return 0;
 			// Otherwise do nothing as we have received an invalid command
@@ -140,8 +141,22 @@ class ChessProtocol implements Protocol {
 	}
 	
 	private int processArchive(String rest) {
-		// TODO Auto-generated method stub
-		return 0;
+		int code = this.manager.archive(rest);
+		
+		switch(code) {
+			case Protocol.Archive.SUCCESS:
+				Log.log("Game \"" + rest + "\" archived successfully by user \"" + this.username + "\".");
+				return this.writeToClient(Protocol.Archive.SUCCESS);
+			case Protocol.Archive.GAME_DOES_NOT_EXIST:
+				Log.log("Game \"" + rest + "\" does not exist. Archive was not successful.");
+				return this.writeToClient(Protocol.Archive.GAME_DOES_NOT_EXIST);
+			case Protocol.Archive.USER_NOT_IN_GAME:
+				Log.log("User \"" + this.username + "\" is not in game \"" + rest + "\". Archive was not successful.");
+				return this.writeToClient(Protocol.Archive.USER_NOT_IN_GAME);
+			default: // Only other case is server error
+				Log.error("ERROR: Error encountered in ClientManager.archive()");
+				return this.writeToClient(Protocol.SERVER_ERROR);
+		}
 	}
 
 	private int processForfeit(String rest) {
@@ -616,7 +631,7 @@ class ChessProtocol implements Protocol {
 					Log.log("User \"" + this.username + "\" has to respond to a draw offer. Move couldn't be made.");
 					return this.writeToClient(Move.RESPOND_TO_DRAW);
 				case Move.MOVE_INVALID:
-					Log.log("The move " + src + "->" + dest + "is invalid");
+					Log.log("The move " + src + "->" + dest + " is invalid");
 					return this.writeToClient(Move.MOVE_INVALID);
 				default: // The only other case is server error
 					Log.log("Error encountered in ClientManager.makeMove");

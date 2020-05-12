@@ -9,16 +9,15 @@ public class TestClient {
 	public static void main(String[] args) {
 		String hostname = args[0];
 		int port = Integer.parseInt(args[1]);
-		try{
-			Socket socket = new Socket(hostname, port);
+		try(Socket socket = new Socket(hostname, port);
 			PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+			Scanner scanner = new Scanner(System.in);){
 			
-			Scanner scanner = new Scanner(System.in);
+			
+			
 			while(true) {
 				String command = scanner.nextLine();
 				if(command.equals("q")) {
-					scanner.close();
-					socket.close();
 					break;
 				}
 				else {
