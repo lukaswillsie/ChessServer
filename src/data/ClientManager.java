@@ -110,20 +110,29 @@ public abstract class ClientManager {
 	public abstract int makeMove(String gameID, Pair src, Pair dest);
 	
 	/**
-	 * Attempt to promote a pawn to the piece given by charRep, in the given game, on behalf of the user. 
-	 * 
-	 * @param gameID - The game in which to try to make the promotion
-	 * @param charRep - A character denoting which piece to upgrade into. One of 'r', 'n', 'b', or 'q'
-	 * @return 	Protocol.SERVER_ERROR 					- if an error is encountered
-				Protocol.Promote.SUCCESS 				- if promotion is successful
-				Protocol.Promote.GAME_DOES_NOT_EXIST 	- if given game does not exist
-				Protocol.Promote.USER_NOT_IN_GAME 		- if the user isn't a player in the given game
-				Protocol.Promote.NO_OPPONENT			- if the user doesn't have an opponent yet in the game
-				Protocol.Promote.NOT_USER_TURN 			- if it's not the user's turn
-				Protocol.Promote.NO_PROMOTION 			- if no promotion is able to be made
-				Protocol.Promote.CHAR_REP_INVALID 		- if the given charRep is not valid
+	 * Attempt to offer/accept a draw on behalf of the user in the given game.
+	 * @param gameID - the game in which to offer/accept a draw
+	 * @return 	Protocol.SERVER_ERROR 				- if an error is encountered  <br>
+				Protocol.Draw.SUCCESS 				- if draw offer/accept is successful  <br>
+				Protocol.Draw.GAME_DOES_NOT_EXIST 	- if given game does not exist  <br>
+				Protocol.Draw.USER_NOT_IN_GAME 		- if the user isn't a player in the given game  <br>
+				Protocol.Draw.NO_OPPONENT 			- if the user doesn't have an opponent in the given game yet  <br>
+				Protocol.Draw.GAME_IS_OVER			- if the given game is already over
+				Protocol.Draw.NOT_USER_TURN 		- if it's not the user's turn in the given game
 	 */
 	public abstract int promote(String gameID, char charRep);
+	
+	/**
+	 * Attempt to offer/accept a draw on behalf of the user in the given game.
+	 * @param gameID - the game in which to offer/accept a draw
+	 * @return 	Protocol.SERVER_ERROR - if an error is encountered  <br>
+				Protocol.Draw.SUCCESS - if draw offer/accept is successful  <br>
+				Protocol.Draw.GAME_DOES_NOT_EXIST - if given game does not exist  <br>
+				Protocol.Draw.USER_NOT_IN_GAME - if the user isn't a player in the given game  <br>
+				Protocol.Draw.NO_OPPONENT - if the user doesn't have an opponent in the given game yet  <br>
+				Protocol.Draw.NOT_USER_TURN - if the user doesn't have an opponent in the given game yet
+	 */
+	public abstract int draw(String gameID);
 	
 	public String getUsername() {
 		return username;

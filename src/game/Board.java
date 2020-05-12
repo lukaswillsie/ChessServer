@@ -147,22 +147,27 @@ public class Board {
 				case Rook.charRep:
 					this.addPiece(new Rook(row, column, colour , this));
 					this.needsToBePromoted = null;
+					this.turn = (this.turn == Colour.WHITE) ? Colour.BLACK : Colour.WHITE;
 					return 0;
 				case Knight.charRep:
 					this.addPiece(new Knight(row, column, colour, this));
 					this.needsToBePromoted = null;
+					this.turn = (this.turn == Colour.WHITE) ? Colour.BLACK : Colour.WHITE;
 					return 0;
 				case Bishop.charRep:
 					this.addPiece(new Bishop(row, column, colour, this));
 					this.needsToBePromoted = null;
+					this.turn = (this.turn == Colour.WHITE) ? Colour.BLACK : Colour.WHITE;
 					return 0;
 				case Queen.charRep:
 					this.addPiece(new Queen(row, column, colour, this));
 					this.needsToBePromoted = null;
+					this.turn = (this.turn == Colour.WHITE) ? Colour.BLACK : Colour.WHITE;
 					return 0;
 				default:
 					return 2;
 			}
+			
 		}
 		return 1;
 	}

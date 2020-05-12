@@ -172,13 +172,42 @@ public interface Protocol {
 		// Return code if the the user doesn't have an opponent in the given game yet
 		public static final int NO_OPPONENT = 3;
 		
+		// Return code if the given game is already over
+		public static final int GAME_IS_OVER = 4;
+		
 		// Return code if it's not the user's turn
-		public static final int NOT_USER_TURN = 4;
+		public static final int NOT_USER_TURN = 5;
 		
 		// Return code if no promotion is able to be made
-		public static final int NO_PROMOTION = 5;
+		public static final int NO_PROMOTION = 6;
 		
 		// Return code if the given charRep is not valid
-		public static final int CHAR_REP_INVALID = 6;
+		public static final int CHAR_REP_INVALID = 7;
+	}
+	
+	/**
+	 * Defines return codes specific to the "draw gameID" command.
+	 * 
+	 * @author lukas
+	 *
+	 */
+	public static class Draw {
+		// Return code if draw offer/accept is successful
+		public static final int SUCCESS = 0;
+		
+		// Return code if given game does not exist
+		public static final int GAME_DOES_NOT_EXIST = 1;
+		
+		// Return code if the user isn't a player in the given game
+		public static final int USER_NOT_IN_GAME = 2;
+		
+		// Return code if the user doesn't have an opponent in the given game yet
+		public static final int NO_OPPONENT = 3;
+		
+		// Return code if the given game is already over
+		public static final int GAME_IS_OVER = 4;
+		
+		// Return code if the user doesn't have an opponent in the given game yet
+		public static final int NOT_USER_TURN = 5;
 	}
 }

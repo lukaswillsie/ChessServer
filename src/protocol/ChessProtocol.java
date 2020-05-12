@@ -42,6 +42,8 @@ class ChessProtocol implements Protocol {
 	// Used for logging purposes.
 	private String username;
 	
+	// If a request from the client is of the following format: keyword <params>,
+	// then this is a list of valid keyword strings.
 	private static final String[] KEYWORDS =
 		{
 			"login",		// Usage: login username password
@@ -51,6 +53,9 @@ class ChessProtocol implements Protocol {
 			"loadgame",		// Usage: loadgame gameID
 			"move",			// Usage: move gameID src_row,src_col->dest_row,dest_col
 			"promote",		// Usage: promote gameID charRep
+			"draw",			// Usage: draw gameID
+			"forfeit",		// Usage: forfeit gameID
+			"archive",		// Usage: archive gameID
 			"logout"		// Usage: logout
 		};	
 	
@@ -106,6 +111,15 @@ class ChessProtocol implements Protocol {
 				else if(keyword.equals("promote")) {
 					return processPromotion(rest);
 				}
+				else if(keyword.equals("draw")) {
+					return processDraw(rest);
+				}
+				else if(keyword.equals("forfeit")) {
+					return processForfeit(rest);
+				}
+				else if(keyword.equals("archive")) {
+					return processArchive(rest);
+				}
 				else {
 					Log.log("Command \"" + command + "\" is invalid.");
 				}
@@ -125,6 +139,59 @@ class ChessProtocol implements Protocol {
 		}
 	}
 	
+	private int processArchive(String rest) {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	private int processForfeit(String rest) {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+	
+	/**
+	 * Process a "draw gameID" request. rest is assumed to be the "gameID"
+	 * part of the request, or more generally everything after "draw ". This
+	 * method checks the input for incorrect formatting.
+	 * 
+	 * @param rest - the "gameID" part of a "draw gameID" request
+	 * @return 0 if the socket that this object is writing to is still connected <br>
+	 *         1 if the socket is found to have been disconnected
+	 */
+	private int processDraw(String rest) {
+		int code = this.manager.draw(rest);
+		
+		switch(code) {
+			case Draw.SUCCESS:
+				Log.log("Draw offer/accept successful in game \"" + rest + "\"." );
+				return this.writeToClient(Draw.SUCCESS);
+			case Draw.GAME_DOES_NOT_EXIST:
+				Log.log("Game \"" + rest + "\" does not exist. Draw offer/accept was not successful." );
+				return this.writeToClient(Draw.GAME_DOES_NOT_EXIST);
+			case Draw.USER_NOT_IN_GAME:
+				Log.log("User \"" + this.username + "\" is not in game \"" + rest + "\". Draw offer/accept was not successful.");
+				return this.writeToClient(Draw.USER_NOT_IN_GAME);
+			case Draw.NO_OPPONENT:
+				Log.log("User \"" + this.username + "\" has no opponent in game \"" + rest + "\". Draw offer/accept was not successful.");
+				return this.writeToClient(Draw.NO_OPPONENT);
+			case Draw.NOT_USER_TURN:
+				Log.log("It is not user \"" + this.username + "\"'s turn in game \"" + rest + "\". Draw offer/accept was not successful.");
+				return this.writeToClient(Draw.NOT_USER_TURN);
+			default: 
+				Log.error("ERROR: Error encountered in ClientManager.draw(). Draw offer/accept was not successful");
+				return this.writeToClient(SERVER_ERROR);
+		}
+	}
+
+	/**
+	 * Process a "promote gameID charRep" request. rest is assumed to be the "gameID charRep"
+	 * part of the request, or more generally everything after "promote ". This
+	 * method checks the input for incorrect formatting.
+	 * 
+	 * @param rest - the "gameID charRep" part of a "promote gameID charRep" request
+	 * @return 0 if the socket that this object is writing to is still connected <br>
+	 *         1 if the socket is found to have been disconnected
+	 */
 	public int processPromotion(String rest) {
 		String[] splitted = rest.split(" ");
 		if(splitted.length != 2 || splitted[1].length() != 1) {
@@ -148,6 +215,9 @@ class ChessProtocol implements Protocol {
 			case Promote.NO_OPPONENT:
 				Log.log("User \"" + this.username + "\" does not have opponent in game \"" + gameID + "\". Promotion wasn't successful");
 				return this.writeToClient(Promote.NO_OPPONENT);
+			case Promote.GAME_IS_OVER:
+				Log.log("Game \"" + gameID + "\" is already over. Promotion wasn't successful");
+				return this.writeToClient(Promote.GAME_IS_OVER);
 			case Promote.NOT_USER_TURN:
 				Log.log("It is not user \"" + this.username + "\"'s turn in game \"" + gameID + "\". Promotion wasn't successful");
 				return this.writeToClient(Promote.NOT_USER_TURN);

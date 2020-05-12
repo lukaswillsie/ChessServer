@@ -603,54 +603,36 @@ class FileClientManager extends ClientManager {
 	 *			Protocol.Move.RESPOND_TO_DRAW		- if is is the user's turn, but they have to respond to a draw offer <br>
 	 *			Protocol.Move.MOVE_INVALID			- if the given move is invalid (for example, the selected piece can't move to the selected square)
 	 */
+	@SuppressWarnings("unchecked")
 	@Override
 	public int makeMove(String gameID, Pair src, Pair dest) {
+		// This will keep a list of every line in the file, so that if we need to edit the game's listing
+		// we can do it easily, without iterating over the file again
+		List<String> lines;
+		String[] data;
+		int lineNumber;
+		HashMap<String, Object> gameData = this.getGameData(gameID);
+		// Check the returned HashMap for signs that an error occurred or the game doesn't exist
+		if((Integer)gameData.get("error") == 1) {
+			return Protocol.SERVER_ERROR;
+		}
+		else {
+			if((Integer)gameData.get("lineNumber") == 0) {
+				return Protocol.Promote.GAME_DOES_NOT_EXIST;
+			}
+		}
+		// Extract the necessary data from the HashMap
+		data = (String[])gameData.get("data");
+		lines = (ArrayList<String>)gameData.get("lines");
+		lineNumber = (Integer)gameData.get("lineNumber");
+		
 		Scanner scanner;
 		try {
 			scanner = new Scanner(this.active_games);
 		}
 		catch(FileNotFoundException e) {
-			Log.error("ERROR: Couldn't open active_games file");
+			Log.error("ERROR: Couldn't open active_games file for reading");
 			return Protocol.SERVER_ERROR;
-		}
-		boolean found = false;
-		
-		// We iterate through the active_games file, searching for the line corresponding to the given game
-		// We keep a list of every line in the file, so that if we need to change some data for the given game
-		// as a result of the move, we don't have to iterate through the file again for overwriting
-		int lineNumber = 1; // Will keep track of what line of the file corresponds to the given game
-		List<String> lines = new ArrayList<String>();
-		String line = "";
-		String[] data = {}; // Will store the data associated with the given game, split into columns
-		while(scanner.hasNextLine()) {
-			line = scanner.nextLine();
-			lines.add(line);
-			if(!found) {
-				data = line.split(",");
-				
-				if(data.length != GameData.order.length) {
-					Log.error("ERROR: Line number " + lineNumber + " does not have correct number of columns");
-					scanner.close();
-					return Protocol.SERVER_ERROR;
-				}
-				
-				if(data[GameData.GAMEID.getColumn()].equals(gameID)) {
-					found = true; 	// Setting found to true means that for the rest of the loop we're just reading lines from the file
-									// Also freezes lineNumber and data, so they refer to the line we want when the loop ends
-					// If the current user isn't involved in the game
-					if(!data[GameData.WHITE.getColumn()].equals(this.username) && !data[GameData.BLACK.getColumn()].equals(this.username)) {
-						scanner.close();
-						return Move.USER_NOT_IN_GAME;
-					}
-				}
-				else {
-					lineNumber++;
-				}
-			}
-		}
-		if(!found) {
-			scanner.close();
-			return Move.GAME_DOES_NOT_EXIST;
 		}
 		
 		try {
@@ -831,11 +813,95 @@ class FileClientManager extends ClientManager {
 	}
 	
 	/**
+	 * Return a HashMap which stores the following data: <br>
+	 * 		"data" 			: a String[] containing the data for the given game, split into columns from the .csv file <br>
+	 * 		"lines"			: a List of Strings of every line in the active_games.csv file, in order <br>
+	 * 		"lineNumber"	: marks the number of the line that corresponds to the given game (starts counting from 1) <br>
+	 * 		"error"			: 1 if an error occurred, 0 otherwise <br>
+	 * 
+	 * If an error is encountered, for example if the file can't be opened or a problem is found in the formatting
+	 * of the .csv file, "error" is set to 1, "data" and "lines" are set to null, and "lineNumber" is set to 0. <br>
+	 * 
+	 * If the given game isn't found, error is set to 0, "data" and "lines" are set to null, and "lineNumber" is set to 0. <br>
+	 * 
+	 * Otherwise, if the given game is found and no errors are encountered, "data", "lines", and "lineNumber" are set according
+	 * to their definitions and "error" is set to 0. <br>
+	 * 
+	 * @param gameID - the game to retrieve information about
+	 * @return A HashMap containing information about the given game
+	 */
+	private HashMap<String, Object> getGameData(String gameID) {
+		HashMap<String, Object> map = new HashMap<String, Object>();
+		Scanner scanner;
+		try {
+			scanner = new Scanner(this.active_games);
+		}
+		catch(FileNotFoundException e) {
+			Log.error("ERROR: Couldn't open active_games file");
+			map.put("data", null);
+			map.put("lines", null);
+			map.put("lineNumber", 0);
+			map.put("error", 1);
+			return map;
+		}
+		boolean found = false;
+		
+		// We iterate through the active_games file, searching for the line corresponding to the given game
+		// We keep a list of every line in the file, so that if we need to change some data for the given game
+		// as a result of the move, we don't have to iterate through the file again for overwriting
+		int lineNumber = 1; // Will keep track of what line of the file corresponds to the given game
+		List<String> lines = new ArrayList<String>();
+		String line = "";
+		String[] data = {}; // Will store the data associated with the given game, split into columns
+		while(scanner.hasNextLine()) {
+			line = scanner.nextLine();
+			lines.add(line);
+			if(!found) {
+				data = line.split(",");
+				
+				if(data.length != GameData.order.length) {
+					Log.error("ERROR: Line number " + lineNumber + " does not have correct number of columns");
+					scanner.close();
+					map.put("data", null);
+					map.put("lines", null);
+					map.put("lineNumber", 0);
+					map.put("error", 1);
+					return map;
+				}
+				
+				if(data[GameData.GAMEID.getColumn()].equals(gameID)) {
+					found = true; 	// Setting found to true means that for the rest of the loop we're just reading lines from the file
+									// Also freezes lineNumber and data, so they refer to the line we want when the loop ends
+				}
+				else {
+					lineNumber++;
+				}
+			}
+		}
+		// If we haven't found the game, return accordingly
+		if(!found) {
+			scanner.close();
+			map.put("data", null);
+			map.put("lines", null);
+			map.put("lineNumber", 0);
+			map.put("error", 0);
+			return map;
+		}
+		
+		scanner.close();
+		map.put("data", data);
+		map.put("lines", lines);
+		map.put("lineNumber", lineNumber);
+		map.put("error", 0);
+		return map;
+	}
+	
+	/**
 	 * Return whether or not it's the given user's turn. Assumes data is a valid line from the active_games.csv file,
 	 * split into its columns, and username is a player in the given game.
-	 * @param data
-	 * @param username
-	 * @return
+	 * @param data - the data corresponding to the game in question
+	 * @param username - the username of the user whose turn we are inquiring about
+	 * @return true if and only if it is the given user's turn in the game corresponding to the given data
 	 */
 	private boolean isUserTurn(String[] data, String username) {
 		// It's the user's turn if it's white's turn and the user is white, or it's black's turn and the user is black
@@ -869,71 +935,56 @@ class FileClientManager extends ClientManager {
 	 * Attempt to promote a pawn to the piece given by charRep, in the given game, on behalf of the user. 
 	 * 
 	 * @param gameID - The game in which to try to make the promotion
-	 * @param charRep - A character denoting which piece to upgrade into. One of 'r', 'n', 'b', or 'q'
+	 * @param charRep - A character denoting which piece to upgrade into. One of 'r', 'n', 'b', or 'q'.
 	 * @return 	Protocol.SERVER_ERROR 					- if an error is encountered
 				Protocol.Promote.SUCCESS 				- if promotion is successful
 				Protocol.Promote.GAME_DOES_NOT_EXIST 	- if given game does not exist
 				Protocol.Promote.USER_NOT_IN_GAME 		- if the user isn't a player in the given game
 				Protocol.Promote.NO_OPPONENT			- if the user doesn't have an opponent yet in the game
+				Protocol.Promote.GAME_IS_OVER			- if the given game is already over
 				Protocol.Promote.NOT_USER_TURN 			- if it's not the user's turn
 				Protocol.Promote.NO_PROMOTION 			- if no promotion is able to be made
 				Protocol.Promote.CHAR_REP_INVALID 		- if the given charRep is not valid
 	 */
+	@SuppressWarnings("unchecked")
 	@Override
-	public int promote(String gameID, char charRep) {
-		Scanner scanner;
-		try {
-			scanner = new Scanner(this.active_games);
-		}
-		catch(FileNotFoundException e) {
-			Log.error("ERROR: Couldn't open active_games file for reading");
-			return Protocol.SERVER_ERROR;
-		}
-		
+	public int promote(String gameID, char charRep) {		
 		// This will keep a list of every line in the file, so that if we need to edit the game's listing
 		// we can do it easily, without iterating over the file again
-		List<String> lines = new ArrayList<String>();
-		String line = "";
-		String[] data = {};
-		int lineNumber = 1;
-		boolean found = false;
-		while(scanner.hasNextLine()) {
-			line = scanner.nextLine();
-			lines.add(line);
-			
-			if(!found) {
-				data = line.split(",");
-				
-				// If we have the incorrect number of columns
-				if(data.length != GameData.values().length) {
-					Log.error("ERROR: Line number " + lineNumber + " of active_games file has incorrect number of columns.");
-					return Protocol.SERVER_ERROR;
-				}
-				
-				// If this line corresponds to the game we're looking for
-				if(data[GameData.GAMEID.getColumn()].equals(gameID)) {
-					found = true; 	// Setting found to true freezes lineNumber and data so that when we finish the loop
-									// They contain information about the line we are interested in
-					
-					// If the user isn't involved in the game
-					if(!data[GameData.WHITE.getColumn()].equals(this.username) && !data[GameData.BLACK.getColumn()].equals(this.username)) {
-						return Protocol.Promote.USER_NOT_IN_GAME;
-					}
-					// If the user is involved in the game, but they don't have an opponent yet (either the white or black column is empty)
-					else if (data[GameData.WHITE.getColumn()].length() == 0 || data[GameData.WHITE.getColumn()].length() == 0) {
-						return Protocol.Promote.NO_OPPONENT;
-					}
-				}
-				else {
-					lineNumber++;
-				}
+		List<String> lines;
+		String[] data;
+		int lineNumber;
+		HashMap<String, Object> gameData = this.getGameData(gameID);
+		// Check the returned HashMap for signs that an error occurred or the game doesn't exist
+		if((Integer)gameData.get("error") == 1) {
+			return Protocol.SERVER_ERROR;
+		}
+		else {
+			if((Integer)gameData.get("lineNumber") == 0) {
+				return Protocol.Promote.GAME_DOES_NOT_EXIST;
 			}
 		}
-		// If we never found the game we were looking for
-		if(!found) {
-			scanner.close();
-			return Protocol.Promote.GAME_DOES_NOT_EXIST;
+		// Extract the necessary data from the HashMap
+		data = (String[])gameData.get("data");
+		lines = (ArrayList<String>)gameData.get("lines");
+		lineNumber = (Integer)gameData.get("lineNumber");
+		
+		// Compute a couple of possible error cases
+		if(!data[GameData.WHITE.getColumn()].equals(this.username)
+		&& !data[GameData.BLACK.getColumn()].equals(this.username)) {
+			return Protocol.Promote.USER_NOT_IN_GAME;
 		}
+		if(data[GameData.WHITE.getColumn()].length() == 0
+		|| data[GameData.BLACK.getColumn()].length() == 0) {
+			return Protocol.Promote.NO_OPPONENT;
+		}
+		if(this.gameIsOver(data)) {
+			return Protocol.Promote.GAME_IS_OVER;
+		}
+		if(!this.isUserTurn(data, this.username)) {
+			return Protocol.Promote.NOT_USER_TURN;
+		}
+		
 		
 		// Check if a promotion is actually needed
 		try {
@@ -957,11 +1008,11 @@ class FileClientManager extends ClientManager {
 		
 		if(!this.games_folder.isDirectory()) {
 			Log.error("ERROR: games folder is not directory. Path might be wrong.");
-			scanner.close();
 			return Protocol.SERVER_ERROR;
 		}
 		
 		// Create a Board and initialize it to the game we're interested in
+		Scanner scanner;
 		try {
 			scanner = new Scanner(new File(this.games_folder, this.getFilename(gameID)));
 		} catch (FileNotFoundException e) {
@@ -1047,5 +1098,111 @@ class FileClientManager extends ClientManager {
 		else {
 			return Protocol.Promote.CHAR_REP_INVALID;
 		}
+	}
+	
+	/**
+	 * Attempt to offer/accept a draw on behalf of the user in the given game.
+	 * @param gameID - the game in which to offer/accept a draw
+	 * @return 	Protocol.SERVER_ERROR 				- if an error is encountered  <br>
+				Protocol.Draw.SUCCESS 				- if draw offer/accept is successful  <br>
+				Protocol.Draw.GAME_DOES_NOT_EXIST 	- if given game does not exist  <br>
+				Protocol.Draw.USER_NOT_IN_GAME 		- if the user isn't a player in the given game  <br>
+				Protocol.Draw.NO_OPPONENT 			- if the user doesn't have an opponent in the given game yet  <br>
+				Protocol.Draw.GAME_IS_OVER			- if the given game is already over
+				Protocol.Draw.NOT_USER_TURN 		- if it's not the user's turn in the given game
+	 */
+	@SuppressWarnings("unchecked")
+	@Override
+	public int draw(String gameID) {
+		// This will keep a list of every line in the file, so that if we need to edit the game's listing
+		// we can do it easily, without iterating over the file again
+		List<String> lines;
+		String[] data;
+		int lineNumber;
+		HashMap<String, Object> gameData = this.getGameData(gameID);
+		// Check the returned HashMap for signs that an error occurred or the game doesn't exist
+		if((Integer)gameData.get("error") == 1) {
+			return Protocol.SERVER_ERROR;
+		}
+		else {
+			if((Integer)gameData.get("lineNumber") == 0) {
+				return Protocol.Promote.GAME_DOES_NOT_EXIST;
+			}
+		}
+		// Extract the necessary data from the HashMap
+		data = (String[])gameData.get("data");
+		lines = (ArrayList<String>)gameData.get("lines");
+		lineNumber = (Integer)gameData.get("lineNumber");
+		
+		if(!data[GameData.BLACK.getColumn()].equals(this.username)
+		&& !data[GameData.WHITE.getColumn()].equals(this.username)) {
+			return Protocol.Draw.USER_NOT_IN_GAME;
+		}
+		// Otherwise, one of the players is our user.
+		// So if one of the entries is empty, we know the user doesn't have an opponent
+		if(data[GameData.BLACK.getColumn()].length() == 0
+		|| data[GameData.WHITE.getColumn()].length() == 0) {
+			return Protocol.Draw.NO_OPPONENT;
+		}
+		if(this.gameIsOver(data)) {
+			return Protocol.Draw.GAME_IS_OVER;
+		}
+		if(!this.isUserTurn(data, this.username)) {
+			return Protocol.Draw.NOT_USER_TURN;
+		}
+		
+		int draw_offered;
+		try {
+			draw_offered = Integer.parseInt(data[GameData.DRAW_OFFERED.getColumn()]);
+		}
+		catch(NumberFormatException e) { 
+			Log.error("ERROR: Line number " + lineNumber + " has " + GameData.DRAW_OFFERED + " value that couldn't be converted to int.");
+			return Protocol.SERVER_ERROR;
+		}
+		
+		// If no draw has been offered, we offer one
+		if(draw_offered == 0) {
+			data[GameData.DRAW_OFFERED.getColumn()] = "1";
+			try {
+				int state = Integer.parseInt(data[GameData.STATE.getColumn()]);
+				if(state != 0 && state != 1) {
+					Log.error("ERROR: Line number " + lineNumber + " has " + GameData.STATE + " value that is not 0 or 1.");
+					return Protocol.SERVER_ERROR;
+				}
+				data[GameData.STATE.getColumn()] = (state == 0) ? "1" : "0";
+			}
+			catch(NumberFormatException e) {
+				Log.error("ERROR: Line number " + lineNumber + " has " + GameData.STATE + " value that couldn't be converted to int.");
+				return Protocol.SERVER_ERROR;
+			}
+		}
+		// If a draw has been offered, we accept it
+		else if (draw_offered == 1) {
+			data[GameData.DRAWN.getColumn()] = "1";
+			// The game is now over
+		}
+		else {
+			Log.error("ERROR: Line number " + lineNumber + " has " + GameData.DRAW_OFFERED + " value that is not 0 or 1.");
+			return Protocol.SERVER_ERROR;
+		}
+		
+		FileOutputStream stream;
+		try {
+			stream = new FileOutputStream(this.active_games);
+		}
+		catch(FileNotFoundException e) {
+			Log.error("Couldn't open active_games file for writing.");
+			return Protocol.SERVER_ERROR;
+		}
+		
+		lines.set(lineNumber-1, this.toCSV(data));
+		try {
+			this.writeLines(stream, lines);
+		} catch (IOException e) {
+			Log.error("ERROR: Couldn't write to activeP_games file.");
+			return Protocol.SERVER_ERROR;
+		}
+		
+		return Protocol.Promote.SUCCESS;
 	}
 }
