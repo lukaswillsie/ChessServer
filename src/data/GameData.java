@@ -40,16 +40,33 @@ public enum GameData {
 	// String or integer
 	public final char type;
 	
+	/**
+	 * Create a GameData instance according to the given information
+	 * 
+	 * @param initial - The initial value that this piece of data should take, upon creation of a totally new game
+	 * @param column - The column of the active_games.csv file that this piece of data occupies
+	 * @param type - The type of data this GameData instance is. In particular, either 'i' - integer, or 's' - String. This field
+	 * is used when processing data.
+	 */
 	GameData(String initial, int column, char type) {
 		this.initial = initial;
 		this.column = column;
 		this.type = type;
 	}
 	
+	/**
+	 * Return the initial value of this instance
+	 * 
+	 * @return - the initial value of this instance
+	 */
 	String getInitial() {
 		return this.initial;
 	}
 	
+	/**
+	 * Return the this instance's column
+	 * @return - this instance's column
+	 */
 	int getColumn() {
 		return this.column;
 	}

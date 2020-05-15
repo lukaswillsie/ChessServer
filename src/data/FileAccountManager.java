@@ -8,13 +8,30 @@ import java.util.Scanner;
 
 import utility.Log;
 
+/**
+ * Maintains an account system and provides the necessary methods for validating
+ * user login requests and creating new accounts. Does so by simply storing a list
+ * of username,password pairs in the file "serverdata/accounts.csv," relative to
+ * the server executable. 
+ * 
+ * While this obviously isn't very secure, because this is a pet project, it's what
+ * I've decided to go with.
+ * 
+ * This class implements the AccountManager interface
+ * 
+ * @author Lukas Willsie
+ */
 public class FileAccountManager implements AccountManager {
 	// A String constant that holds the path to the accounts file, relative to
 	// the executable for the server
 	private static final String ACCOUNTS_FILENAME = "serverdata/accounts.csv";
 	
+	// A File object representing the accounts.csv file
 	private File accounts;
 	
+	/**
+	 * Create a new FileAccountManager object
+	 */
 	FileAccountManager(){
 		accounts = new File(ACCOUNTS_FILENAME);
 	}

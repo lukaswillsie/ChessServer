@@ -1,8 +1,9 @@
 package data;
 
 /**
- * An interface that defines the basic necessary functionality
- * for managing and accessing user account data
+ * An interface that defines the basic functions necessary for
+ * maintaining and querying a user account system
+ * 
  * @author Lukas Willsie
  */
 public interface AccountManager {

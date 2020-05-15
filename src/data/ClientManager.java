@@ -10,8 +10,11 @@ import utility.Pair;
  * object that does the dirty work when executing commands on behalf of the user. The Protocol object
  * parses the command to determine what the client wants done, and then hands the request off to one of
  * these objects to handle the details. For example, the Protocol instance might receive a move request and
- * hand it off to this object, which will go through the process of retrieving the necessary game data,
- * checking if the move is a valid move, and updating the relevant files/data if necessary.
+ * hand the particulars off to this object, which will go through the process of retrieving the relevant game data,
+ * checking if the move is a valid move, and updating the affected files/data if necessary.
+ * 
+ * After a client has logged in a particular user, a ClientManager object should be created and assigned to
+ * that user for the processing of future user-specific requests.
  * 
  * @author Lukas Willsie
  *
@@ -27,10 +30,9 @@ public abstract class ClientManager {
 	 * Objects, guaranteed to either be Strings or Integers, and represent the value 
 	 * taken on by the corresponding key.
 	 * 
-	 * So the pair {GAMEID=lukas's} means that the game's ID is "lukas's".
+	 * So the pair {GAMEID="lukas's"} means that the game's ID is "lukas's".
 	 * 
-	 * Each HashMap within the List has as many key,value pairs as the GameData enum has values,
-	 * one for each
+	 * Each HashMap within the List has as many key,value pairs as the GameData enum has values
 	 * 
 	 * Returns null if an error is encountered (for example, if the underlying data cannot be
 	 * accessed or has been corrupted in some way).
@@ -174,6 +176,18 @@ public abstract class ClientManager {
 	 *			Protocol.Archive.USER_NOT_IN_GAME 		– if the user is not in the given game
 	 */
 	public abstract int archive(String gameID);
+	
+	/**
+	 * Attempt to restore, or "un-archive", the given game for the user. That is, simply mark
+	 * it as not archived.
+	 * 
+	 * @param gameID - the game to un-archive
+	 * @return 	Protocol.SERVER_ERROR 					– if an error is encountered
+	 *			Protocol.Restore.SUCCESS 				– if the restoration is successful
+	 *			Protocol.Restore.GAME_DOES_NOT_EXIST 	– if the given game does not exist
+	 *			Protocol.Restore.USER_NOT_IN_GAME 		– if the user is not in the given game
+	 */
+	public abstract int restore(String gameID);
 	
 	public String getUsername() {
 		return username;

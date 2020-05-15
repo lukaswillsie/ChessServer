@@ -28,7 +28,12 @@ import utility.Pair;
 
 /**
  * This class is responsible for accessing and managing data on behalf of the server
- * for a particular client.
+ * for a particular client. Does so by storing a list of all games in a .csv file
+ * called "active_games.csv" which should have path "serverdata/active_games.csv" relative
+ * to the server executable. Represents the state of each game as a text file, all of which
+ * are stored in the folder "serverdata/games" relative to the server executable.
+ * 
+ * Implements the ClientManager interface.
  * 
  * See the GameData enum for details
  * @author lukas
@@ -45,8 +50,15 @@ class FileClientManager extends ClientManager {
 	// The path to the file defining exactly what a newly-created game's board data file
 	// should look like
 	private static final String NEW_BOARD = "serverdata/games/standard/new_board.txt";
+	
+	// The username of the user that this object is currently accessing data for.
 	private String username;
+	
+	// A File object representing the active_games.csv file
 	private File active_games;
+	
+	// A File object representing the "serverdata/games" folder in which all the game 
+	// data files are stored
 	private File games_folder;
 	
 	/**
@@ -435,6 +447,8 @@ class FileClientManager extends ClientManager {
 	 * Returns null if the given gameID does not have a board data file, or if an error is encountered.
 	 * 
 	 * SHOULD ONLY BE CALLED after canLoadGame(gameID) has returned 0.
+	 * 
+	 * 
 	 * @param gameID - the game to be loaded
 	 * @return A List of only Strings and Integers, where each element of the List represents a line
 	 * of the given game's board data file, in order. Returns null if the given gameID does not have a
@@ -1318,7 +1332,7 @@ class FileClientManager extends ClientManager {
 			return Protocol.Archive.USER_NOT_IN_GAME;
 		}
 		
-		// Set either WHITE_ARCHIVED or BLACK_ARCHIVED according to what colour the user is playing
+		// Set either WHITE_ARCHIVED or BLACK_ARCHIVED to 1 according to what colour the user is playing
 		if(data[GameData.WHITE.getColumn()].equals(this.username)) {
 			data[GameData.WHITE_ARCHIVED.getColumn()] = "1";
 		}
@@ -1326,6 +1340,7 @@ class FileClientManager extends ClientManager {
 			data[GameData.BLACK_ARCHIVED.getColumn()] = "1";
 		}
 		
+		// Open a stream for writing to the active games file
 		FileOutputStream stream;
 		try {
 			stream = new FileOutputStream(this.active_games);
@@ -1346,5 +1361,75 @@ class FileClientManager extends ClientManager {
 		}
 		
 		return Protocol.Archive.SUCCESS;
+	}
+	
+	/**
+	 * Attempt to restore, or "un-archive", the given game for the user. That is, simply mark
+	 * it as not archived.
+	 * 
+	 * @param gameID - the game to un-archive
+	 * @return 	Protocol.SERVER_ERROR 					– if an error is encountered
+	 *			Protocol.Restore.SUCCESS 				– if the restoration is successful
+	 *			Protocol.Restore.GAME_DOES_NOT_EXIST 	– if the given game does not exist
+	 *			Protocol.Restore.USER_NOT_IN_GAME 		– if the user is not in the given game
+	 */
+	@SuppressWarnings("unchecked")
+	@Override
+	public int restore(String gameID) {
+		// This will keep a list of every line in the file, so that if we need to edit the game's listing
+		// we can do it easily, without iterating over the file again
+		List<String> lines;
+		int lineNumber;
+		String[] data;
+		HashMap<String, Object> gameData = this.getGameData(gameID);
+		// Check the returned HashMap for signs that an error occurred or the game doesn't exist
+		if((Integer)gameData.get("error") == 1) {
+			return Protocol.SERVER_ERROR;
+		}
+		else {
+			if((Integer)gameData.get("lineNumber") == 0) {
+				return Protocol.Restore.GAME_DOES_NOT_EXIST;
+			}
+		}
+		// Extract the necessary data from the HashMap
+		data = (String[])gameData.get("data");
+		lines = (ArrayList<String>)gameData.get("lines");
+		lineNumber = (Integer)gameData.get("lineNumber");
+		
+		// Check that the user is actually in the given game
+		if(!data[GameData.WHITE.getColumn()].equals(this.username)
+		&& !data[GameData.BLACK.getColumn()].equals(this.username)) {
+			return Protocol.Restore.USER_NOT_IN_GAME;
+		}
+		
+		// Set either WHITE_ARCHIVED or BLACK_ARCHIVED to 0 according to what colour the user is playing
+		if(data[GameData.WHITE.getColumn()].equals(this.username)) {
+			data[GameData.WHITE_ARCHIVED.getColumn()] = "0";
+		}
+		else {
+			data[GameData.BLACK_ARCHIVED.getColumn()] = "0";
+		}
+		
+		// Open a stream for writing to the active games file
+		FileOutputStream stream;
+		try {
+			stream = new FileOutputStream(this.active_games);
+		}
+		catch(FileNotFoundException e) {
+			Log.error("ERROR: Couldn't open active_games file for writing");
+			return Protocol.SERVER_ERROR;
+		}
+		
+		// Update the line corresponding to the given game
+		lines.set(lineNumber-1, this.toCSV(data));
+		
+		try {
+			this.writeLines(stream, lines);
+		} catch (IOException e) {
+			Log.error("ERROR: Couldn't write to active_games file");
+			return Protocol.SERVER_ERROR;
+		}
+		
+		return Protocol.Restore.SUCCESS;
 	}
 }

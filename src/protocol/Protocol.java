@@ -253,4 +253,21 @@ public interface Protocol {
 		// Return code if the user is not in the given game
 		public static final int USER_NOT_IN_GAME = 2;
 	}
+	
+	/**
+	 * Defines return codes specific to the "restore gameID" command.
+	 * 
+	 * @author Lukas Willsie
+	 *
+	 */
+	public static class Restore {
+		// Return code if the restoration is successful
+		public static final int SUCCESS = 0;
+		
+		// Return code if the given game does not exist
+		public static final int GAME_DOES_NOT_EXIST = 1;
+		
+		// Return code if the user is not in the given game
+		public static final int USER_NOT_IN_GAME = 2;
+	}
 }

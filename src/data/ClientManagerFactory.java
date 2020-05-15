@@ -1,5 +1,11 @@
 package data;
 
+/**
+ * This class exists to create FileClientManager (implementation) objects and return
+ * them as ClientManager (interface) instances, to maintain dependency inversion
+ * @author lukas
+ *
+ */
 public class ClientManagerFactory {
 	/**
 	 * Create a ClientManager to interact with data on behalf of the given user
