@@ -15,6 +15,7 @@ public class PieceTest {
 		Board board = null;
 		
 		boolean promotionRequired = false;
+		System.out.println();
 		
 		/*
 		 * Operations:
@@ -49,7 +50,8 @@ public class PieceTest {
 					}
 				}
 				catch (IOException e) {
-					System.out.println("File could not be opened");
+					System.out.println("File could not be opened. See below:");
+					e.printStackTrace();
 				}
 			}
 			else if(command.equals("moves")) {
@@ -65,7 +67,7 @@ public class PieceTest {
 					}
 				}
 				catch(NumberFormatException e) {
-					System.out.println("Invalid format");
+					System.out.println("Invalid format. Usage: moves row,col");
 				}
 			}
 			else if(command.equals("protsquares")) {
@@ -81,7 +83,7 @@ public class PieceTest {
 					}
 				}
 				catch(NumberFormatException e) {
-					System.out.println("Invalid format");
+					System.out.println("Invalid format. Usage: protsquares row,col");
 				}
 			}
 			else if(command.equals("pinned")) {
@@ -97,8 +99,8 @@ public class PieceTest {
 						System.out.println("Pinned: " + board.isPinned(piece));
 					}
 				}
-				catch(NumberFormatException e) {
-					System.out.println("Invalid format");
+				catch(NumberFormatException | IndexOutOfBoundsException e) {
+					System.out.println("Invalid format. Usage: pinned row,col");
 				}
 			}
 			else if(command.equals("check")) {
@@ -112,7 +114,7 @@ public class PieceTest {
 					System.out.println(colour + " Check: " + board.isCheck(colour));
 				}
 				else {
-					System.out.println("Invalid input");
+					System.out.println("Invalid input. Usage: check w or check b");
 				}
 			}
 			else if(command.equals("checkmate")) {
@@ -126,7 +128,7 @@ public class PieceTest {
 					System.out.println(colour + " Checkmate: " + board.isCheckmate(colour));
 				}
 				else {
-					System.out.println("Invalid input");
+					System.out.println("Invalid input. Usage: checkmate w or checkmate b");
 				}
 			}
 			else if(command.equals("move")) {
@@ -151,17 +153,17 @@ public class PieceTest {
 							break;
 						case 2:
 							System.out.println(board);
-							System.out.println("A promotion must be made before any moves can be processed.");
-							promotionRequired = true;
+							System.out.println("It is the other colour's turn");
 							break;
 						case 3:
 							System.out.println(board);
-							System.out.println("It is the other colour's turn");
+							System.out.println("A promotion must be made before any moves can be processed.");
+							promotionRequired = true;
 							break;
 					}
 				}
-				catch(NumberFormatException e) {
-					System.out.println("Invalid format");
+				catch(NumberFormatException | IndexOutOfBoundsException d) {
+					System.out.println("Invalid format. Usage: move src_row,src_col->dest_row,dest_col");
 				}
 			}
 			else if (command.equals("promote")) {

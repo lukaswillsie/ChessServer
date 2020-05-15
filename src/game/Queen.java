@@ -6,12 +6,33 @@ import java.util.List;
 import utility.Pair;
 
 public class Queen extends Piece {
+	// The character representation of this class. Is used to encode information when talking generally
+	// about the type of a piece, when we don't care about colour. For example, when a player wants to
+	// promote a pawn, they pass in a character as an argument to specify what they want their pawn to
+	// promote to, and that character is checked against each piece's charRep
 	public static final char charRep = 'q';
-
+	
+	/**
+	 * Create a new Queen of the given colour, at the given location on the given Board.
+	 * 
+	 * Note: before any computations are done, the newly created Queen should be added to
+	 * board via the Board.addPiece() method
+	 * 
+	 * @param row - the row the new Queen is on
+	 * @param column - the column the new Queen is on
+	 * @param colour - the colour of the new Queen
+	 * @param board - the Board that this Queen has been placed on
+	 */
 	public Queen(int row, int column, Colour colour, Board board) {
 		super(row, column, colour, board);
 	}
-
+	
+	/**
+	 * Compute where this piece can move to on the board
+	 * 
+	 * @return A List of pairs (row,column), where each pair represents
+	 * a square that this rook can move to
+	 */
 	@Override
 	public List<Pair> getMoves() {
 		Piece pinner = board.isPinned(this);
@@ -259,7 +280,23 @@ public class Queen extends Piece {
 	public String toString () {
 		return (colour == Colour.WHITE) ? "Q" : "q";
 	}
-
+	
+	/**
+	 * Compute whether or not this piece is giving check to the enemy King. Note that this is
+	 * a little subtle. The piece does not have to actually be able to capture the enemy King
+	 * to be attacking it. As an example, a pinned piece that can't actually move at all can still
+	 * be giving check. To demonstrate:
+	 * 
+	 * kXX
+	 * XrX
+	 * XXB
+	 * XKX
+	 * 
+	 * Here, the black Rook is pinned by the white Bishop, and can't move at all. That is, its
+	 * getMoves() would return an empty list. But white is still in check because the black
+	 * Rook and white King are in the same column. 
+	 * @return true if and only if this piece is giving check to the enemy king
+	 */
 	@Override
 	public boolean isCheckingKing() {
 		// Get a reference to the enemy King

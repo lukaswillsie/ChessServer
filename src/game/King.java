@@ -6,9 +6,27 @@ import java.util.List;
 
 import utility.Pair;
 
+/**
+ * Represents a King on a chessboard.
+ * 
+ * @author Lukas Willsie
+ */
 public class King extends Piece {
+	// The character representation of this class.
 	public static final char charRep = 'k';
 
+	/**
+	 * Create a knew King object, of the given colour, located at the given position
+	 * on the given board.
+	 * 
+	 * King must actually be added to the given board, through the Board.addPiece() method,
+	 * before any computation takes place.
+	 * 
+	 * @param row - the row the new King is on
+	 * @param column - the column the new King is on
+	 * @param colour - the colour of the King
+	 * @param board - the board that this King has been placed on
+	 */
 	public King(int row, int column, Colour colour, Board board) {
 		super(row, column, colour, board);
 	}
@@ -18,14 +36,14 @@ public class King extends Piece {
 	 * the King not being able to put himself into check
 	 * 
 	 * @return A List of pairs (row,column), where each pair represents
-	 * a square that this piece can move to, according to its rules of movement
+	 * a square that this King can move to, according to its rules of movement
 	 */
 	@Override
 	public List<Pair> getMoves() {
 		List<Pair> moves = new ArrayList<Pair>();
 		Colour enemy_colour = (colour == Colour.WHITE) ? Colour.BLACK : Colour.WHITE;
 		
-		// We remove the King from the board, temporarily, to get a complete
+		// We pick the King up from the board, temporarily, to get a complete
 		// picture of where enemy pieces can move. Without this step,
 		// the King may misinterpret certain squares as legal.
 		// For example, suppose the King has an enemy rook on its left.
@@ -89,27 +107,28 @@ public class King extends Piece {
 	 * Compute all squares that this piece is PROTECTING. A protected
 	 * square is a square that this piece is preventing the enemy king
 	 * from moving to. In other words, it's a square that the enemy
-	 * king can't move to, lest he put himself in check.
-	 * 
+	 * king can't move to, lest he put himself in check. <br>
+	 *  <br>
 	 * We note that there is a subtlety to this definition when talking
 	 * about Kings. In particular, a King can be protecting a square without
 	 * being able to move there. For example, suppose there's a white King,
 	 * and there's a black Rook in the row in front of it, preventing it
 	 * from moving forward. Suppose the black King is two squares in front of
-	 * the white King:
-	 * 
-	 * k - Black king
-	 * XXXr - Black rook
-	 * K - White king
-	 * 
-	 * Then the White King can't move forward without placing himself in check,
+	 * the white King: <br>
+	 * <br>
+	 * k - Black king <br>
+	 * XXXr - Black rook <br>
+	 * K - White king <br>
+	 * <br>
+	 * Then the White King CAN'T MOVE FORWARD without placing himself in check,
 	 * and if there was a black piece directly in front of him he wouldn't be able
-	 * to take it. Regardless, the black King can't move to the square in front of
-	 * the white King either, because then he'd be under attack by the white King.
-	 * 
+	 * to take it, because of the rook. Regardless, the black King can't move to the
+	 * square in front of the white King either, because then he'd be under attack by
+	 * the white King. <br>
+	 *  <br>
 	 * All this to say that a King's protected squares are all those squares around
-	 * him which are either empty or occupied by an ally.
-	 * 
+	 * him which are either empty or occupied by an ally. <br>
+	 * <br>
 	 * @return A list of Pairs, where each pair represents a square protected by
 	 * this piece
 	 */
@@ -161,6 +180,22 @@ public class King extends Piece {
 		return (colour == Colour.WHITE) ? "K" : "k";
 	}
 
+	/**
+	 * Compute whether or not this piece is giving check to the enemy King. Note that this is
+	 * a little subtle. The piece does not have to actually be able to capture the enemy King
+	 * to be attacking it. As an example, a pinned piece that can't actually move at all can still
+	 * be giving check. To demonstrate:
+	 * 
+	 * kXX
+	 * XrX
+	 * XXB
+	 * XKX
+	 * 
+	 * Here, the black Rook is pinned by the white Bishop, and can't move at all. That is, its
+	 * getMoves() would return an empty list. But white is still in check because the black
+	 * Rook and white King are in the same column. 
+	 * @return true if and only if this piece is giving check to the enemy king
+	 */
 	@Override
 	public boolean isCheckingKing() {
 		// It's impossible for a King to be checking the enemy King, since this would

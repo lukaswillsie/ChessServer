@@ -11,8 +11,7 @@ import utility.Pair;
 
 /**
  * Represents a chessboard. Can be initialized through use of the
- * initialize(FileOutputStream stream) method, where stream is an open
- * board data file. <br>
+ * initialize() method. See below for details. <br>
  * <br>
  * Board data files are formatted as follows. 
  * First there are 4 lines, each of which contains a single digit; either 0 or 1.
@@ -42,22 +41,21 @@ import utility.Pair;
  * UPPERCASE letters represent white pieces <br>
  * LOWERCASE letters represent black pieces <br>
  * 'E' - represents an en passant square. That is, if the LAST MOVE made was by a pawn
- * moving two squares ahead, an E should be placed on the square the pawn hopped over.
+ * moving two squares ahead, an E should be placed on the square the pawn hopped over. <br>
  * <br>
  * The board should be oriented the same way as the actual board, from
- * white's perspective. That is, the first line of the file should be black's
+ * white's perspective. That is, the first line of this part of the file should be black's
  * back row and  the last line white's back row.<br>
- * 
+ * <br>
  * Finally, the last line should contain either 0 or 1; 0 if it is currently white's turn,
  * 1 if it is currently black's turn. <br>
- * 
+ * <br>
  * As an example, this is what a board file would look like before any moves have
  * been made: <br>
- * <br>
- * 1
- * 1
- * 1
- * 1
+ * 1 <br>
+ * 1 <br>
+ * 1 <br>
+ * 1 <br>
  * rnbqkbnr <br>
  * pppppppp <br>
  * XXXXXXXX <br>
@@ -108,7 +106,8 @@ public class Board {
 	// a given colour to actually be able to castle; the King can't be in check,
 	// all of the squares between the King and the Rook must be empty, etc. These
 	// booleans just store the prerequisites regarding whether the relevant pieces
-	// have moved.
+	// have moved. The rest of the computation is down below, in the canQueensideCastle()
+	// and canKingsideCastle() methods.
 	// Since the information stored in these booleans cannot always be deduced from
 	// simply looking at the board, this information is stored in a game's board data file,
 	// (see above) to persist across multiple instances of Board objects, and is loaded
@@ -118,11 +117,13 @@ public class Board {
 	private boolean blackCanQueensideCastle;
 	private boolean blackCanKingsideCastle;
 	
+	// Create a new, empty board.
 	public Board() {
 		this.board = new Piece[8][8];
 		this.whitePieces = new ArrayList<Piece>();
 		this.blackPieces = new ArrayList<Piece>();
 		this.enPassant = null;
+		this.needsToBePromoted = null;
 	}
 	
 	/**
@@ -297,7 +298,7 @@ public class Board {
 				
 				return 0;
 			}
-			else {
+			else { // If the given square isn't a valid destination for the selected piece
 				return 1;
 			}
 		}
@@ -400,11 +401,6 @@ public class Board {
 		return 0;
 	}
 	
-	// This method is for testing purposes only
-	public void setPiece(Piece piece) {
-		board[piece.getRow()][piece.getColumn()] = piece;
-	}
-	
 	/**
 	 * Add the given piece to the board, at the square given by
 	 * its row and column attributes. Assumes the piece is not already
@@ -472,7 +468,6 @@ public class Board {
 					return 1;
 				}
 				
-				
 				switch(lineNumber) {
 					case 0:
 						this.whiteCanQueensideCastle = (bool == 1) ? true : false;
@@ -496,6 +491,8 @@ public class Board {
 		
 		int row = 7;
 		int column = 0;
+		// Read the next 8 lines as rows of the chessboard, parsing each character
+		// individually and adding pieces as we go.
 		while(scanner.hasNextLine() && row >= 0) {
 			line = scanner.nextLine();
 			while(column < 8) {
@@ -558,7 +555,7 @@ public class Board {
 	/**
 	 * Preserve the game as it is at the moment this method is called by saving it in a file. 
 	 * The given FileOutputStream is assumed to be opened to the exact spot that this program
-	 * should start writing to
+	 * should start writing to.
 	 * 
 	 * @param stream - The stream that this method should write the game data to
 	 * @throws IOException - If something goes wrong with stream, does not try to catch the
@@ -646,7 +643,9 @@ public class Board {
 	public boolean isCheckmate(Colour colour) {
 		// A colour is in checkmate if its King is in check, all the squares
 		// around it are protected by enemy pieces (it's getMoves() is empty),
-		// and no allied pieces can move and block or break the check
+		// and no allied pieces can move and block or break the check. In our
+		// implementation, this is equivalent to the entire colour having no
+		// moves at all
 		return this.getKing(colour) != null
 			&& this.getMoves(colour).size() == 0;
 	}
@@ -887,7 +886,7 @@ public class Board {
 		List<Pair> enemyProtectedSquares = this.getProtectedSquares(enemyColour);
 		
 		// Iterate to the left of the King until just short of the Rook (who we know hasn't moved),
-		// making sure that every square is empty and un-attacked by the enemy
+		// making sure that every square is empty and un-assailed by the enemy
 		int row = king.getRow();
 		int column = king.getColumn()-1;
 		while(column > 0) {
@@ -962,16 +961,12 @@ public class Board {
 	private List<Piece> getCheckingPieces(Colour colour) {
 		List<Piece> enemyPieces = (colour == Colour.WHITE) ? this.blackPieces : this.whitePieces;
 		
-		Piece king = getKing(colour);
-		if(king == null) {
-			return new ArrayList<Piece>();
-		}
-		Pair kingSquare = new Pair(king.getRow(), king.getColumn());
-		
 		List<Piece> checkers = new ArrayList<Piece>();
 		
+		// Simply check each piece in the enemy piece list to see if it's checking
+		// the king
 		for(Piece enemy : enemyPieces) {
-			if(enemy.getMoves().contains(kingSquare)) {
+			if(enemy.isCheckingKing()) {
 				checkers.add(enemy);
 			}
 		}
@@ -1262,7 +1257,11 @@ public class Board {
 	}
 	
 	/**
-	 * Print the board using the same format as described in the class Javadoc
+	 * Print the board using the same format as described in the class Javadoc, where white
+	 * pieces are represented using uppercase letters and black pieces using lowercase letters.
+	 * 
+	 * This information is encoded in each Piece class as an implementation of the toString()
+	 * method.
 	 * 
 	 *@return A string representation of the board
 	 */
