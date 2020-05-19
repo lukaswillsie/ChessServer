@@ -3,7 +3,6 @@ package protocol;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
-import java.net.SocketException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
