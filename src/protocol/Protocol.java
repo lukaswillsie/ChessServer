@@ -3,7 +3,9 @@ package protocol;
 /**
  * Defines what a class that implements the protocol detailed in Protocols.pdf
  * should be able to do. Also centralizes and standardizes the definitions of 
- * all of the server's return codes, for use by implementations
+ * all of the server's return codes, for use by implementations, or for clients
+ * to use as reference.
+ * 
  * @author Lukas Willsie
  *
  */
@@ -34,8 +36,9 @@ public interface Protocol {
 	/**
 	 * Defines return codes specific to the "login username password" command, for
 	 * logging in existing users
+	 * 
 	 * @author Lukas Willsie
-	 *
+	 * 
 	 */
 	public static class Login {
 		// Return code on successful login
@@ -51,6 +54,7 @@ public interface Protocol {
 	/**
 	 * Defines return codes specific to the "create username password" command,
 	 * for creating new user accounts
+	 * 
 	 * @author Lukas Willsie Willsie
 	 *
 	 */
@@ -69,6 +73,7 @@ public interface Protocol {
 	/**
 	 * Defines return codes specific to the "creategame gameID" command, for creating
 	 * new games
+	 * 
 	 * @author Lukas Willsie
 	 *
 	 */
@@ -86,6 +91,7 @@ public interface Protocol {
 	/**
 	 * Defines return codes specific to the "joingame gameID" command, for joining existing
 	 * games
+	 * 
 	 * @author Lukas Willsie
 	 *
 	 */
@@ -104,6 +110,13 @@ public interface Protocol {
 		public static final int USER_ALREADY_IN_GAME = 3;
 	}
 	
+	/**
+	 * Defines return codes specific to the "loadgame gameID" command, for loading the board-level
+	 * data of a given game.
+	 * 
+	 * @author Lukas Willsie
+	 *
+	 */
 	public static class LoadGame {
 		public static final int SUCCESS = 0;
 		public static final int GAME_DOES_NOT_EXIST = 1;
@@ -112,7 +125,7 @@ public interface Protocol {
 	
 	/**
 	 * Defines return codes specific to the "move gameID src_row,src_col->dest_row,dest_col"
-	 * command, for making moves in a game
+	 * command, for making moves in a game.
 	 * 
 	 * @author Lukas Willsie
 	 *

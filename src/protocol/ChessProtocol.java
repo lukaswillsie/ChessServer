@@ -706,6 +706,9 @@ class ChessProtocol implements Protocol {
 	 * 		   1 if the client is found to have disconnected
 	 */
 	private int writeToClient(int num) {
+		/*
+		 * This code is commented out so as to facilitate easier testing of the server.
+		 */
 //		try {
 //			 out.writeInt(code);
 //			 return 0;
@@ -735,6 +738,9 @@ class ChessProtocol implements Protocol {
 	 * 		   1 if the client is found to have disconnected
 	 */
 	private int writeToClient(String msg) {
+		/*
+		 * This code is commented out so as to facilitate easier testing of the server.
+		 */
 //		try {
 //			for(int i = 0; i < msg.length(); i++) {
 //				out.write(msg.charAt(i));

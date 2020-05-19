@@ -13,8 +13,26 @@ import utility.Log;
  * @author Lukas Willsie
  */
 public class ChessServerMain {
+	/**
+	 * Main method for the whole server. This program should be passed a single command-line
+	 * argument: the port number that the server is to run on.
+	 * 
+	 * @param args
+	 */
 	public static void main(String[] args) {
-		int port = Integer.parseInt(args[0]);
+		if(args.length != 1) {
+			System.out.println("Usage: This program takes only one command-line argument, a port number");
+			System.exit(1);
+		}
+		int port = 0;
+		try {
+			port = Integer.parseInt(args[0]);
+		}
+		catch(NumberFormatException e) {
+			System.out.println("Usage: This program takes one command-line argument, a port number");
+			System.exit(1);
+		}
+		
 		Log.log("Server started...");
 		run(port);
 	}
