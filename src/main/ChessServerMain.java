@@ -5,6 +5,13 @@ import java.net.Socket;
 
 import utility.Log;
 
+/**
+ * This class contains the main method that starts the whole server.
+ * It's entire job is to wait for connections from clients before creating
+ * ServerThread objects to handle them.
+ * 
+ * @author Lukas Willsie
+ */
 public class ChessServerMain {
 	public static void main(String[] args) {
 		int port = Integer.parseInt(args[0]);

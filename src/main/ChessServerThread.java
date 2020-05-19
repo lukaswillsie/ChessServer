@@ -9,6 +9,14 @@ import protocol.Protocol;
 import protocol.ProtocolFactory;
 import utility.Log;
 
+/**
+ * Every time a client connects to the server, an object of this class should be
+ * created, and a new thread started via the run() method. The object will then endlessly loop
+ * on input from the client, passing input off to a Protocol object to be processed,
+ * until the client disconnects.
+ * 
+ * @author Lukas Willsie
+ */
 public class ChessServerThread extends Thread {
 	private Protocol protocol;
 	private Socket socket;
