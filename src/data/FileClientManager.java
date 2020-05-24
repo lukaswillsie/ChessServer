@@ -36,7 +36,7 @@ import utility.Pair;
  * Implements the ClientManager interface.
  * 
  * See the GameData enum for details
- * @author lukas
+ * @author Lukas Willsie
  *
  */
 class FileClientManager extends ClientManager {
@@ -348,45 +348,6 @@ class FileClientManager extends ClientManager {
 	}
 	
 	/**
-	 * Write each line in lines to stream after placing a newline at the end
-	 * 
-	 * @param stream - The stream to write to
-	 * @param lines - The lines to be written to the file
-	 * @throws IOException On failure of stream.write()
-	 */
-	private void writeLines(FileOutputStream stream, List<String> lines) throws IOException {
-		StringBuffer all = new StringBuffer();
-		for(String line : lines) {
-			all.append(line + "\n");
-		}
-		
-		// Write everything to the file all at once to avoid partially writing the data
-		// before encountering an error
-		stream.write(all.toString().getBytes());
-	}
-	
-	/**
-	 * Converts the given String[], into a single line of a .csv file.
-	 * 
-	 * That is, turn the contents of data into a single string, placing a
-	 * comma in between every two consecutive elements, and then places
-	 * a newline at the end
-	 * 
-	 * @param data - The String[] to convert to a .csv line
-	 */
-	private String toCSV(String[] data) {
-		StringBuffer buffer = new StringBuffer();
-		for(int i = 0; i < data.length; i++) {
-			if(i != 0) {
-				buffer.append(",");
-			}
-			buffer.append(data[i]);
-		}
-		
-		return buffer.toString();
-	}
-	
-	/**
 	 * Checks whether or not it's appropriate for the user this client is managing to load the given game.
 	 * In particular, checks that the given game exists and that this client's user is a player in the game.
 	 * 
@@ -577,24 +538,6 @@ class FileClientManager extends ClientManager {
 	}
 	
 	/**
-	 * Compute whether or not the given char is a valid character to be included in a board data file,
-	 * on one of the lines encoding the state of the board.
-	 * 
-	 * @param c - The character to evaluate
-	 * @return true if and only if the given character is allowed to appear in a board data file,
-	 * on one of the lines encoding the appearance of the board
-	 */
-	private boolean validBoardChar(char c) {
-		return Character.toLowerCase(c) == Pawn.charRep
-			|| Character.toLowerCase(c) == Rook.charRep
-			|| Character.toLowerCase(c) == Knight.charRep
-			|| Character.toLowerCase(c) == Bishop.charRep
-			|| Character.toLowerCase(c) == Queen.charRep
-			|| Character.toLowerCase(c) == King.charRep
-			|| c == 'X'; // Empty square character
-	}
-	
-	/**
 	 * Try and make the given move in the given game. src is the square occupied by the piece
 	 * making the move, and dest is the square it is moving to. This method returns a variety of
 	 * integers to represent various possible problems with the move command.
@@ -712,15 +655,36 @@ class FileClientManager extends ClientManager {
 		// with updating our records.
 		// We need to update the board's data file, and the game's listing in our active_games.csv file
 		// The data we may need to change:
-		// 1) State - the boolean keeping track of whose turn it is (if a promotion is now necessary, we don't flip it.
+		// 1) Turn number - increment if it was black's turn
+		// 2) State - the boolean keeping track of whose turn it is (if a promotion is now necessary, we don't flip it.
 		//	  Otherwise, we do)
-		// 2) Turn number - increment if it was black's turn
 		// 3) Winner - check if the enemy colour has been checkmated
 		// 4) White & Black check - simply call board and check if either colour is in check
 		// 5) Promotion needed - check if the player who made the move now needs to promote a pawn
 		
 		
-		// 1) STATE
+		// 1) TURN
+		// If result == -1, whoever just made a move still has to promote, which means their
+		// turn hasn't ended and we shouldn't increment the turn counter. Otherwise, we should.
+		if(result != -1) {
+			try {
+				int state = Integer.parseInt(data[GameData.STATE.getColumn()]);
+				
+				// If it's black's turn, we increment the turn counter
+				if(state == 1) {
+					int turn = Integer.parseInt(data[GameData.TURN.getColumn()]);
+					turn++;
+					
+					data[GameData.TURN.getColumn()] = Integer.toString(turn);
+				}
+			}
+			catch(NumberFormatException e) {
+				Log.error("Line number " + lineNumber + " of active_games.csv has STATE or TURN value that could not be converted to int.");
+				return Protocol.SERVER_ERROR;
+			}
+		}
+		
+		// 2) STATE
 		// If result is -1, the player who just moved still needs to promote a pawn, so we don't change the state
 		// of the game
 		if(result != -1) {
@@ -736,27 +700,6 @@ class FileClientManager extends ClientManager {
 			}
 			catch(NumberFormatException e) {
 				Log.error("Line number " + lineNumber + " of active_games.csv has STATE value that could not be converted to int.");
-				return Protocol.SERVER_ERROR;
-			}
-		}
-		
-		// 2) TURN
-		// If result == -1, whoever just made a move still has to promote, which means their
-		// turn hasn't ended and we shouldn't increment the turn counter
-		if(result != -1) {
-			try {
-				int state = Integer.parseInt(data[GameData.STATE.getColumn()]);
-				
-				// If it's black's turn, we increment the turn counter
-				if(state == 1) {
-					int turn = Integer.parseInt(data[GameData.TURN.getColumn()]);
-					turn++;
-					
-					data[GameData.TURN.getColumn()] = Integer.toString(turn);
-				}
-			}
-			catch(NumberFormatException e) {
-				Log.error("Line number " + lineNumber + " of active_games.csv has STATE or TURN value that could not be converted to int.");
 				return Protocol.SERVER_ERROR;
 			}
 		}
@@ -821,126 +764,7 @@ class FileClientManager extends ClientManager {
 		scanner.close();
 		return Move.SUCCESS;
 	}
-	
-	/**
-	 * Return a HashMap which stores the following data: <br>
-	 * 		"data" 			: a String[] containing the data for the given game, split into columns from the .csv file <br>
-	 * 		"lines"			: a List of Strings of every line in the active_games.csv file, in order <br>
-	 * 		"lineNumber"	: marks the number of the line that corresponds to the given game (starts counting from 1) <br>
-	 * 		"error"			: 1 if an error occurred, 0 otherwise <br>
-	 * 
-	 * If an error is encountered, for example if the file can't be opened or a problem is found in the formatting
-	 * of the .csv file, "error" is set to 1, "data" and "lines" are set to null, and "lineNumber" is set to 0. <br>
-	 * 
-	 * If the given game isn't found, error is set to 0, "data" and "lines" are set to null, and "lineNumber" is set to 0. <br>
-	 * 
-	 * Otherwise, if the given game is found and no errors are encountered, "data", "lines", and "lineNumber" are set according
-	 * to their definitions and "error" is set to 0. <br>
-	 * 
-	 * @param gameID - the game to retrieve information about
-	 * @return A HashMap containing information about the given game
-	 */
-	private HashMap<String, Object> getGameData(String gameID) {
-		HashMap<String, Object> map = new HashMap<String, Object>();
-		Scanner scanner;
-		try {
-			scanner = new Scanner(this.active_games);
-		}
-		catch(FileNotFoundException e) {
-			Log.error("ERROR: Couldn't open active_games file");
-			map.put("data", null);
-			map.put("lines", null);
-			map.put("lineNumber", 0);
-			map.put("error", 1);
-			return map;
-		}
-		boolean found = false;
-		
-		// We iterate through the active_games file, searching for the line corresponding to the given game
-		// We keep a list of every line in the file, so that if we need to change some data for the given game
-		// as a result of the move, we don't have to iterate through the file again for overwriting
-		int lineNumber = 1; // Will keep track of what line of the file corresponds to the given game
-		List<String> lines = new ArrayList<String>();
-		String line = "";
-		String[] data = {}; // Will store the data associated with the given game, split into columns
-		while(scanner.hasNextLine()) {
-			line = scanner.nextLine();
-			lines.add(line);
-			if(!found) {
-				data = line.split(",");
-				
-				if(data.length != GameData.order.length) {
-					Log.error("ERROR: Line number " + lineNumber + " does not have correct number of columns");
-					scanner.close();
-					map.put("data", null);
-					map.put("lines", null);
-					map.put("lineNumber", 0);
-					map.put("error", 1);
-					return map;
-				}
-				
-				if(data[GameData.GAMEID.getColumn()].equals(gameID)) {
-					found = true; 	// Setting found to true means that for the rest of the loop we're just reading lines from the file
-									// Also freezes lineNumber and data, so they refer to the line we want when the loop ends
-				}
-				else {
-					lineNumber++;
-				}
-			}
-		}
-		// If we haven't found the game, return accordingly
-		if(!found) {
-			scanner.close();
-			map.put("data", null);
-			map.put("lines", null);
-			map.put("lineNumber", 0);
-			map.put("error", 0);
-			return map;
-		}
-		
-		scanner.close();
-		map.put("data", data);
-		map.put("lines", lines);
-		map.put("lineNumber", lineNumber);
-		map.put("error", 0);
-		return map;
-	}
-	
-	/**
-	 * Return whether or not it's the given user's turn. Assumes data is a valid line from the active_games.csv file,
-	 * split into its columns, and username is a player in the given game.
-	 * @param data - the data corresponding to the game in question
-	 * @param username - the username of the user whose turn we are inquiring about
-	 * @return true if and only if it is the given user's turn in the game corresponding to the given data
-	 */
-	private boolean isUserTurn(String[] data, String username) {
-		// It's the user's turn if it's white's turn and the user is white, or it's black's turn and the user is black
-		return (Integer.parseInt(data[GameData.STATE.getColumn()]) == 0 && data[GameData.WHITE.getColumn()].equals(this.username))
-		   ||  (Integer.parseInt(data[GameData.STATE.getColumn()]) == 1 && data[GameData.BLACK.getColumn()].equals(this.username));
-	}
-	
-	/**
-	 * Compute whether or not the given game is over. data is assumed to be a valid line from the
-	 * active_games.csv file, split into its columns
-	 * @param data
-	 * @return
-	 */
-	private boolean gameIsOver(String[] data) {
-		// Game is over if it's been drawn, or winner has been declared
-		return Integer.parseInt(data[GameData.DRAWN.getColumn()]) == 1
-			|| data[GameData.WINNER.getColumn()].length() > 0;
-	}
-	
-	/**
-	 * Return what the name of the given game's board data file should be.
-	 * @param gameID - The game to process
-	 * @return The name (not the path) of the given game's board data file
-	 */
-	private String getFilename(String gameID) {
-		return gameID + ".txt";
-	}
 
-	
 	/**
 	 * Attempt to promote a pawn to the piece given by charRep, in the given game, on behalf of the user. 
 	 * 
@@ -962,6 +786,7 @@ class FileClientManager extends ClientManager {
 		// This will keep a list of every line in the file, so that if we need to edit the game's listing
 		// we can do it easily, without iterating over the file again
 		List<String> lines;
+		
 		String[] data;
 		int lineNumber;
 		HashMap<String, Object> gameData = this.getGameData(gameID);
@@ -1109,7 +934,7 @@ class FileClientManager extends ClientManager {
 			return Protocol.Promote.CHAR_REP_INVALID;
 		}
 	}
-	
+
 	/**
 	 * Attempt to offer/accept a draw on behalf of the user in the given game.
 	 * @param gameID - the game in which to offer/accept a draw
@@ -1127,6 +952,7 @@ class FileClientManager extends ClientManager {
 		// This will keep a list of every line in the file, so that if we need to edit the game's listing
 		// we can do it easily, without iterating over the file again
 		List<String> lines;
+		
 		String[] data;
 		int lineNumber;
 		HashMap<String, Object> gameData = this.getGameData(gameID);
@@ -1144,6 +970,7 @@ class FileClientManager extends ClientManager {
 		lines = (ArrayList<String>)gameData.get("lines");
 		lineNumber = (Integer)gameData.get("lineNumber");
 		
+		// If neither the black player nor the white player is our user
 		if(!data[GameData.BLACK.getColumn()].equals(this.username)
 		&& !data[GameData.WHITE.getColumn()].equals(this.username)) {
 			return Protocol.Draw.USER_NOT_IN_GAME;
@@ -1154,9 +981,11 @@ class FileClientManager extends ClientManager {
 		|| data[GameData.WHITE.getColumn()].length() == 0) {
 			return Protocol.Draw.NO_OPPONENT;
 		}
+		// Check if the game is over
 		if(this.gameIsOver(data)) {
 			return Protocol.Draw.GAME_IS_OVER;
 		}
+		// Check if it's the user's turn
 		if(!this.isUserTurn(data, this.username)) {
 			return Protocol.Draw.NOT_USER_TURN;
 		}
@@ -1189,7 +1018,7 @@ class FileClientManager extends ClientManager {
 		// If a draw has been offered, we accept it
 		else if (draw_offered == 1) {
 			data[GameData.DRAWN.getColumn()] = "1";
-			// The game is now over
+			// The game is now over, so we don't flip the turn counter or anything, we just leave everything as it is
 		}
 		else {
 			Log.error("ERROR: Line number " + lineNumber + " has " + GameData.DRAW_OFFERED + " value that is not 0 or 1.");
@@ -1209,11 +1038,124 @@ class FileClientManager extends ClientManager {
 		try {
 			this.writeLines(stream, lines);
 		} catch (IOException e) {
-			Log.error("ERROR: Couldn't write to activeP_games file.");
+			Log.error("ERROR: Couldn't write to active_games file.");
 			return Protocol.SERVER_ERROR;
 		}
 		
 		return Protocol.Draw.SUCCESS;
+	}
+
+	/**
+	 * Attempt to reject a draw on behalf of the user in the given game.
+	 * 
+	 * @param gameID - the game in which to reject a draw
+	 * @return 	Protocol.SERVER_ERROR 					- if an error is encountered  <br>
+	 *			Protocol.Reject.SUCCESS 				- if draw offer/accept is successful  <br>
+	 *			Protocol.Reject.GAME_DOES_NOT_EXIST 	- if given game does not exist  <br>
+	 *			Protocol.Reject.USER_NOT_IN_GAME 		- if the user isn't a player in the given game  <br>
+	 *			Protocol.Reject.NO_OPPONENT 			- if the user doesn't have an opponent in the given game yet  <br>
+	 *			Protocol.Reject.GAME_IS_OVER			- if the given game is already over <br>
+	 *			Protocol.Reject.NOT_USER_TURN 			- if it's not the user's turn in the given game <br>
+	 *			Protocol.Reject.NO_DRAW_OFFERED			- if there is no draw offer for the user to reject in the given game <br>
+	 */
+	@SuppressWarnings("unchecked")
+	@Override
+	public int reject(String gameID) {
+		// This will keep a list of every line in the file, so that if we need to edit the game's listing
+		// we can do it easily, without iterating over the file again
+		List<String> lines;
+		
+		String[] data;
+		int lineNumber;
+		HashMap<String, Object> gameData = this.getGameData(gameID);
+		// Check the returned HashMap for signs that an error occurred or the game doesn't exist
+		if((Integer)gameData.get("error") == 1) {
+			return Protocol.SERVER_ERROR;
+		}
+		else {
+			if((Integer)gameData.get("lineNumber") == 0) {
+				return Protocol.Reject.GAME_DOES_NOT_EXIST;
+			}
+		}
+		// Extract the necessary data from the HashMap
+		data = (String[])gameData.get("data");
+		lines = (ArrayList<String>)gameData.get("lines");
+		lineNumber = (Integer)gameData.get("lineNumber");
+		
+		// If neither the black player nor the white player is our user
+		if(!data[GameData.BLACK.getColumn()].equals(this.username)
+		&& !data[GameData.WHITE.getColumn()].equals(this.username)) {
+			return Protocol.Reject.USER_NOT_IN_GAME;
+		}
+		// Otherwise, one of the players is our user.
+		// So if one of the entries is empty, we know the user doesn't have an opponent
+		if(data[GameData.BLACK.getColumn()].length() == 0
+		|| data[GameData.WHITE.getColumn()].length() == 0) {
+			return Protocol.Reject.NO_OPPONENT;
+		}
+		// Check if the game is over
+		if(this.gameIsOver(data)) {
+			return Protocol.Reject.GAME_IS_OVER;
+		}
+		// Check if it's the user's turn
+		if(!this.isUserTurn(data, this.username)) {
+			return Protocol.Reject.NOT_USER_TURN;
+		}
+		
+		int draw_offered;
+		try {
+			draw_offered = Integer.parseInt(data[GameData.DRAW_OFFERED.getColumn()]);
+		}
+		catch(NumberFormatException e) { 
+			Log.error("ERROR: Line number " + lineNumber + " has " + GameData.DRAW_OFFERED + " value that couldn't be converted to int.");
+			return Protocol.SERVER_ERROR;
+		}
+		
+		// If no draw has not been offered, we return accordingly
+		if(draw_offered == 0) {
+			return Protocol.Reject.NO_DRAW_OFFER;
+		}
+		// If a draw has been offered, we reject it
+		else if (draw_offered == 1) {
+			data[GameData.DRAW_OFFERED.getColumn()] = "0";
+			
+			// After we reject the draw offer, flip the turn counter because it's now the opponent's turn to move again
+			try {
+				int state = Integer.parseInt(data[GameData.STATE.getColumn()]);
+				if(state != 0 && state != 1) {
+					Log.error("ERROR: Line number " + lineNumber + " has " + GameData.STATE + " value that is not 0 or 1.");
+					return Protocol.SERVER_ERROR;
+				}
+				data[GameData.STATE.getColumn()] = (state == 0) ? "1" : "0";
+			}
+			catch(NumberFormatException e) {
+				Log.error("ERROR: Line number " + lineNumber + " has " + GameData.STATE + " value that couldn't be converted to int.");
+				return Protocol.SERVER_ERROR;
+			}
+		}
+		else {
+			Log.error("ERROR: Line number " + lineNumber + " has " + GameData.DRAW_OFFERED + " value that is not 0 or 1.");
+			return Protocol.SERVER_ERROR;
+		}
+		
+		FileOutputStream stream;
+		try {
+			stream = new FileOutputStream(this.active_games);
+		}
+		catch(FileNotFoundException e) {
+			Log.error("Couldn't open active_games file for writing.");
+			return Protocol.SERVER_ERROR;
+		}
+		
+		lines.set(lineNumber-1, this.toCSV(data));
+		try {
+			this.writeLines(stream, lines);
+		} catch (IOException e) {
+			Log.error("ERROR: Couldn't write to active_games file.");
+			return Protocol.SERVER_ERROR;
+		}
+		
+		return Protocol.Reject.SUCCESS;
 	}
 
 	/**
@@ -1234,6 +1176,7 @@ class FileClientManager extends ClientManager {
 		// This will keep a list of every line in the file, so that if we need to edit the game's listing
 		// we can do it easily, without iterating over the file again
 		List<String> lines;
+		
 		String[] data;
 		int lineNumber;
 		HashMap<String, Object> gameData = this.getGameData(gameID);
@@ -1251,6 +1194,7 @@ class FileClientManager extends ClientManager {
 		lines = (ArrayList<String>)gameData.get("lines");
 		lineNumber = (Integer)gameData.get("lineNumber");
 		
+		// If neither the black player nor the white player is our user
 		if(!data[GameData.BLACK.getColumn()].equals(this.username)
 		&& !data[GameData.WHITE.getColumn()].equals(this.username)) {
 			return Protocol.Forfeit.USER_NOT_IN_GAME;
@@ -1261,9 +1205,11 @@ class FileClientManager extends ClientManager {
 		|| data[GameData.WHITE.getColumn()].length() == 0) {
 			return Protocol.Forfeit.NO_OPPONENT;
 		}
+		// Check if the game is over
 		if(this.gameIsOver(data)) {
 			return Protocol.Forfeit.GAME_IS_OVER;
 		}
+		// Check if it's the user's turn
 		if(!this.isUserTurn(data, this.username)) {
 			return Protocol.Forfeit.NOT_USER_TURN;
 		}
@@ -1293,7 +1239,7 @@ class FileClientManager extends ClientManager {
 		
 		return Protocol.Forfeit.SUCCESS;
 	}
-	
+
 	/**
 	 * Attempt to mark the given game as archived for the user.
 	 * 
@@ -1309,6 +1255,7 @@ class FileClientManager extends ClientManager {
 		// This will keep a list of every line in the file, so that if we need to edit the game's listing
 		// we can do it easily, without iterating over the file again
 		List<String> lines;
+		
 		int lineNumber;
 		String[] data;
 		HashMap<String, Object> gameData = this.getGameData(gameID);
@@ -1362,7 +1309,7 @@ class FileClientManager extends ClientManager {
 		
 		return Protocol.Archive.SUCCESS;
 	}
-	
+
 	/**
 	 * Attempt to restore, or "un-archive", the given game for the user. That is, simply mark
 	 * it as not archived.
@@ -1379,6 +1326,7 @@ class FileClientManager extends ClientManager {
 		// This will keep a list of every line in the file, so that if we need to edit the game's listing
 		// we can do it easily, without iterating over the file again
 		List<String> lines;
+		
 		int lineNumber;
 		String[] data;
 		HashMap<String, Object> gameData = this.getGameData(gameID);
@@ -1431,5 +1379,180 @@ class FileClientManager extends ClientManager {
 		}
 		
 		return Protocol.Restore.SUCCESS;
+	}
+
+	/**
+	 * Compute whether or not the given char is a valid character to be included in a board data file,
+	 * on one of the lines encoding the state of the board.
+	 * 
+	 * @param c - The character to evaluate
+	 * @return true if and only if the given character is allowed to appear in a board data file,
+	 * on one of the lines encoding the appearance of the board
+	 */
+	private boolean validBoardChar(char c) {
+		return Character.toLowerCase(c) == Pawn.charRep
+			|| Character.toLowerCase(c) == Rook.charRep
+			|| Character.toLowerCase(c) == Knight.charRep
+			|| Character.toLowerCase(c) == Bishop.charRep
+			|| Character.toLowerCase(c) == Queen.charRep
+			|| Character.toLowerCase(c) == King.charRep
+			|| c == 'X'; // Empty square character
+	}
+	
+	/**
+	 * Write each line in lines to stream after placing a newline at the end
+	 * 
+	 * @param stream - The stream to write to
+	 * @param lines - The lines to be written to the file
+	 * @throws IOException On failure of stream.write()
+	 */
+	private void writeLines(FileOutputStream stream, List<String> lines) throws IOException {
+		StringBuffer all = new StringBuffer();
+		for(String line : lines) {
+			all.append(line + "\n");
+		}
+		
+		// Write everything to the file all at once to avoid partially writing the data
+		// before encountering an error
+		stream.write(all.toString().getBytes());
+	}
+	
+	/**
+	 * Converts the given String[], into a single line of a .csv file.
+	 * 
+	 * That is, turn the contents of data into a single string, placing a
+	 * comma in between every two consecutive elements, and then places
+	 * a newline at the end
+	 * 
+	 * @param data - The String[] to convert to a .csv line
+	 */
+	private String toCSV(String[] data) {
+		StringBuffer buffer = new StringBuffer();
+		for(int i = 0; i < data.length; i++) {
+			if(i != 0) {
+				buffer.append(",");
+			}
+			buffer.append(data[i]);
+		}
+		
+		return buffer.toString();
+	}
+	
+	/**
+	 * Return a HashMap which stores the following data: <br>
+	 * 		"data" 			: a String[] containing the data for the given game, split into columns from the .csv file <br>
+	 * 		"lines"			: a List of Strings of every line in the active_games.csv file, in order <br>
+	 * 		"lineNumber"	: marks the number of the line that corresponds to the given game (starts counting from 1) <br>
+	 * 		"error"			: 1 if an error occurred, 0 otherwise <br>
+	 * 
+	 * If an error is encountered, for example if the file can't be opened or a problem is found in the formatting
+	 * of the .csv file, "error" is set to 1, "data" and "lines" are set to null, and "lineNumber" is set to 0. <br>
+	 * 
+	 * If the given game isn't found, error is set to 0, "data" and "lines" are set to null, and "lineNumber" is set to 0. <br>
+	 * 
+	 * Otherwise, if the given game is found and no errors are encountered, "data", "lines", and "lineNumber" are set according
+	 * to their definitions and "error" is set to 0. <br>
+	 * 
+	 * @param gameID - the game to retrieve information about
+	 * @return A HashMap containing information about the given game
+	 */
+	private HashMap<String, Object> getGameData(String gameID) {
+		HashMap<String, Object> map = new HashMap<String, Object>();
+		Scanner scanner;
+		try {
+			scanner = new Scanner(this.active_games);
+		}
+		catch(FileNotFoundException e) {
+			Log.error("ERROR: Couldn't open active_games file");
+			map.put("data", null);
+			map.put("lines", null);
+			map.put("lineNumber", 0);
+			map.put("error", 1);
+			return map;
+		}
+		boolean found = false;
+		
+		// We iterate through the active_games file, searching for the line corresponding to the given game
+		// We keep a list of every line in the file, so that if we need to change some data for the given game
+		// as a result of the move, we don't have to iterate through the file again for overwriting
+		int lineNumber = 1; // Will keep track of what line of the file corresponds to the given game
+		List<String> lines = new ArrayList<String>();
+		String line = "";
+		String[] data = {}; // Will store the data associated with the given game, split into columns
+		while(scanner.hasNextLine()) {
+			line = scanner.nextLine();
+			lines.add(line);
+			if(!found) {
+				data = line.split(",");
+				
+				if(data.length != GameData.order.length) {
+					Log.error("ERROR: Line number " + lineNumber + " does not have correct number of columns");
+					scanner.close();
+					map.put("data", null);
+					map.put("lines", null);
+					map.put("lineNumber", 0);
+					map.put("error", 1);
+					return map;
+				}
+				
+				if(data[GameData.GAMEID.getColumn()].equals(gameID)) {
+					found = true; 	// Setting found to true means that for the rest of the loop we're just reading lines from the file
+									// Also freezes lineNumber and data, so they refer to the line we want when the loop ends
+				}
+				else {
+					lineNumber++;
+				}
+			}
+		}
+		// If we haven't found the game, return accordingly
+		if(!found) {
+			scanner.close();
+			map.put("data", null);
+			map.put("lines", null);
+			map.put("lineNumber", 0);
+			map.put("error", 0);
+			return map;
+		}
+		
+		scanner.close();
+		map.put("data", data);
+		map.put("lines", lines);
+		map.put("lineNumber", lineNumber);
+		map.put("error", 0);
+		return map;
+	}
+	
+	/**
+	 * Return whether or not it's the given user's turn. Assumes data is a valid line from the active_games.csv file,
+	 * split into its columns, and username is a player in the given game.
+	 * @param data - the data corresponding to the game in question
+	 * @param username - the username of the user whose turn we are inquiring about
+	 * @return true if and only if it is the given user's turn in the game corresponding to the given data
+	 */
+	private boolean isUserTurn(String[] data, String username) {
+		// It's the user's turn if it's white's turn and the user is white, or it's black's turn and the user is black
+		return (Integer.parseInt(data[GameData.STATE.getColumn()]) == 0 && data[GameData.WHITE.getColumn()].equals(this.username))
+		   ||  (Integer.parseInt(data[GameData.STATE.getColumn()]) == 1 && data[GameData.BLACK.getColumn()].equals(this.username));
+	}
+	
+	/**
+	 * Compute whether or not the given game is over. data is assumed to be a valid line from the
+	 * active_games.csv file, split into its columns
+	 * @param data
+	 * @return
+	 */
+	private boolean gameIsOver(String[] data) {
+		// Game is over if it's been drawn, or winner has been declared
+		return Integer.parseInt(data[GameData.DRAWN.getColumn()]) == 1
+			|| data[GameData.WINNER.getColumn()].length() > 0;
+	}
+	
+	/**
+	 * Return what the name of the given game's board data file should be.
+	 * @param gameID - The game to process
+	 * @return The name (not the path) of the given game's board data file
+	 */
+	private String getFilename(String gameID) {
+		return gameID + ".txt";
 	}
 }

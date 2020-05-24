@@ -225,6 +225,35 @@ public interface Protocol {
 	}
 	
 	/**
+	 * Defines return codes specific to the "reject gameID" command.
+	 * 
+	 * @author Lukas Willsie
+	 *
+	 */
+	public static class Reject {
+		// Return code if draw rejection is successful
+		public static final int SUCCESS = 0;
+		
+		// Return code if given game does not exist
+		public static final int GAME_DOES_NOT_EXIST = 1;
+		
+		// Return code if the user isn't a player in the given game
+		public static final int USER_NOT_IN_GAME = 2;
+		
+		// Return code if the user doesn't have an opponent in the given game yet
+		public static final int NO_OPPONENT = 3;
+		
+		// Return code if the given game is already over
+		public static final int GAME_IS_OVER = 4;
+		
+		// Return code if the user doesn't have an opponent in the given game yet
+		public static final int NOT_USER_TURN = 5;
+		
+		// Return code if there is no active draw_offer for the user to reject
+		public static final int NO_DRAW_OFFER = 6;
+	}
+	
+	/**
 	 * Defines return codes specific to the "forfeit gameID" command.
 	 * 
 	 * @author Lukas Willsie

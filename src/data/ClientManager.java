@@ -153,6 +153,20 @@ public abstract class ClientManager {
 	public abstract int draw(String gameID);
 	
 	/**
+	 * Attempt to reject a draw on behalf of the user in the given game.
+	 * @param gameID - the game in which to reject a draw
+	 * @return 	Protocol.SERVER_ERROR 					- if an error is encountered  <br>
+	 *			Protocol.Reject.SUCCESS 				- if draw offer/accept is successful  <br>
+	 *			Protocol.Reject.GAME_DOES_NOT_EXIST 	- if given game does not exist  <br>
+	 *			Protocol.Reject.USER_NOT_IN_GAME 		- if the user isn't a player in the given game  <br>
+	 *			Protocol.Reject.NO_OPPONENT 			- if the user doesn't have an opponent in the given game yet  <br>
+	 *			Protocol.Reject.GAME_IS_OVER			- if the given game is already over <br>
+	 *			Protocol.Reject.NOT_USER_TURN 			- if it's not the user's turn in the given game <br>
+	 *			Protoco.Reject.NO_DRAW_OFFERED			- if there is no draw offer for the user to reject in the given game <br>
+	 */
+	public abstract int reject(String gameID);
+	
+	/**
 	 * Attempt to forfeit the given game on behalf of the user.
 	 * 
 	 * @param gameID - the game to forfeit

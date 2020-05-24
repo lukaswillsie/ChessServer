@@ -53,6 +53,7 @@ class ChessProtocol implements Protocol {
 			"move",			// Usage: move gameID src_row,src_col->dest_row,dest_col
 			"promote",		// Usage: promote gameID charRep
 			"draw",			// Usage: draw gameID
+			"reject",		// Usage: reject gameID
 			"forfeit",		// Usage: forfeit gameID
 			"archive",		// Usage: archive gameID
 			"restore",		// Usage: restore gameID
@@ -123,6 +124,9 @@ class ChessProtocol implements Protocol {
 				else if(keyword.equals("restore")) {
 					return processRestore(rest);
 				}
+				else if(keyword.equals("reject")) {
+					return processReject(rest);
+				}
 				else {
 					Log.log("Command \"" + command + "\" is invalid.");
 				}
@@ -143,191 +147,50 @@ class ChessProtocol implements Protocol {
 		}
 	}
 	
-	private int processRestore(String rest) {
-		// The client can't archive a game if it hasn't logged in a user, so check if
-		// it's logged anyone in and send the appropriate return code if they haven't.
-		if(this.manager == null) {
-			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot create a game.");
-			return this.writeToClient(NO_USER);
-		}
-		
-		int code = this.manager.restore(rest);
-		
-		switch(code) {
-			case Protocol.Restore.SUCCESS:
-				Log.log("Game \"" + rest + "\" archived successfully by user \"" + this.username + "\".");
-				return this.writeToClient(Protocol.Restore.SUCCESS);
-			case Protocol.Restore.GAME_DOES_NOT_EXIST:
-				Log.log("Game \"" + rest + "\" does not exist. Archive was not successful.");
-				return this.writeToClient(Protocol.Restore.GAME_DOES_NOT_EXIST);
-			case Protocol.Restore.USER_NOT_IN_GAME:
-				Log.log("User \"" + this.username + "\" is not in game \"" + rest + "\". Archive was not successful.");
-				return this.writeToClient(Protocol.Restore.USER_NOT_IN_GAME);
-			default: // Only other case is server error
-				Log.error("ERROR: Error encountered in ClientManager.archive()");
-				return this.writeToClient(Protocol.SERVER_ERROR);
-		}
-	}
-	
-	private int processArchive(String rest) {
-		// The client can't archive a game if it hasn't logged in a user, so check if
-		// it's logged anyone in and send the appropriate return code if they haven't.
-		if(this.manager == null) {
-			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot create a game.");
-			return this.writeToClient(NO_USER);
-		}
-		
-		int code = this.manager.archive(rest);
-		
-		switch(code) {
-			case Protocol.Archive.SUCCESS:
-				Log.log("Game \"" + rest + "\" archived successfully by user \"" + this.username + "\".");
-				return this.writeToClient(Protocol.Archive.SUCCESS);
-			case Protocol.Archive.GAME_DOES_NOT_EXIST:
-				Log.log("Game \"" + rest + "\" does not exist. Archive was not successful.");
-				return this.writeToClient(Protocol.Archive.GAME_DOES_NOT_EXIST);
-			case Protocol.Archive.USER_NOT_IN_GAME:
-				Log.log("User \"" + this.username + "\" is not in game \"" + rest + "\". Archive was not successful.");
-				return this.writeToClient(Protocol.Archive.USER_NOT_IN_GAME);
-			default: // Only other case is server error
-				Log.error("ERROR: Error encountered in ClientManager.archive()");
-				return this.writeToClient(Protocol.SERVER_ERROR);
-		}
-	}
-
-	private int processForfeit(String rest) {
-		// The client can't forfeit a game if it hasn't logged in a user, so check if
-		// it's logged anyone in and send the appropriate return code if they haven't.
-		if(this.manager == null) {
-			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot create a game.");
-			return this.writeToClient(NO_USER);
-		}
-				
-		int code = this.manager.forfeit(rest);
-		
-		switch(code) {
-			case Forfeit.SUCCESS:
-				Log.log("Forfeit successful in game \"" + rest + "\"." );
-				return this.writeToClient(Forfeit.SUCCESS);
-			case Forfeit.GAME_DOES_NOT_EXIST:
-				Log.log("Game \"" + rest + "\" does not exist. Forfeit was not successful." );
-				return this.writeToClient(Forfeit.GAME_DOES_NOT_EXIST);
-			case Forfeit.USER_NOT_IN_GAME:
-				Log.log("User \"" + this.username + "\" is not in game \"" + rest + "\". Forfeit was not successful.");
-				return this.writeToClient(Forfeit.USER_NOT_IN_GAME);
-			case Forfeit.NO_OPPONENT:
-				Log.log("User \"" + this.username + "\" has no opponent in game \"" + rest + "\". Forfeit was not successful.");
-				return this.writeToClient(Forfeit.NO_OPPONENT);
-			case Forfeit.GAME_IS_OVER:
-				Log.log("Game \"" + rest + "\" is already over. Forfeit was not successful.");
-				return this.writeToClient(Forfeit.GAME_IS_OVER);
-			case Forfeit.NOT_USER_TURN:
-				Log.log("It is not user \"" + this.username + "\"'s turn in game \"" + rest + "\". Forfeit was not successful.");
-				return this.writeToClient(Forfeit.NOT_USER_TURN);
-			default: 
-				Log.error("ERROR: Error encountered in ClientManager.draw(). Forfeit was not successful.");
-				return this.writeToClient(SERVER_ERROR);
-		}
-	}
-	
 	/**
-	 * Process a "draw gameID" request. rest is assumed to be the "gameID"
-	 * part of the request, or more generally everything after "draw ". This
-	 * method checks the input for incorrect formatting.
+	 * Process a "create username password" request. rest is assumed
+	 * to be the "username password" portion of the create command. This method
+	 * does not assume that this String is properly formatted, so no pre-processing
+	 * is necessary. 
 	 * 
-	 * @param rest - the "gameID" part of a "draw gameID" request
+	 * @param rest - A String containing the part of the create command
+	 * following "create"
 	 * @return 0 if the socket that this object is writing to is still connected <br>
 	 *         1 if the socket is found to have been disconnected
 	 */
-	private int processDraw(String rest) {
-		// The client can't offer/accept a draw for a user if it hasn't logged in a user, so check if
-		// it's logged anyone in and send the appropriate return code if they haven't.
-		if(this.manager == null) {
-			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot create a game.");
-			return this.writeToClient(NO_USER);
-		}
-				
-		int code = this.manager.draw(rest);
-		
-		switch(code) {
-			case Draw.SUCCESS:
-				Log.log("Draw offer/accept successful in game \"" + rest + "\"." );
-				return this.writeToClient(Draw.SUCCESS);
-			case Draw.GAME_DOES_NOT_EXIST:
-				Log.log("Game \"" + rest + "\" does not exist. Draw offer/accept was not successful." );
-				return this.writeToClient(Draw.GAME_DOES_NOT_EXIST);
-			case Draw.USER_NOT_IN_GAME:
-				Log.log("User \"" + this.username + "\" is not in game \"" + rest + "\". Draw offer/accept was not successful.");
-				return this.writeToClient(Draw.USER_NOT_IN_GAME);
-			case Draw.NO_OPPONENT:
-				Log.log("User \"" + this.username + "\" has no opponent in game \"" + rest + "\". Draw offer/accept was not successful.");
-				return this.writeToClient(Draw.NO_OPPONENT);
-			case Draw.GAME_IS_OVER:
-				Log.log("Game \"" + rest + "\" is already over. Draw offer/accept was not successful.");
-				return this.writeToClient(Draw.GAME_IS_OVER);
-			case Draw.NOT_USER_TURN:
-				Log.log("It is not user \"" + this.username + "\"'s turn in game \"" + rest + "\". Draw offer/accept was not successful.");
-				return this.writeToClient(Draw.NOT_USER_TURN);
-			default: 
-				Log.error("ERROR: Error encountered in ClientManager.draw(). Draw offer/accept was not successful.");
-				return this.writeToClient(SERVER_ERROR);
-		}
-	}
-
-	/**
-	 * Process a "promote gameID charRep" request. rest is assumed to be the "gameID charRep"
-	 * part of the request, or more generally everything after "promote ". This
-	 * method checks the input for incorrect formatting.
-	 * 
-	 * @param rest - the "gameID charRep" part of a "promote gameID charRep" request
-	 * @return 0 if the socket that this object is writing to is still connected <br>
-	 *         1 if the socket is found to have been disconnected
-	 */
-	public int processPromotion(String rest) {
-		// The client can't promote a pawn for a user if it hasn't logged in a user, so check if
-		// it's logged anyone in and send the appropriate return code if they haven't.
-		if(this.manager == null) {
-			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot create a game.");
-			return this.writeToClient(NO_USER);
-		}
-				
+	private int processCreateUser(String rest) {
 		String[] splitted = rest.split(" ");
-		if(splitted.length != 2 || splitted[1].length() != 1) {
+		
+		// Check input for validity; we should have
+		if(splitted.length != 2) {
 			Log.log("Command from " + socket.getInetAddress() + " is invalid");
 			return this.writeToClient(FORMAT_INVALID);
 		}
-		String gameID = splitted[0];
-		String charRep = splitted[1];
 		
-		int code = this.manager.promote(gameID, charRep.charAt(0));
-		switch(code) {
-			case Promote.SUCCESS:
-				Log.log("Promotion to " + charRep + " successful");
-				return this.writeToClient(Promote.SUCCESS);
-			case Promote.GAME_DOES_NOT_EXIST:
-				Log.log("Game \"" + gameID + "\" does not exist. Promotion wasn't successful");
-				return this.writeToClient(Promote.GAME_DOES_NOT_EXIST);
-			case Promote.USER_NOT_IN_GAME:
-				Log.log("User \"" + this.username + "\" is not in game \"" + gameID + "\". Promotion wasn't successful");
-				return this.writeToClient(Promote.USER_NOT_IN_GAME);
-			case Promote.NO_OPPONENT:
-				Log.log("User \"" + this.username + "\" does not have opponent in game \"" + gameID + "\". Promotion wasn't successful");
-				return this.writeToClient(Promote.NO_OPPONENT);
-			case Promote.GAME_IS_OVER:
-				Log.log("Game \"" + gameID + "\" is already over. Promotion wasn't successful");
-				return this.writeToClient(Promote.GAME_IS_OVER);
-			case Promote.NOT_USER_TURN:
-				Log.log("It is not user \"" + this.username + "\"'s turn in game \"" + gameID + "\". Promotion wasn't successful");
-				return this.writeToClient(Promote.NOT_USER_TURN);
-			case Promote.NO_PROMOTION:
-				Log.log("No promotion is necessary in game \"" + gameID + "\". Promotion wasn't successful");
-				return this.writeToClient(Promote.NO_PROMOTION);
-			case Promote.CHAR_REP_INVALID:
-				Log.log("charRep " + charRep + " is invalid. Promotion wasn't successful");
-				return this.writeToClient(Promote.CHAR_REP_INVALID);
-			default: // Only other case is server error
-				Log.error("ERROR: Error encountered in ClientManager.promote()");
-				return this.writeToClient(SERVER_ERROR);
+		String username = splitted[0];
+		String password = splitted[1];
+		AccountManager accountManager = AccountManagerFactory.build();
+		
+		// Check that the desired username and password are correctly formatted
+		if(!accountManager.validUsername(username) || !accountManager.validPassword(password)) {
+			Log.log("One of " + username + "," + password + " is invalidly formatted");
+			return this.writeToClient(Create.FORMAT_INVALID);
+		}
+		
+		int result = accountManager.addAccount(username, password);
+		if(result == 0) {
+			Log.log("Adding account " + username + "," + password);
+			this.manager = ClientManagerFactory.build(username);
+			this.username = username;
+			return this.writeToClient(Create.SUCCESS);
+		}
+		else if (result == 1) {
+			Log.log("Username " + username + " is already in use.");
+			return this.writeToClient(Create.USERNAME_IN_USE);
+		}
+		else {
+			Log.error("ERROR: error encountered in AccountManager.addAccount()");
+			return this.writeToClient(SERVER_ERROR);
 		}
 	}
 
@@ -420,93 +283,6 @@ class ChessProtocol implements Protocol {
 	}
 	
 	/**
-	 * Process a "joingame gameID" request. gameID is assumed to be the
-	 * "gameID" part of the joingame request. The gameID is not assumed to
-	 * be properly formatted, so no pre-processing is necessary.
-	 * 
-	 * @param gameID
-	 * @return 0 if the socket that this object is writing to is still connected <br>
-	 *         1 if the socket is found to have been disconnected
-	 */
-	private int processJoingame(String gameID) {
-		// The client can't create a game if it hasn't logged in a user, so check if
-		// it's logged anyone in and send the appropriate return code if they haven't.
-		if(this.manager == null) {
-			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot create a game.");
-			return this.writeToClient(NO_USER);
-		}
-		
-		int code = manager.joinGame(gameID);
-		if(code == JoinGame.SUCCESS) {
-			Log.log("User " + this.username + " joined game \"" + gameID + "\" successfully");
-			return this.writeToClient(JoinGame.SUCCESS);
-		}
-		else if (code == JoinGame.GAME_DOES_NOT_EXIST) {
-			Log.log("Game \"" + gameID + "\" does not exist, so it could not be joined.");
-			return this.writeToClient(JoinGame.GAME_DOES_NOT_EXIST);
-		}
-		else if (code == JoinGame.GAME_FULL) {
-			Log.log("Game \"" + gameID + "\" is already full, so it could not be joined");
-			return this.writeToClient(JoinGame.GAME_FULL);
-		}
-		else if (code == JoinGame.USER_ALREADY_IN_GAME) {
-			Log.log("User " + this.username + " is already in game \"" + gameID + "\"");
-			return this.writeToClient(JoinGame.USER_ALREADY_IN_GAME);
-		}
-		else {
-			Log.error("ERROR: error encountered in manager.joinGame()");
-			return this.writeToClient(SERVER_ERROR);
-		}
-	}
-	
-	/**
-	 * Process a "create username password" request. rest is assumed
-	 * to be the "username password" portion of the create command. This method
-	 * does not assume that this String is properly formatted, so no pre-processing
-	 * is necessary. 
-	 * 
-	 * @param rest - A String containing the part of the create command
-	 * following "create"
-	 * @return 0 if the socket that this object is writing to is still connected <br>
-	 *         1 if the socket is found to have been disconnected
-	 */
-	private int processCreateUser(String rest) {
-		String[] splitted = rest.split(" ");
-		
-		// Check input for validity; we should have
-		if(splitted.length != 2) {
-			Log.log("Command from " + socket.getInetAddress() + " is invalid");
-			return this.writeToClient(FORMAT_INVALID);
-		}
-		
-		String username = splitted[0];
-		String password = splitted[1];
-		AccountManager accountManager = AccountManagerFactory.build();
-		
-		// Check that the desired username and password are correctly formatted
-		if(!accountManager.validUsername(username) || !accountManager.validPassword(password)) {
-			Log.log("One of " + username + "," + password + " is invalidly formatted");
-			return this.writeToClient(Create.FORMAT_INVALID);
-		}
-		
-		int result = accountManager.addAccount(username, password);
-		if(result == 0) {
-			Log.log("Adding account " + username + "," + password);
-			this.manager = ClientManagerFactory.build(username);
-			this.username = username;
-			return this.writeToClient(Create.SUCCESS);
-		}
-		else if (result == 1) {
-			Log.log("Username " + username + " is already in use.");
-			return this.writeToClient(Create.USERNAME_IN_USE);
-		}
-		else {
-			Log.error("ERROR: error encountered in AccountManager.addAccount()");
-			return this.writeToClient(SERVER_ERROR);
-		}
-	}
-	
-	/**
 	 * Process a "creategame gameID" request. gameID is assumed to be the
 	 * "gameID" part of the creategame request. This method does not assume that
 	 * this String is properly formatted, so no pre-processing is required.
@@ -544,6 +320,46 @@ class ChessProtocol implements Protocol {
 			return this.writeToClient(SERVER_ERROR);
 		}
 	}
+	
+	/**
+	 * Process a "joingame gameID" request. gameID is assumed to be the
+	 * "gameID" part of the joingame request. The gameID is not assumed to
+	 * be properly formatted, so no pre-processing is necessary.
+	 * 
+	 * @param gameID
+	 * @return 0 if the socket that this object is writing to is still connected <br>
+	 *         1 if the socket is found to have been disconnected
+	 */
+	private int processJoingame(String gameID) {
+		// The client can't create a game if it hasn't logged in a user, so check if
+		// it's logged anyone in and send the appropriate return code if they haven't.
+		if(this.manager == null) {
+			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot create a game.");
+			return this.writeToClient(NO_USER);
+		}
+		
+		int code = manager.joinGame(gameID);
+		if(code == JoinGame.SUCCESS) {
+			Log.log("User " + this.username + " joined game \"" + gameID + "\" successfully");
+			return this.writeToClient(JoinGame.SUCCESS);
+		}
+		else if (code == JoinGame.GAME_DOES_NOT_EXIST) {
+			Log.log("Game \"" + gameID + "\" does not exist, so it could not be joined.");
+			return this.writeToClient(JoinGame.GAME_DOES_NOT_EXIST);
+		}
+		else if (code == JoinGame.GAME_FULL) {
+			Log.log("Game \"" + gameID + "\" is already full, so it could not be joined");
+			return this.writeToClient(JoinGame.GAME_FULL);
+		}
+		else if (code == JoinGame.USER_ALREADY_IN_GAME) {
+			Log.log("User " + this.username + " is already in game \"" + gameID + "\"");
+			return this.writeToClient(JoinGame.USER_ALREADY_IN_GAME);
+		}
+		else {
+			Log.error("ERROR: error encountered in manager.joinGame()");
+			return this.writeToClient(SERVER_ERROR);
+		}
+	}	
 	
 	/**
 	 * Process a "load gameID" request. gameID is assumed to be the "gameID" part of the load request.
@@ -693,6 +509,268 @@ class ChessProtocol implements Protocol {
 				default: // The only other case is server error
 					Log.log("Error encountered in ClientManager.makeMove");
 					return this.writeToClient(SERVER_ERROR);
+		}
+	}
+	
+	/**
+	 * Process a "promote gameID charRep" request. rest is assumed to be the "gameID charRep"
+	 * part of the request, or more generally everything after "promote ". This
+	 * method checks the input for incorrect formatting.
+	 * 
+	 * @param rest - the "gameID charRep" part of a "promote gameID charRep" request
+	 * @return 0 if the socket that this object is writing to is still connected <br>
+	 *         1 if the socket is found to have been disconnected
+	 */
+	private int processPromotion(String rest) {
+		// The client can't promote a pawn for a user if it hasn't logged in a user, so check if
+		// it's logged anyone in and send the appropriate return code if they haven't.
+		if(this.manager == null) {
+			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot create a game.");
+			return this.writeToClient(NO_USER);
+		}
+				
+		String[] splitted = rest.split(" ");
+		if(splitted.length != 2 || splitted[1].length() != 1) {
+			Log.log("Command from " + socket.getInetAddress() + " is invalid");
+			return this.writeToClient(FORMAT_INVALID);
+		}
+		String gameID = splitted[0];
+		String charRep = splitted[1];
+		
+		int code = this.manager.promote(gameID, charRep.charAt(0));
+		switch(code) {
+			case Promote.SUCCESS:
+				Log.log("Promotion to " + charRep + " successful");
+				return this.writeToClient(Promote.SUCCESS);
+			case Promote.GAME_DOES_NOT_EXIST:
+				Log.log("Game \"" + gameID + "\" does not exist. Promotion wasn't successful");
+				return this.writeToClient(Promote.GAME_DOES_NOT_EXIST);
+			case Promote.USER_NOT_IN_GAME:
+				Log.log("User \"" + this.username + "\" is not in game \"" + gameID + "\". Promotion wasn't successful");
+				return this.writeToClient(Promote.USER_NOT_IN_GAME);
+			case Promote.NO_OPPONENT:
+				Log.log("User \"" + this.username + "\" does not have opponent in game \"" + gameID + "\". Promotion wasn't successful");
+				return this.writeToClient(Promote.NO_OPPONENT);
+			case Promote.GAME_IS_OVER:
+				Log.log("Game \"" + gameID + "\" is already over. Promotion wasn't successful");
+				return this.writeToClient(Promote.GAME_IS_OVER);
+			case Promote.NOT_USER_TURN:
+				Log.log("It is not user \"" + this.username + "\"'s turn in game \"" + gameID + "\". Promotion wasn't successful");
+				return this.writeToClient(Promote.NOT_USER_TURN);
+			case Promote.NO_PROMOTION:
+				Log.log("No promotion is necessary in game \"" + gameID + "\". Promotion wasn't successful");
+				return this.writeToClient(Promote.NO_PROMOTION);
+			case Promote.CHAR_REP_INVALID:
+				Log.log("charRep " + charRep + " is invalid. Promotion wasn't successful");
+				return this.writeToClient(Promote.CHAR_REP_INVALID);
+			default: // Only other case is server error
+				Log.error("ERROR: Error encountered in ClientManager.promote()");
+				return this.writeToClient(SERVER_ERROR);
+		}
+	}
+	
+	/**
+	 * Process a "draw gameID" request. rest is assumed to be the "gameID"
+	 * part of the request, or more generally everything after "draw ". This
+	 * method checks the input for incorrect formatting.
+	 * 
+	 * @param rest - the "gameID" part of a "draw gameID" request
+	 * @return 0 if the socket that this object is writing to is still connected <br>
+	 *         1 if the socket is found to have been disconnected
+	 */
+	private int processDraw(String rest) {
+		// The client can't offer/accept a draw for a user if it hasn't logged in a user, so check if
+		// it's logged anyone in and send the appropriate return code if they haven't.
+		if(this.manager == null) {
+			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot create a game.");
+			return this.writeToClient(NO_USER);
+		}
+				
+		int code = this.manager.draw(rest);
+		
+		switch(code) {
+			case Draw.SUCCESS:
+				Log.log("Draw offer/accept successful in game \"" + rest + "\"." );
+				return this.writeToClient(Draw.SUCCESS);
+			case Draw.GAME_DOES_NOT_EXIST:
+				Log.log("Game \"" + rest + "\" does not exist. Draw offer/accept was not successful." );
+				return this.writeToClient(Draw.GAME_DOES_NOT_EXIST);
+			case Draw.USER_NOT_IN_GAME:
+				Log.log("User \"" + this.username + "\" is not in game \"" + rest + "\". Draw offer/accept was not successful.");
+				return this.writeToClient(Draw.USER_NOT_IN_GAME);
+			case Draw.NO_OPPONENT:
+				Log.log("User \"" + this.username + "\" has no opponent in game \"" + rest + "\". Draw offer/accept was not successful.");
+				return this.writeToClient(Draw.NO_OPPONENT);
+			case Draw.GAME_IS_OVER:
+				Log.log("Game \"" + rest + "\" is already over. Draw offer/accept was not successful.");
+				return this.writeToClient(Draw.GAME_IS_OVER);
+			case Draw.NOT_USER_TURN:
+				Log.log("It is not user \"" + this.username + "\"'s turn in game \"" + rest + "\". Draw offer/accept was not successful.");
+				return this.writeToClient(Draw.NOT_USER_TURN);
+			default:	// The only other case is server error
+				Log.error("ERROR: Error encountered in ClientManager.draw(). Draw offer/accept was not successful.");
+				return this.writeToClient(SERVER_ERROR);
+		}
+	}
+	
+	/**
+	 * Process a "reject gameID" request. rest is assumed to be the "gameID"
+	 * part of the request, or more generally everything after "reject ". This
+	 * method checks the input for incorrect formatting.
+	 * 
+	 * @param rest - the "gameID" part of a "reject gameID" request
+	 * @return 0 if the socket that this object is writing to is still connected <br>
+	 *         1 if the socket is found to have been disconnected
+	 */
+	private int processReject(String rest) {
+		// The client can't offer/accept a draw for a user if it hasn't logged in a user, so check if
+		// it's logged anyone in and send the appropriate return code if they haven't.
+		if(this.manager == null) {
+			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot create a game.");
+			return this.writeToClient(NO_USER);
+		}
+				
+		int code = this.manager.reject(rest);
+		
+		switch(code) {
+			case Reject.SUCCESS:
+				Log.log("Draw rejection successful in game \"" + rest + "\"." );
+				return this.writeToClient(Reject.SUCCESS);
+			case Reject.GAME_DOES_NOT_EXIST:
+				Log.log("Game \"" + rest + "\" does not exist. Draw rejection was not successful." );
+				return this.writeToClient(Reject.GAME_DOES_NOT_EXIST);
+			case Reject.USER_NOT_IN_GAME:
+				Log.log("User \"" + this.username + "\" is not in game \"" + rest + "\". Draw rejection was not successful.");
+				return this.writeToClient(Reject.USER_NOT_IN_GAME);
+			case Reject.NO_OPPONENT:
+				Log.log("User \"" + this.username + "\" has no opponent in game \"" + rest + "\". Draw rejection was not successful.");
+				return this.writeToClient(Reject.NO_OPPONENT);
+			case Reject.GAME_IS_OVER:
+				Log.log("Game \"" + rest + "\" is already over. Draw rejection was not successful.");
+				return this.writeToClient(Reject.GAME_IS_OVER);
+			case Reject.NOT_USER_TURN:
+				Log.log("It is not user \"" + this.username + "\"'s turn in game \"" + rest + "\". Draw rejection was not successful.");
+				return this.writeToClient(Reject.NOT_USER_TURN);
+			case Reject.NO_DRAW_OFFER:
+				Log.log("There is no draw offer for user \"" + this.username + "\" to reject. Draw rejection was not successful.");
+				return this.writeToClient(Reject.NO_DRAW_OFFER);
+			default: 	// The only other case is server error
+				Log.error("ERROR: Error encountered in ClientManager.draw(). Draw rejection was not successful.");
+				return this.writeToClient(SERVER_ERROR);
+		}
+	}
+	
+	/**
+	 * Process a "forfeit gameID" request. rest is assumed to be the "gameID"
+	 * part of the request, or more generally everything after "forfeit ". This
+	 * method checks the input for incorrect formatting.
+	 * 
+	 * @param rest - the "gameID" part of a "forfeit gameID" request
+	 * @return 0 if the socket that this object is writing to is still connected <br>
+	 *         1 if the socket is found to have been disconnected
+	 */
+	private int processForfeit(String rest) {
+		// The client can't forfeit a game if it hasn't logged in a user, so check if
+		// it's logged anyone in and send the appropriate return code if they haven't.
+		if(this.manager == null) {
+			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot create a game.");
+			return this.writeToClient(NO_USER);
+		}
+				
+		int code = this.manager.forfeit(rest);
+		
+		switch(code) {
+			case Forfeit.SUCCESS:
+				Log.log("Forfeit successful in game \"" + rest + "\"." );
+				return this.writeToClient(Forfeit.SUCCESS);
+			case Forfeit.GAME_DOES_NOT_EXIST:
+				Log.log("Game \"" + rest + "\" does not exist. Forfeit was not successful." );
+				return this.writeToClient(Forfeit.GAME_DOES_NOT_EXIST);
+			case Forfeit.USER_NOT_IN_GAME:
+				Log.log("User \"" + this.username + "\" is not in game \"" + rest + "\". Forfeit was not successful.");
+				return this.writeToClient(Forfeit.USER_NOT_IN_GAME);
+			case Forfeit.NO_OPPONENT:
+				Log.log("User \"" + this.username + "\" has no opponent in game \"" + rest + "\". Forfeit was not successful.");
+				return this.writeToClient(Forfeit.NO_OPPONENT);
+			case Forfeit.GAME_IS_OVER:
+				Log.log("Game \"" + rest + "\" is already over. Forfeit was not successful.");
+				return this.writeToClient(Forfeit.GAME_IS_OVER);
+			case Forfeit.NOT_USER_TURN:
+				Log.log("It is not user \"" + this.username + "\"'s turn in game \"" + rest + "\". Forfeit was not successful.");
+				return this.writeToClient(Forfeit.NOT_USER_TURN);
+			default: 
+				Log.error("ERROR: Error encountered in ClientManager.draw(). Forfeit was not successful.");
+				return this.writeToClient(SERVER_ERROR);
+		}
+	}
+	
+	/**
+	 * Process a "archive gameID" request. rest is assumed to be the "gameID"
+	 * part of the request, or more generally everything after "archive ". This
+	 * method checks the input for incorrect formatting.
+	 * 
+	 * @param rest - the "gameID" part of a "archive gameID" request
+	 * @return 0 if the socket that this object is writing to is still connected <br>
+	 *         1 if the socket is found to have been disconnected
+	 */
+	private int processArchive(String rest) {
+		// The client can't archive a game if it hasn't logged in a user, so check if
+		// it's logged anyone in and send the appropriate return code if they haven't.
+		if(this.manager == null) {
+			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot create a game.");
+			return this.writeToClient(NO_USER);
+		}
+		
+		int code = this.manager.archive(rest);
+		
+		switch(code) {
+			case Protocol.Archive.SUCCESS:
+				Log.log("Game \"" + rest + "\" archived successfully by user \"" + this.username + "\".");
+				return this.writeToClient(Protocol.Archive.SUCCESS);
+			case Protocol.Archive.GAME_DOES_NOT_EXIST:
+				Log.log("Game \"" + rest + "\" does not exist. Archive was not successful.");
+				return this.writeToClient(Protocol.Archive.GAME_DOES_NOT_EXIST);
+			case Protocol.Archive.USER_NOT_IN_GAME:
+				Log.log("User \"" + this.username + "\" is not in game \"" + rest + "\". Archive was not successful.");
+				return this.writeToClient(Protocol.Archive.USER_NOT_IN_GAME);
+			default: // Only other case is server error
+				Log.error("ERROR: Error encountered in ClientManager.archive()");
+				return this.writeToClient(Protocol.SERVER_ERROR);
+		}
+	}
+	
+	/**
+	 * Process a "restore gameID" request. rest is assumed to be the "gameID"
+	 * part of the request, or more generally everything after "restore ". This
+	 * method checks the input for incorrect formatting.
+	 * 
+	 * @param rest - the "gameID" part of a "restore gameID" request
+	 * @return 0 if the socket that this object is writing to is still connected <br>
+	 *         1 if the socket is found to have been disconnected
+	 */
+	private int processRestore(String rest) {
+		// The client can't archive a game if it hasn't logged in a user, so check if
+		// it's logged anyone in and send the appropriate return code if they haven't.
+		if(this.manager == null) {
+			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot create a game.");
+			return this.writeToClient(NO_USER);
+		}
+		
+		int code = this.manager.restore(rest);
+		
+		switch(code) {
+			case Protocol.Restore.SUCCESS:
+				Log.log("Game \"" + rest + "\" archived successfully by user \"" + this.username + "\".");
+				return this.writeToClient(Protocol.Restore.SUCCESS);
+			case Protocol.Restore.GAME_DOES_NOT_EXIST:
+				Log.log("Game \"" + rest + "\" does not exist. Archive was not successful.");
+				return this.writeToClient(Protocol.Restore.GAME_DOES_NOT_EXIST);
+			case Protocol.Restore.USER_NOT_IN_GAME:
+				Log.log("User \"" + this.username + "\" is not in game \"" + rest + "\". Archive was not successful.");
+				return this.writeToClient(Protocol.Restore.USER_NOT_IN_GAME);
+			default: // Only other case is server error
+				Log.error("ERROR: Error encountered in ClientManager.archive()");
+				return this.writeToClient(Protocol.SERVER_ERROR);
 		}
 	}
 	
