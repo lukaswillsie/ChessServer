@@ -142,8 +142,12 @@ class ChessProtocol implements Protocol {
 				this.manager = null;
 				this.username = null;
 			}
+			else {
+				Log.log("Command \"" + command + "\" is invalid.");
+			}
+			// We return 0 in either above case because here no communication is made with the client, so we 
+			// assume they remain connected
 			return 0;
-			// Otherwise do nothing as we have received an invalid command
 		}
 	}
 	
