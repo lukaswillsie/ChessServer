@@ -7,8 +7,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
 
-import utility.Pair;
-
 /**
  * Represents a chessboard. Can be initialized through use of the
  * initialize() method. See below for details. <br>

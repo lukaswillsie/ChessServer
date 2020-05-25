@@ -2,8 +2,6 @@ package game;
 
 import java.util.List;
 
-import utility.Pair;
-
 /**
  * Defines the abstraction of a chess piece: an entity that occupies a particular
  * square on a chessboard, has a colour (black or white), and has the ability to

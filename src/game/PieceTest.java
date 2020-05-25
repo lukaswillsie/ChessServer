@@ -6,8 +6,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Scanner;
 
-import utility.Pair;
-
 public class PieceTest {
 	public static void main(String[] args) {
 		Scanner in = new Scanner(System.in);

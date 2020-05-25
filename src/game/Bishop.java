@@ -3,8 +3,6 @@ package game;
 import java.util.ArrayList;
 import java.util.List;
 
-import utility.Pair;
-
 /**
  * Represents a Bishop on a chessboard.
  * 

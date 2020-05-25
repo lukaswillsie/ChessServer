@@ -12,9 +12,9 @@ import data.AccountManagerFactory;
 import data.ClientManager;
 import data.ClientManagerFactory;
 import data.GameData;
+import game.Pair;
 import protocol.Protocol;
 import utility.Log;
-import utility.Pair;
 
 /**
  * This class is an implementation of the Protocol interface (in this package) that

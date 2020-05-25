@@ -3,8 +3,6 @@ package game;
 import java.util.ArrayList;
 import java.util.List;
 
-import utility.Pair;
-
 public class Rook extends Piece {
 	// The character representation of this class. Is used to encode information when talking generally
 	// about the type of a piece, when we don't care about colour. For example, when a player wants to

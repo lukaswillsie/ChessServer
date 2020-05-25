@@ -15,6 +15,7 @@ import game.Board;
 import game.Colour;
 import game.King;
 import game.Knight;
+import game.Pair;
 import game.Pawn;
 import game.Queen;
 import game.Rook;
@@ -24,7 +25,6 @@ import protocol.Protocol.JoinGame;
 import protocol.Protocol.LoadGame;
 import protocol.Protocol.Move;
 import utility.Log;
-import utility.Pair;
 
 /**
  * This class is responsible for accessing and managing data on behalf of the server

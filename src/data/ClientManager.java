@@ -3,7 +3,7 @@ package data;
 import java.util.HashMap;
 import java.util.List;
 
-import utility.Pair;
+import game.Pair;
 
 /**
  * Defines what a ClientManager should be able to do. In general terms, the ClientManager is the
