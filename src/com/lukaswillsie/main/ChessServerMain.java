@@ -1,9 +1,9 @@
-package main;
+package com.lukaswillsie.main;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-import utility.Log;
+import com.lukaswillsie.utility.Log;
 
 /**
  * This class contains the main method that starts the whole server.

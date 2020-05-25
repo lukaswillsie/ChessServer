@@ -1,4 +1,4 @@
-package utility;
+package com.lukaswillsie.utility;
 
 import java.io.File;
 import java.io.FileNotFoundException;

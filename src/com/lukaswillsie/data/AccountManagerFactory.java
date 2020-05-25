@@ -1,4 +1,4 @@
-package data;
+package com.lukaswillsie.data;
 
 /**
  * A class that exists only to create FileAccountManager (implementation)

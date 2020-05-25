@@ -1,4 +1,4 @@
-package data;
+package com.lukaswillsie.data;
 
 /**
  * This class exists to create FileClientManager (implementation) objects and return

@@ -1,4 +1,4 @@
-package protocol;
+package com.lukaswillsie.protocol;
 
 /**
  * Defines what a class that implements the protocol detailed in Protocols.pdf

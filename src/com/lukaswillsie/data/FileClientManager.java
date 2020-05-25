@@ -1,4 +1,4 @@
-package data;
+package com.lukaswillsie.data;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -10,21 +10,22 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 
-import game.Bishop;
-import game.Board;
-import game.Colour;
-import game.King;
-import game.Knight;
-import game.Pair;
-import game.Pawn;
-import game.Queen;
-import game.Rook;
-import protocol.Protocol;
-import protocol.Protocol.CreateGame;
-import protocol.Protocol.JoinGame;
-import protocol.Protocol.LoadGame;
-import protocol.Protocol.Move;
-import utility.Log;
+import com.lukaswillsie.protocol.Protocol;
+import com.lukaswillsie.protocol.Protocol.CreateGame;
+import com.lukaswillsie.protocol.Protocol.JoinGame;
+import com.lukaswillsie.protocol.Protocol.LoadGame;
+import com.lukaswillsie.protocol.Protocol.Move;
+import com.lukaswillsie.utility.Log;
+
+import Chess.com.lukaswillsie.chess.Bishop;
+import Chess.com.lukaswillsie.chess.Board;
+import Chess.com.lukaswillsie.chess.Colour;
+import Chess.com.lukaswillsie.chess.King;
+import Chess.com.lukaswillsie.chess.Knight;
+import Chess.com.lukaswillsie.chess.Pair;
+import Chess.com.lukaswillsie.chess.Pawn;
+import Chess.com.lukaswillsie.chess.Queen;
+import Chess.com.lukaswillsie.chess.Rook;
 
 /**
  * This class is responsible for accessing and managing data on behalf of the server

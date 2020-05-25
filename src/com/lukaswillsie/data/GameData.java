@@ -1,4 +1,4 @@
-package data;
+package com.lukaswillsie.data;
 
 /**
  * This enum represents the different data values that are stored for games

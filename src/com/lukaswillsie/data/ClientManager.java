@@ -1,9 +1,9 @@
-package data;
+package com.lukaswillsie.data;
 
 import java.util.HashMap;
 import java.util.List;
 
-import game.Pair;
+import Chess.com.lukaswillsie.chess.Pair;
 
 /**
  * Defines what a ClientManager should be able to do. In general terms, the ClientManager is the

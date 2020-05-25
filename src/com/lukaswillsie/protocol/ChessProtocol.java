@@ -1,4 +1,4 @@
-package protocol;
+package com.lukaswillsie.protocol;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -7,14 +7,15 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
-import data.AccountManager;
-import data.AccountManagerFactory;
-import data.ClientManager;
-import data.ClientManagerFactory;
-import data.GameData;
-import game.Pair;
-import protocol.Protocol;
-import utility.Log;
+import com.lukaswillsie.data.AccountManager;
+import com.lukaswillsie.data.AccountManagerFactory;
+import com.lukaswillsie.data.ClientManager;
+import com.lukaswillsie.data.ClientManagerFactory;
+import com.lukaswillsie.data.GameData;
+import com.lukaswillsie.protocol.Protocol;
+import com.lukaswillsie.utility.Log;
+
+import Chess.com.lukaswillsie.chess.Pair;
 
 /**
  * This class is an implementation of the Protocol interface (in this package) that

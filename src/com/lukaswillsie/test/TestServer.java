@@ -1,4 +1,4 @@
-package test;
+package com.lukaswillsie.test;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -6,7 +6,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 
-import utility.Log;
+import com.lukaswillsie.utility.Log;
 
 public class TestServer {
 	public static void main(String[] args) {

@@ -1,4 +1,4 @@
-package data;
+package com.lukaswillsie.data;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Scanner;
 
-import utility.Log;
+import com.lukaswillsie.utility.Log;
 
 /**
  * Maintains an account system and provides the necessary methods for validating

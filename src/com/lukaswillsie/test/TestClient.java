@@ -1,4 +1,4 @@
-package test;
+package com.lukaswillsie.test;
 
 import java.io.IOException;
 import java.io.PrintWriter;

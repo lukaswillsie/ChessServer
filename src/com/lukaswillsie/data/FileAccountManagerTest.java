@@ -1,4 +1,4 @@
-package data;
+package com.lukaswillsie.data;
 
 import java.util.Scanner;
 

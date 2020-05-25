@@ -1,4 +1,4 @@
-package data;
+package com.lukaswillsie.data;
 
 /**
  * An interface that defines the basic functions necessary for

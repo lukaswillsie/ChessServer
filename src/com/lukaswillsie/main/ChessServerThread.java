@@ -1,13 +1,13 @@
-package main;
+package com.lukaswillsie.main;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.Socket;
 import java.net.SocketException;
 
-import protocol.Protocol;
-import protocol.ProtocolFactory;
-import utility.Log;
+import com.lukaswillsie.protocol.Protocol;
+import com.lukaswillsie.protocol.ProtocolFactory;
+import com.lukaswillsie.utility.Log;
 
 /**
  * Every time a client connects to the server, an object of this class should be
