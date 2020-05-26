@@ -1,18 +1,14 @@
 package com.lukaswillsie.protocol;
 
 /**
- * Defines what a class that implements the protocol detailed in Protocols.pdf
- * should be able to do. Also centralizes and standardizes the definitions of 
- * all of the server's return codes, for use by the server.
- * 
- * Clients should make use of the ReturnCodes class in their own projects, which contains
- * all of the return code constants without the method defined below, of which clients
- * have no need.
+ * This class simply provides a collection of all the constants defined in the Protocol interface,
+ * so that they're all in one place. Clients can freely copy this file into their projects so as to
+ * avoid dependence on integer constants.
  * 
  * @author Lukas Willsie
  *
  */
-public interface Protocol {
+public class ReturnCodes {
 	// Return code if a critical error is encountered while processing a command
 	public static final int SERVER_ERROR = -1;
 	
@@ -21,21 +17,7 @@ public interface Protocol {
 	
 	// Return code if a client tries to make a request before logging in a user
 	public static final int NO_USER = -3;
-	
-	/**
-	 * Any Protocol object should be able to take a String, a command from a client,
-	 * parse the command, and perform/delegate the necessary computations and send an
-	 * appropriate response to the client.
-	 * 
-	 * Protocols should return an int detailing whether the protocol discovered the client
-	 * to have disconnected in the course of its work.
-	 * 
-	 * @param command - A command received from a client
-	 * @return 0 if the client is still thought to be connected to the server when this method terminates
-	 * 		   1 if the client is found to have disconnected
-	 */
-	int processCommand(String command);
-	
+
 	/**
 	 * Defines return codes specific to the "login username password" command, for
 	 * logging in existing users
