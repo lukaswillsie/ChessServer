@@ -3,6 +3,7 @@ package com.lukaswillsie.protocol;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -788,24 +789,19 @@ class ChessProtocol implements Protocol {
 	 * 		   1 if the client is found to have disconnected
 	 */
 	private int writeToClient(int num) {
-		/*
-		 * This code is commented out so as to facilitate easier testing of the server.
-		 */
-//		try {
-//			 out.writeInt(code);
-//			 return 0;
-//		}
-//		catch(SocketException e) {
-//			return 1;
-//		}
-//		catch(IOException e) {
-//			e.printStackTrace();
-//			Log.log("Encountered exception writing to " + socket.getInetAddress());
-//			System.exit(1);
-//			return 1; // We'll never get here, but have to do this to make the compiler happy
-//		}
-		System.out.println(num);
-		return 0;
+		try {
+			 out.writeInt(num);
+			 return 0;
+		}
+		catch(SocketException e) {
+			return 1;
+		}
+		catch(IOException e) {
+			e.printStackTrace();
+			Log.log("Encountered exception writing to " + socket.getInetAddress());
+			System.exit(1);
+			return 1; // We'll never get here, but have to do this to make the compiler happy
+		}
 	}
 	
 	/**
@@ -820,27 +816,22 @@ class ChessProtocol implements Protocol {
 	 * 		   1 if the client is found to have disconnected
 	 */
 	private int writeToClient(String msg) {
-		/*
-		 * This code is commented out so as to facilitate easier testing of the server.
-		 */
-//		try {
-//			for(int i = 0; i < msg.length(); i++) {
-//				out.write(msg.charAt(i));
-//			}
-//			out.write('\r');
-//			out.write('\n');
-//			return 0;
-//		}
-//		catch(SocketException e) {
-//			return 1;
-//		}
-//		catch(IOException e) {
-//			e.printStackTrace();
-//			Log.log("Encountered exception writing to " + socket.getInetAddress() + ". Exiting thread");
-//			System.exit(1);
-//			return 1; // We'll never get here, but have to do this to make the compiler happy
-//		}
-		System.out.println(msg);
-		return 0;
+		try {
+			for(int i = 0; i < msg.length(); i++) {
+				out.write(msg.charAt(i));
+			}
+			out.write('\r');
+			out.write('\n');
+			return 0;
+		}
+		catch(SocketException e) {
+			return 1;
+		}
+		catch(IOException e) {
+			e.printStackTrace();
+			Log.log("Encountered exception writing to " + socket.getInetAddress() + ". Exiting thread");
+			System.exit(1);
+			return 1; // We'll never get here, but have to do this to make the compiler happy
+		}
 	}
 }
