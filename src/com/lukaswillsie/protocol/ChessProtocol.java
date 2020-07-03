@@ -340,7 +340,7 @@ class ChessProtocol implements Protocol {
 		// The client can't create a game if it hasn't logged in a user, so check if
 		// it's logged anyone in and send the appropriate return code if they haven't.
 		if(this.manager == null) {
-			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot create a game.");
+			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot join a game.");
 			return this.writeToClient(NO_USER);
 		}
 		
@@ -531,7 +531,7 @@ class ChessProtocol implements Protocol {
 		// The client can't promote a pawn for a user if it hasn't logged in a user, so check if
 		// it's logged anyone in and send the appropriate return code if they haven't.
 		if(this.manager == null) {
-			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot create a game.");
+			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot process promotion.");
 			return this.writeToClient(NO_USER);
 		}
 				
@@ -588,7 +588,7 @@ class ChessProtocol implements Protocol {
 		// The client can't offer/accept a draw for a user if it hasn't logged in a user, so check if
 		// it's logged anyone in and send the appropriate return code if they haven't.
 		if(this.manager == null) {
-			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot create a game.");
+			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot process draw attempt.");
 			return this.writeToClient(NO_USER);
 		}
 				
@@ -632,7 +632,7 @@ class ChessProtocol implements Protocol {
 		// The client can't offer/accept a draw for a user if it hasn't logged in a user, so check if
 		// it's logged anyone in and send the appropriate return code if they haven't.
 		if(this.manager == null) {
-			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot create a game.");
+			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot process draw rejection.");
 			return this.writeToClient(NO_USER);
 		}
 				
@@ -679,7 +679,7 @@ class ChessProtocol implements Protocol {
 		// The client can't forfeit a game if it hasn't logged in a user, so check if
 		// it's logged anyone in and send the appropriate return code if they haven't.
 		if(this.manager == null) {
-			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot create a game.");
+			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot process forfeiture.");
 			return this.writeToClient(NO_USER);
 		}
 				
@@ -723,7 +723,7 @@ class ChessProtocol implements Protocol {
 		// The client can't archive a game if it hasn't logged in a user, so check if
 		// it's logged anyone in and send the appropriate return code if they haven't.
 		if(this.manager == null) {
-			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot create a game.");
+			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot archive a game.");
 			return this.writeToClient(NO_USER);
 		}
 		
@@ -758,7 +758,7 @@ class ChessProtocol implements Protocol {
 		// The client can't archive a game if it hasn't logged in a user, so check if
 		// it's logged anyone in and send the appropriate return code if they haven't.
 		if(this.manager == null) {
-			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot create a game.");
+			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot restore a game.");
 			return this.writeToClient(NO_USER);
 		}
 		
@@ -766,16 +766,16 @@ class ChessProtocol implements Protocol {
 		
 		switch(code) {
 			case Protocol.Restore.SUCCESS:
-				Log.log("Game \"" + rest + "\" archived successfully by user \"" + this.username + "\".");
+				Log.log("Game \"" + rest + "\" restored successfully by user \"" + this.username + "\".");
 				return this.writeToClient(Protocol.Restore.SUCCESS);
 			case Protocol.Restore.GAME_DOES_NOT_EXIST:
-				Log.log("Game \"" + rest + "\" does not exist. Archive was not successful.");
+				Log.log("Game \"" + rest + "\" does not exist. Restoration was not successful.");
 				return this.writeToClient(Protocol.Restore.GAME_DOES_NOT_EXIST);
 			case Protocol.Restore.USER_NOT_IN_GAME:
-				Log.log("User \"" + this.username + "\" is not in game \"" + rest + "\". Archive was not successful.");
+				Log.log("User \"" + this.username + "\" is not in game \"" + rest + "\". Restoration was not successful.");
 				return this.writeToClient(Protocol.Restore.USER_NOT_IN_GAME);
 			default: // Only other case is server error
-				Log.error("ERROR: Error encountered in ClientManager.archive()");
+				Log.error("ERROR: Error encountered in ClientManager.restore()");
 				return this.writeToClient(Protocol.SERVER_ERROR);
 		}
 	}
