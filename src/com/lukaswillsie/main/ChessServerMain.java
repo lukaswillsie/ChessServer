@@ -3,6 +3,7 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+import com.lukaswillsie.data.DataManager;
 import com.lukaswillsie.utility.Log;
 
 /**
@@ -34,6 +35,9 @@ public class ChessServerMain {
 		}
 		
 		Log.log("Server started...");
+		DataManager manager = new DataManager();
+		manager.build();
+		manager.display();
 		run(port);
 	}
 	
