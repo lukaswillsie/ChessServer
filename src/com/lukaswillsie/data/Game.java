@@ -3,6 +3,8 @@ package com.lukaswillsie.data;
 import java.util.HashMap;
 import java.util.List;
 
+import Chess.com.lukaswillsie.chess.Board;
+
 public class Game {
 	/**
 	 * An exception thrown when we try and create a Game object from faulty data
@@ -22,6 +24,11 @@ public class Game {
 	private HashMap<GameData, Object> data = new HashMap<GameData, Object>();
 	
 	/**
+	 * A Board object containing the current state of this Game
+	 */
+	private Board board;
+	
+	/**
 	 * Create a new Game to hold the given data. The list passed as a parameter
 	 * should contain a line of the active_games.csv file, split about the commas.
 	 * If the line of input is invalid, for example if there aren't as many items in
@@ -31,7 +38,9 @@ public class Game {
 	 * @param data - a line of the active_games.csv file, split about its commas
 	 * @throws InvalidGameDataException 
 	 */
-	public Game(String[] data) throws InvalidGameDataException {
+	public Game(String[] data, Board board) throws InvalidGameDataException {
+		this.board = board;
+		
 		if(data.length != GameData.order.length) {
 			throw new InvalidGameDataException("Data has " + data.length + " items when it should have " + GameData.order.length);
 		}
@@ -72,5 +81,9 @@ public class Game {
 	 */
 	public void setData(GameData dataType, Object val) {
 		this.data.put(dataType, val);
+	}
+	
+	public Board getBoard() {
+		return this.board;
 	}
 }

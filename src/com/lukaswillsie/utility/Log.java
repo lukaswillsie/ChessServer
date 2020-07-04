@@ -22,8 +22,19 @@ public class Log {
 	 * 
 	 * @param message - the message to be logged
 	 */
-	public static void log(String message) {
+	public static synchronized void log(String message) {
 		System.out.println(message);
+	}
+	
+	/**
+	 * Logs an Iterable collection of Strings to the console
+	 * 
+	 * @param messages - an Iterable collection of Strings
+	 */
+	public static synchronized void log(Iterable<String> messages) {
+		for(String string : messages) {
+			System.out.println(string);
+		}
 	}
 	
 	/**
@@ -31,9 +42,21 @@ public class Log {
 	 * 
 	 * @param message - the message to log
 	 */
-	public static void error(String message) {
+	public static synchronized void error(String message) {
 		System.out.println(message);
 		System.err.println(message);
+	}
+	
+	/**
+	 * Log each string in the given Iterable to the console as well as standard error
+	 * 
+	 * @param messages - the Iterable collection of strings
+	 */
+	public static synchronized void error(Iterable<String> messages) {
+		for(String string : messages) {
+			System.out.println(string);
+			System.err.println(string);
+		}
 	}
 	
 	/**
@@ -45,7 +68,7 @@ public class Log {
 	 * @param address - the address of the client from whom the given command was received
 	 * @param command - the command that was received
 	 */
-	public static void command(String address, String command) {
+	public static synchronized void command(String address, String command) {
 		File file = new File("commands");
 		try {
 			FileOutputStream stream = new FileOutputStream(file, true);
