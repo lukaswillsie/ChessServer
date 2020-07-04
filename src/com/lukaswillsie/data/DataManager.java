@@ -25,8 +25,8 @@ import Chess.com.lukaswillsie.chess.Pair;
  * or create a new game, it can speedily process the request and get back with a
  * response. However, to ensure that changes are persistent, we need to update the
  * server's local records occasionally. I chose to do so regularly, after a fixed number
- * of data-altering requests (defined in a constant below). This way, the average amount of
- * time spent opening and writing to files is lowered on a per-request basis.
+ * of data-altering requests. This way, the average amount of time spent opening and writing
+ * to files is lowered on a per-request basis.
  * 
  * This object also ensures that server requests are atomic, so that we don't see strange
  * behaviour if two requests come in close together and try to interact with the same data,
@@ -65,6 +65,11 @@ public class DataManager implements AccountManager {
 	 * but haven't had the changes saved yet
 	 */
 	private List<Game> unsavedGames = new ArrayList<Game>();
+	
+	/**
+	 * Tracks the total number of data-altering requests made since the last save
+	 */
+	private int requestsMade = 0;
 	
 	/**
 	 * How many data-altering requests we will let go by before attempting to update our local
@@ -429,6 +434,17 @@ public class DataManager implements AccountManager {
 		line.append(game.getData(GameData.order[GameData.order.length - 1]).toString());
 		
 		return line.toString();
+	}
+	
+	/**
+	 * Records that another data-altering request has been made, and initiates a save if necessary.
+	 */
+	private void requestMade() {
+		this.requestsMade++;
+		if(this.requestsMade >= REQUESTS_BEFORE_SAVE) {
+			save();
+			this.requestsMade = 0;
+		}
 	}
 	
 	/**
