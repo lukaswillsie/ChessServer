@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Scanner;
 
 import com.lukaswillsie.data.Game.InvalidGameDataException;
+import com.lukaswillsie.protocol.Protocol;
 import com.lukaswillsie.utility.Log;
 
 import Chess.com.lukaswillsie.chess.Board;
@@ -43,10 +44,10 @@ public class DataManager implements AccountManager {
 	private static final String templateFolder = "serverdata/games/standard";
 	
 	/**
-	 * A list of every single game that the server has on record, sorted lexicographically by gameID.
-	 * That is, using String's compareTo() method
+	 * A collection of every game in our system, where keys are game IDs and values
+	 * are the corresponding game objects.
 	 */
-	private List<Game> games = new ArrayList<Game>();
+	private HashMap<String, Game> games = new HashMap<String, Game>();
 	
 	/**
 	 * A list of every single user account that the server has on record, sorted lexicographically,
@@ -90,6 +91,65 @@ public class DataManager implements AccountManager {
 	private boolean gamesChanged = false;
 	
 	/**
+	 * A class used solely for the purpose of searching our list of users. When instantiated
+	 * with a username, it becomes a User object with that username and an empty password.
+	 * Can be used to take advantage of the Collections.binarySearch() method, since User
+	 * implements Comparable. I decided to do this instead of implementing my own binary
+	 * search because it's quicker and seems to me like it's cleaner.
+	 * 
+	 * Since User
+	 * implements Comparable, we can use
+	 * @author lukas
+	 *
+	 */
+	private static class SearchUser extends User {
+		public SearchUser(String username) {
+			super(username, "");
+		}
+	}
+	
+	/**
+	 * Returns the Game object in our records corresponding to the given gameID,
+	 * or null if we don't have a record of the given gameID
+	 * 
+	 * @param gameID - the ID of the game to fetch
+	 * @return The Game object corresponding to the given ID, or null if 
+	 * we don't have a game for the given gameID in our records
+	 */
+	private Game getGame(String gameID) {
+		// The HashMap get() function returns null if gameID isn't a key in the
+		// HashMap, so we don't have to check ourselves
+		return games.get(gameID);
+	}
+	
+	/**
+	 * Get a list of every Game in the system
+	 * 
+	 * @return A List of every Game object in the system
+	 */
+	private List<Game> getGames() {
+		List<Game> allGames = new ArrayList<Game>();
+		for(String gameID : games.keySet()) {
+			allGames.add(games.get(gameID));
+		}
+		
+		return allGames;
+	}
+	
+	/**
+	 * Check if the given username is associated with an account in the system.
+	 * 
+	 * @param username - the username to search for
+	 * @return true if and only if there is a User object with the given username in
+	 * this object's users field
+	 */
+	private boolean userExists(String username) {
+		User search = new SearchUser(username);
+		int result = Collections.binarySearch(users, search);
+		return result >= 0;
+	}
+	
+	/**
 	 * Sets the DataManager up for use. No DataManager object should be used until
 	 * this method has been called and returned a successful return code
 	 * 
@@ -97,14 +157,14 @@ public class DataManager implements AccountManager {
 	 * 		   1 if the build process failed for some reason
 	 */
 	public synchronized int build() {
-		// In case this is our first execution, create any requisite files that need creating
+		// In case this is our first execution, create any requisite files
 		createFiles();
 		
 		Scanner scanner;
 		try {
 			scanner = new Scanner(new File(accountsFile));
 		} catch (FileNotFoundException e) {
-			Log.error("Couldn't open accounts file for scanning");
+			Log.error("ERROR: Couldn't open accounts file for scanning");
 			return 1;
 		}
 		
@@ -118,7 +178,7 @@ public class DataManager implements AccountManager {
 			split = line.split(",");
 			
 			if(split.length != 2) {
-				Log.error("Line " + lineNumber + " of accounts file is incorrectly formatted");
+				Log.error("ERROR: Line " + lineNumber + " of accounts file is incorrectly formatted");
 				return 1;
 			}
 			
@@ -133,11 +193,9 @@ public class DataManager implements AccountManager {
 		
 		try {
 			scanner = new Scanner(new File(gamesFile));
-			// Throw out the first line of the file because it is just a column header
-			System.out.println(scanner.nextLine());
 		}
 		catch(FileNotFoundException e) {
-			Log.error("Couldn't open games file for scanning");
+			Log.error("ERROR: Couldn't open games file for scanning");
 			return 1;
 		}
 		
@@ -165,8 +223,6 @@ public class DataManager implements AccountManager {
 			
 			// Add the game to our list of games, and add it to both players' lists of games that they're in
 			addGame(game);
-			userGames.get((String)game.getData(GameData.WHITE)).add(game);
-			userGames.get((String)game.getData(GameData.BLACK)).add(game);
 		}
 		
 		return 0;
@@ -190,23 +246,27 @@ public class DataManager implements AccountManager {
 				return board;
 			}
 			else {
-				Log.error("Board object couldn't be initialized from \"" + getFilename(gameID) + "\"");
+				Log.error("ERROR: Board object couldn't be initialized from \"" + getFilename(gameID) + "\"");
 				return null;
 			}
 		} catch (FileNotFoundException e) {
-			Log.error("Couldn't open board data file for game \"" + gameID + "\"");
+			Log.error("ERROR: Couldn't open board data file for game \"" + gameID + "\"");
 			return null;
 		}
 		
 	}
 	
 	/**
-	 * Return the path for where the board data file for the given game should be
+	 * Take a game ID and convert it into a full file path to the board data file for the given
+	 * game, ASSUMING the given game exists. 
 	 */
 	private String getFilename(String gameID) {
 		return gamesDir + "/" + gameID + ".txt";
 	}
 	
+	/**
+	 * Prints the contents of this DataManager to the console for debugging
+	 */
 	public void display() {
 		System.out.println("Users:");
 		for(User user : users) {
@@ -215,7 +275,7 @@ public class DataManager implements AccountManager {
 		System.out.println();
 		
 		System.out.println("Games:");
-		for(Game game : games) {
+		for(Game game : getGames()) {
 			System.out.print(game.getData(GameData.GAMEID) + ",");
 		}
 		System.out.println();
@@ -244,16 +304,25 @@ public class DataManager implements AccountManager {
 	}
 	
 	/**
-	 * Insert the given game into our list of games, maintaining the sortedness of the list
+	 * Takes the given Game object and adds it to our collection of Game objects. Adds it to our
+	 * HashMap of games, and also ensures that it's added to its player(s) respective lists of
+	 * games.
 	 * 
-	 * @param game - the game to insert
+	 * @param game - the Game to add to our collection
 	 */
 	private void addGame(Game game) {
-		// Iterate until i points to a game with a gameID lexicographically greater than
-		// that of game, or the end of the list, and then insert
-		int i;
-		for(i = 0; i < games.size() && ((String)games.get(i).getData(GameData.GAMEID)).compareTo((String)game.getData(GameData.GAMEID)) < 0; i++);
-		games.add(i, game);	
+		games.put((String)game.getData(GameData.GAMEID), game);
+		String white = (String)game.getData(GameData.WHITE);
+		String black = (String)game.getData(GameData.BLACK);
+		
+		if(white.length() > 0) {
+			userGames.get(white).add(game);
+		}
+		
+		if(black.length() > 0) {
+			userGames.get(black).add(game);
+		}
+		
 	}
 	
 	/**
@@ -264,7 +333,7 @@ public class DataManager implements AccountManager {
 	private int createFiles() {
 		File gamesFolder = new File(gamesDir);
 		if(!gamesFolder.exists() && !gamesFolder.mkdirs()) {
-			Log.error("Couldn't create folder(s) \"" + gamesDir + "\"");
+			Log.error("ERROR: Couldn't create folder(s) \"" + gamesDir + "\"");
 			return 1;
 		}
 		
@@ -274,7 +343,7 @@ public class DataManager implements AccountManager {
 			// we know that the file has been created the way we want it to
 			accounts.createNewFile();
 		} catch (IOException e) {
-			Log.error("Couldn't create accounts file with path \"" + accountsFile + "\"");
+			Log.error("ERROR: Couldn't create accounts file with path \"" + accountsFile + "\"");
 			return 1;
 		}
 		
@@ -282,7 +351,7 @@ public class DataManager implements AccountManager {
 		try {
 			games.createNewFile();
 		} catch (IOException e) {
-			Log.error("Couldn't create games file with path \"" + gamesFile + "\"");
+			Log.error("ERROR: Couldn't create games file with path \"" + gamesFile + "\"");
 			return 1;
 		}
 		
@@ -300,22 +369,22 @@ public class DataManager implements AccountManager {
 			try(FileOutputStream gamesOutput = new FileOutputStream(new File(gamesFile))) {
 				
 				try {
-					for(Game game : this.games) {
+					for(Game game : getGames()) {
 						String line = toLine(game);
 						gamesOutput.write((line + "\n").getBytes());
 					}		
 				}
 				catch(IOException e) {
-					Log.error("Problem writing to games file \"" + gamesFile + "\"");
+					Log.error("ERROR: Problem writing to games file \"" + gamesFile + "\"");
 					dumpGames();
 				}
 			} catch (FileNotFoundException e) {
-				Log.error("games file \"" + gamesFile + "\" does not exist.");
+				Log.error("ERROR: games file \"" + gamesFile + "\" does not exist.");
 				dumpGames();
 			}
 			// Thrown if gamesOutput fails to close
 			catch (IOException e) {
-				Log.error("Couldn't close games FileOutputStream");
+				Log.error("ERROR: Couldn't close games FileOutputStream");
 				e.printStackTrace();
 			}	
 		}
@@ -338,7 +407,7 @@ public class DataManager implements AccountManager {
 			}
 			// Thrown if usersOutput fails to close
 			catch (IOException e) {
-				Log.error("Couldn't close accounts FileOutputStream");
+				Log.error("ERROR: Couldn't close accounts FileOutputStream");
 				e.printStackTrace();
 			}
 		}
@@ -355,17 +424,17 @@ public class DataManager implements AccountManager {
 					unsavedGames.remove(game);
 				}
 				catch(IOException e) {
-					Log.error("Couldn't save game data for game \"" + game.getData(GameData.GAMEID) + "\"");
+					Log.error("ERROR: Couldn't save game data for game \"" + game.getData(GameData.GAMEID) + "\"");
 					dumpGame(game);
 				}
 			}
 			catch (FileNotFoundException e) {
-				Log.error("No game data file for game \"" +  game.getData(GameData.GAMEID) + "\"");
+				Log.error("ERROR: No game data file for game \"" +  game.getData(GameData.GAMEID) + "\"");
 				dumpGame(game);
 			} 
 			// Thrown if stream fails to close
 			catch (IOException e) {
-				Log.error("Couldn't close FileOutputStream opened on file \"" + getFilename((String)game.getData(GameData.GAMEID)) + "\"");
+				Log.error("ERROR: Couldn't close FileOutputStream opened on file \"" + getFilename((String)game.getData(GameData.GAMEID)) + "\"");
 				e.printStackTrace();
 			}
 		}
@@ -394,7 +463,7 @@ public class DataManager implements AccountManager {
 	private void dumpGames() {
 		List<String> errorMessage = new ArrayList<String>();
 		errorMessage.add("Couldn't save game data. Dumping...");
-		for(Game game : this.games) {
+		for(Game game : getGames()) {
 			errorMessage.add(toLine(game));
 		}
 		Log.error(errorMessage);
@@ -471,7 +540,7 @@ public class DataManager implements AccountManager {
 		
 		File standardFolder = new File(templateFolder);
 		if(!standardFolder.exists() && !standardFolder.mkdirs()) {
-			Log.error("Couldn't create folder(s) \"" + templateFolder + "\""); 
+			Log.error("ERROR: Couldn't create folder(s) \"" + templateFolder + "\""); 
 			return 1;
 		}
 		
@@ -479,7 +548,7 @@ public class DataManager implements AccountManager {
 		try {
 			template.createNewFile();
 		} catch (IOException e) {
-			Log.error("Couldn't create file \"" + newGameTemplate + "\"");
+			Log.error("ERROR: Couldn't create file \"" + newGameTemplate + "\"");
 			return 1;
 		}
 		
@@ -487,14 +556,14 @@ public class DataManager implements AccountManager {
 		try {
 			stream = new FileOutputStream(template);
 		} catch (FileNotFoundException e) {
-			Log.error("Couldn't open new game template file");
+			Log.error("ERROR: Couldn't open new game template file");
 			return 1;
 		}
 		for(String line : lines) {
 			try {
 				stream.write((line + "\n").getBytes());
 			} catch (IOException e) {
-				Log.error("Coudln't write to and initialize new game template file");
+				Log.error("ERROR: Couldn't write to and initialize new game template file");
 				return 1;
 			}
 		}
@@ -505,14 +574,13 @@ public class DataManager implements AccountManager {
 	/**
 	 * Return a List of all games the given user is participating in.
 	 * Each game is represented as a Game object, which is basically a wrapper for a HashMap.
-	 * Keys take values in the GameData enum, which defines exactly what pieces of data define
+	 * Keys take values in the GameData enum, which codifies exactly what pieces of data define
 	 * a game. The values are Objects, guaranteed to either be Strings or Integers, and represent
 	 * the value taken on by the corresponding key.
 	 * 
 	 * So (String) game.getData(GameData.GAMEID) == "lukas's" means that the game's ID is "lukas's".
 	 * 
-	 * Returns null if an error is encountered (for example, if the underlying data cannot be
-	 * accessed or has been corrupted in some way).
+	 * Returns null if the given username doesn't correspond to a user in the system
 	 * 
 	 * @param username - the user whose games this method should fetch
 	 * 
@@ -533,8 +601,107 @@ public class DataManager implements AccountManager {
 	 * 			Protocol.CreateGame.GAMEID_IN_USE 	- game already exists and hence cannot be created
 	 */
 	public synchronized int createGame(String gameID, String username) {
-		// TODO Auto-generated method stub
-		return 0;
+		if(getGame(gameID) != null) {
+			return Protocol.CreateGame.GAMEID_IN_USE;
+		}
+		else if (!userExists(username)) {
+			// TODO: Consider adding a return code for this scenario
+			Log.error("ERROR: Username \"" + username + "\" is not a valid username. Cannot process request to create game.");
+			return Protocol.SERVER_ERROR;
+		}
+		else {
+			/*
+			 * We follow these steps in creating a new game:
+			 * 
+			 * 1. Create a board file for the game
+			 * 2. Create Board object from the file
+			 * 3. Create a Game object and add it to our records
+			 */
+			File file = new File(getFilename(gameID));
+			boolean created;
+			try {
+				created = file.createNewFile();
+			} catch (IOException e) {
+				Log.error("ERROR: Couldn't create file for new game \"" + gameID + "\".");
+				return Protocol.SERVER_ERROR;
+			}
+			// This means the file already exists, but we don't have a Game object for it, because of the
+			// check we already did above, which is a problem
+			if(!created) {
+				Log.error("ERROR: There is no record of game \"" + gameID + "\" but there is a board data file.");
+				return Protocol.SERVER_ERROR;
+			}
+			else {
+				// Initialize the newly-created file from our new game template file
+				try {
+					FileOutputStream stream = new FileOutputStream(file);
+					Scanner scanner = new Scanner(newGameTemplate);
+					
+					try {
+						String line;
+						while(scanner.hasNextLine()) {
+							line = scanner.nextLine();
+							stream.write((line + "\n").getBytes());
+						}
+					}
+					catch(IOException e) {
+						Log.error("ERROR: Couldn't initialize board data file for game \"" + gameID + "\" from template.");
+						// We delete the board data file we were going to use because we don't want it sticking
+						// around if we weren't able to initialize it
+						if(!file.delete()) {
+							Log.error("ERROR: Couldn't delete created but un-initialized file \"" + getFilename(gameID) + "\"");
+						}
+						try {
+							stream.close();
+						} catch (IOException e1) {
+							Log.error("ERROR: Couldn't close a FileOutputStream.");
+							e1.printStackTrace();
+						}
+						scanner.close();
+						return Protocol.SERVER_ERROR;
+					}
+					scanner.close();
+					try {
+						stream.close();
+					} catch (IOException e) {
+						Log.error("ERROR: Couldn't close a FileOutputStream.");
+						e.printStackTrace();
+					}
+				}
+				// Thrown if we can't open our newly-created file or the new game template
+				catch (FileNotFoundException e) {
+					Log.error("ERROR: Couldn't open either the file \"" + getFilename(gameID) + "\" or the file \"" + newGameTemplate + "\"");
+					// Since we couldn't initialize the file, we delete it
+					if(!file.delete()) {
+						Log.error("ERROR: Couldn't delete created but un-initialized file \"" + getFilename(gameID) + "\"");
+					}
+					return Protocol.SERVER_ERROR;
+				}
+			}
+			
+			// Now that we've created and initialized our new file, we just need to create a Game object for it and add it to
+			// the records we're keeping in memory.
+			Board board;
+			try {
+				Scanner scanner = new Scanner(file);
+				board = new Board();
+				board.initialize(scanner);
+			} catch (FileNotFoundException e) {
+				Log.error("ERROR: Couldn't open newly-created and initialized file \"" + getFilename(gameID) + "\" for scanning.");
+				if(!file.delete()) {
+					Log.error("ERROR: Couldn't delete created but un-initialized file \"" + getFilename(gameID) + "\"");
+				}
+				return Protocol.SERVER_ERROR;
+			}
+			
+			Game game = new Game(gameID, board);
+			// Whoever creates the game plays white
+			game.setData(GameData.WHITE, username);
+			addGame(game);
+			
+			requestMade();
+			return Protocol.CreateGame.SUCCESS;
+		}
 	}
 
 	public int joinGame(String gameID, String username) {

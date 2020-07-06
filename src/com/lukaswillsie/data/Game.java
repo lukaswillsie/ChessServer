@@ -29,13 +29,59 @@ public class Game {
 	private Board board;
 	
 	/**
-	 * Create a new Game to hold the given data. The list passed as a parameter
-	 * should contain a line of the active_games.csv file, split about the commas.
+	 * Create a Game object that represents a newly-created game, with all data
+	 * members set to their initial values, except game ID, which must be specified.
+	 * 
+	 * @param gameID - the ID of this new game
+	 * @param board - the Board object containing board-level data for this game
+	 */
+	public Game(String gameID, Board board) {
+		this.board = board;
+		
+		// Fill an array with all the initial values defined in GameData
+		String[] data = new String[GameData.order.length];
+		for(int i = 0; i < GameData.order.length; i++) {
+			data[i] = GameData.order[i].getInitial();
+		}
+		
+		initializeAsNewGame();
+	}
+	
+	/**
+	 * Initialize this object as if it were a newly-created game. Sets all of this
+	 * game's data fields to their initial values.
+	 */
+	private void initializeAsNewGame() {
+		String[] data = new String[GameData.order.length];
+		for(int i = 0; i < GameData.order.length; i++) {
+			data[i] = GameData.order[i].getInitial();
+		}
+		
+		GameData dataType;
+		for(int i = 0; i < GameData.order.length; i++) {
+			dataType = GameData.order[i];
+			
+			if(dataType.type == 'i') {
+				this.data.put(dataType, Integer.parseInt(data[i]));
+			}
+			else if(dataType.type == 's') {
+				this.data.put(dataType, data[i]);
+			}
+		}
+	}
+	
+	/**
+	 * Create a new Game to hold the given data. The array passed as a parameter
+	 * should be such that each element corresponds to a GameData enum value, as defined
+	 * in GameData.order. This could also be a line from the .csv file storing a list of
+	 * all of the games in the system, split about the commas.
+	 * 
 	 * If the line of input is invalid, for example if there aren't as many items in
-	 * the list as there are GameData enum values, or an item which is supposed to be
-	 * an integral value is not, an InvalidGameDataException will be thrown.
+	 * the list as there are GameData enum values, or an item which should be able to
+	 * be parsed to int is not, an InvalidGameDataException will be thrown.
 	 * 
 	 * @param data - a line of the active_games.csv file, split about its commas
+	 * @param board - the Board object that contains this game's board-level data
 	 * @throws InvalidGameDataException 
 	 */
 	public Game(String[] data, Board board) throws InvalidGameDataException {
@@ -61,7 +107,7 @@ public class Game {
 				this.data.put(dataType, data[i]);
 			}
 		}
-	}
+	}	
 	
 	/**
 	 * Takes a GameData enum and returns this game's corresponding value.
