@@ -74,7 +74,12 @@ public class Log {
 			FileOutputStream stream = new FileOutputStream(file, true);
 			stream.write(("=====" + address + "=====\n").getBytes());
 			stream.write((command + "\n").getBytes());
-			stream.close();
+			try {
+				stream.close();
+			}
+			catch(IOException e) {
+				Log.log("Couldn't close command output stream");
+			}
 		} catch (FileNotFoundException e) {
 			Log.error("INTERNAL ERROR: Couldn't open file for logging commands");
 		} catch (IOException e) {

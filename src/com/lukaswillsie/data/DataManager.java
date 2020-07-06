@@ -137,13 +137,59 @@ public class DataManager implements AccountManager {
 	}
 	
 	/**
+	 * Check if it is the given user's turn in the given game.
+	 * 
+	 * @param game - the game to examine
+	 * @param username - the user to look for
+	 * @return true if and only if it is the given user's turn in the given game
+	 */
+	private boolean isUserTurn(Game game, String username) {
+		// Check if the user is white and it's white's turn, or the user is black and it's black's turn
+		return (((String)game.getData(GameData.WHITE)).equals(username) && ((Integer)game.getData(GameData.STATE)) == 0)
+			|| (((String)game.getData(GameData.BLACK)).equals(username) && ((Integer)game.getData(GameData.STATE)) == 1);
+	}
+
+	/**
+	 * Check if the given user is a player in the given game
+	 * @param game - the game to examine
+	 * @param username - the user to look for
+	 * @return true if and only if the given user is in the given game
+	 */
+	private boolean userInGame(Game game, String username) {
+		return ((String)game.getData(GameData.WHITE)).equals(username)
+			|| ((String)game.getData(GameData.BLACK)).equals(username);
+	}
+
+	/**
+	 * Check whether the given game is over, meaning that one of the players won or
+	 * the players agreed to a draw.
+	 * 
+	 * @param game - the game to examine
+	 * @return true if and only if the given game is over, by draw or by victory
+	 */
+	private boolean gameIsOver(Game game) {
+		return ((String)game.getData(GameData.WINNER)).length() != 0 || ((Integer)game.getData(GameData.DRAWN)) == 1;
+	}
+
+	/**
+	 * Check whether the given game is full, meaning it already has two players.
+	 * 
+	 * @param game - the game to check
+	 * @return true if and only if the given game is full
+	 */
+	private boolean gameIsFull(Game game) {
+		return ((String)game.getData(GameData.WHITE)).length() > 0 && ((String)game.getData(GameData.BLACK)).length() > 0;
+	}
+
+	/**
 	 * Check if the given username is associated with an account in the system.
 	 * 
 	 * @param username - the username to search for
 	 * @return true if and only if there is a User object with the given username in
 	 * this object's users field
 	 */
-	private boolean userExists(String username) {
+	// TODO: Will need to add this method to ClientManager interface
+	public boolean userExists(String username) {
 		User search = new SearchUser(username);
 		int result = Collections.binarySearch(users, search);
 		return result >= 0;
@@ -450,7 +496,7 @@ public class DataManager implements AccountManager {
 		List<String> errorMessage = new ArrayList<String>();
 		errorMessage.add("Couldn't save game \"" + (String)game.getData(GameData.GAMEID) + "\"");
 		
-		List<String> gameSaveData = game.getBoard().getSaveData();
+		List<String> gameSaveData = game.getBoard().getSaveFile();
 		errorMessage.addAll(gameSaveData);
 		Log.error(errorMessage);
 	}
@@ -704,82 +750,231 @@ public class DataManager implements AccountManager {
 		}
 	}
 
-	public int joinGame(String gameID, String username) {
+	/**
+	 * Try to have the given user join the game with the given gameID
+	 * 
+	 * @param gameID - the ID of the game to join
+	 * @param username - the username of the user trying to join the game. Should satisfy
+	 * userExists(). If it does not, this method will log the issue and return 
+	 * Protocol.SERVER_ERROR.
+	 * @return 	Protocol.SERVER_ERROR 					- an error is encountered <br>
+	 * 			Protocol.JoinGame.SUCCESS 				- game joined successfully <br>
+	 * 			Protocol.JoinGame.GAME_DOES_NOT_EXIST 	- game does not exist <br>
+	 * 			Protocol.JoinGame.GAME_FULL 			- game is already full <br>
+	 * 			Protocol.JoinGame.USER_ALREADY_IN_GAME 	- the user has already joined that game
+	 */
+	public synchronized int joinGame(String gameID, String username) {
+		if(!userExists(username)) {
+			Log.error("ERROR: Username \"" + username + "\" is not associated with a user in the system. Cannot join a game.");
+			return Protocol.SERVER_ERROR;
+		}
+		
+		Game game = getGame(gameID);
+		if(game == null) {
+			return Protocol.JoinGame.GAME_DOES_NOT_EXIST;
+		}
+		else if(gameIsFull(game)) {
+			return Protocol.JoinGame.GAME_FULL;
+		}
+		else if(userInGame(game, username)) {
+			return Protocol.JoinGame.USER_ALREADY_IN_GAME;
+		}
+		else {
+			game.setData(GameData.BLACK, username);
+			// Add game to the user's list of games
+			userGames.get(username).add(game);
+			requestMade();
+			
+			return Protocol.JoinGame.SUCCESS;
+		}
+	}
+
+	/**
+	 * Checks whether or not it's appropriate for the given user to load the given game.
+	 * In particular, checks that the given game exists and that this client's user is a player in the game.
+	 * 
+	 * THIS METHOD SHOULD BE CALLED before calling loadGame().
+	 * 
+	 * @param gameID - The game to check
+	 * @param username - the username of the user trying to join the game. Should satisfy
+	 * userExists(). If it does not, this method will log the issue and return 
+	 * Protocol.SERVER_ERROR.
+	 * @return 	Protocol.SERVER_ERROR 					- if an error is encountered <br>
+	 * 			Protocol.LoadGame.SUCCESS 				- if and only if the user is a player in the given game, which exists <br>
+	 * 		   	Protocol.LoadGame.GAME_DOES_NOT_EXIST	- if the given game does not exist <br>
+	 * 		    Protocol.LoadGame.USER_NOT_IN_GAME 		- if the user is not in the given game
+ 	 */
+	public synchronized int canLoadGame(String gameID, String username) {
+		if(!userExists(username)) {
+			Log.error("ERROR: Username \"" + username + "\" is not associated with a user in the system. Cannot load a game.");
+			return Protocol.SERVER_ERROR;
+		}
+		
+		Game game = getGame(gameID);
+		if(game == null) {
+			return Protocol.JoinGame.GAME_DOES_NOT_EXIST;
+		}
+		else if(userInGame(game, username)) {
+			return Protocol.LoadGame.SUCCESS;
+		}
+		else {
+			return Protocol.LoadGame.USER_NOT_IN_GAME;
+		}
+	}
+
+	/**
+	 * Return the state of the board in the given game. To see a detailed explanation of how board
+	 * data is stored, see Data.pdf in the ChessServer root directory. All you really need to know
+	 * for this method is that the board is represented essentially as a file, with lines of this file
+	 * containing either Strings or ints.
+	 * 
+	 * What this method should do is access the board data associated with the game that has the
+	 * provided gameID, and return each line of the file, in order, as either a String or Integer, according
+	 * to the protocol detailed in the "Loading a game" section of Protocol.pdf. Once you look at
+	 * how board data is stored, it is self-evident which lines are treated as Integers and which as Strings.
+	 * 
+	 * The List returned by this method is guaranteed to consist only of Integers and Strings.
+	 * 
+	 * THIS METHOD SHOULD ONLY BE CALLED after canLoad(gameID) has returned Protocol.LoadGame.SUCCESS.
+	 * 
+	 * Returns null if the given gameID does not have any board data (that is, there's no game with the given
+	 * ID in the system)
+	 * 
+	 * @param gameID - The game to load
+	 * 
+	 * @return  A List of Strings and Integers, representing the given gameID's board data, or null if the given game
+	 * is not in the system or the given user is not in the system
+	 */
+	public synchronized List<Object> loadGame(String gameID) {
+		Game game = getGame(gameID);
+		if(game == null) {
+			Log.error("Game \"" + gameID + "\" cannot be loaded as it is not in the system");
+			return null;
+		}
+		
+		return game.getBoard().getSaveData();
+	}
+	
+	/**
+	 * Try and make the given move in the given game. src is the square occupied by the piece
+	 * making the move, and dest is the square it is moving to. This method returns a variety of
+	 * integers to represent various possible problems with the move command.
+	 * 
+	 * @param gameID - The game to try and make the move in
+	 * @param src - The square the piece that is moving occupies
+	 * @param dest - The square that the piece is moving to
+	 * @param username - the username of the user trying to make the move in the game. Should satisfy userExists(). If
+	 * it does not, this method will log the issue and return null.
+	 * 
+	 * @return 	Protocol.SERVER_ERROR				- if an error is encountered
+	 * 			Protocol.Move.SUCCESS				- if the move is successfully made, and the game records are properly updated <br>
+	 *			Protocol.Move.GAME_DOES_NOT_EXIST	- if the given game does not exist <br>
+	 *			Protocol.Move.USER_NOT_IN_GAME		- if the user is not in the given game <br>
+	 *			Protocol.Move.NO_OPPONENT			- if the user is in the given game, but does not have an opponent yet <br>
+	 *			Protocol.Move.GAME_IS_OVER			- if the given game is already over <br>
+	 *			Protocol.Move.NOT_USER_TURN			- if it is not the user's turn to make a move <br>
+	 *			Protocol.Move.HAS_TO_PROMOTE		- if it is the user's turn, but they have to promote a pawn rather than make a normal move <br>
+	 *			Protocol.Move.RESPOND_TO_DRAW		- if is is the user's turn, but they have to respond to a draw offer <br>
+	 *			Protocol.Move.MOVE_INVALID			- if the given move is invalid (for example, the selected piece can't move to the selected square) <br>
+	 */
+	public synchronized int makeMove(String gameID, Pair src, Pair dest, String username) {
+		if(!userExists(username)) {
+			Log.error("ERROR: Username \"" + username + "\" is not associated with a user in the system. Cannot make a move.");
+			return Protocol.SERVER_ERROR;
+		}
+		
+		Game game = getGame(gameID);
+		if(game == null) {
+			return Protocol.Move.GAME_DOES_NOT_EXIST;
+		}
+		else if(!userInGame(game, username)) {
+			return Protocol.Move.USER_NOT_IN_GAME;
+		}
+		// If the user does not have an opponent
+		else if(((String)game.getData(GameData.BLACK)).length() == 0
+			 || ((String)game.getData(GameData.WHITE)).length() == 0) {
+			return Protocol.Move.NO_OPPONENT;
+		}
+		else if(gameIsOver(game)) {
+			return Protocol.Move.GAME_IS_OVER;
+		}
+		else if(!isUserTurn(game, username)) {
+			return Protocol.Move.NOT_USER_TURN;
+		}
+		
+		int result = game.getBoard().move(src, dest);
+		switch(result) {
+			// -1 and 0 both indicate that the move was successful
+			case -1:
+			case 0:
+				requestMade();
+				return Protocol.Move.SUCCESS;
+			case 1:
+				return Protocol.Move.MOVE_INVALID;
+			case 2:
+				return Protocol.Move.NOT_USER_TURN;
+			// The only other case is 3, which means the user has to promote rather than make a normal move
+			default:
+				return Protocol.Move.HAS_TO_PROMOTE;
+		}
+	}
+	
+	public synchronized int promote(String gameID, char charRep, String username) {
 		// TODO Auto-generated method stub
 		return 0;
 	}
 
-	public int canLoadGame(String gameID, String username) {
+	public synchronized int draw(String gameID, String username) {
 		// TODO Auto-generated method stub
 		return 0;
 	}
 
-	public List<Object> loadGame(String gameID) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	public int makeMove(String gameID, Pair src, Pair dest, String username) {
+	public synchronized int reject(String gameID, String username) {
 		// TODO Auto-generated method stub
 		return 0;
 	}
 
-	public int promote(String gameID, char charRep, String username) {
+	public synchronized int forfeit(String gameID, String username) {
 		// TODO Auto-generated method stub
 		return 0;
 	}
 
-	public int draw(String gameID, String username) {
+	public synchronized int archive(String gameID, String username) {
 		// TODO Auto-generated method stub
 		return 0;
 	}
 
-	public int reject(String gameID, String username) {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	public int forfeit(String gameID, String username) {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	public int archive(String gameID, String username) {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	public int restore(String gameID, String username) {
+	public synchronized int restore(String gameID, String username) {
 		// TODO Auto-generated method stub
 		return 0;
 	}
 	
 	@Override
-	public int validCredentials(String username, String password) {
+	public synchronized int validCredentials(String username, String password) {
 		// TODO Auto-generated method stub
 		return 0;
 	}
 
 	@Override
-	public int usernameExists(String username) {
+	public synchronized int usernameExists(String username) {
 		// TODO Auto-generated method stub
 		return 0;
 	}
 
 	@Override
-	public int addAccount(String username, String password) {
+	public synchronized int addAccount(String username, String password) {
 		// TODO Auto-generated method stub
 		return 0;
 	}
 
 	@Override
-	public boolean validUsername(String username) {
+	public synchronized boolean validUsername(String username) {
 		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
-	public boolean validPassword(String password) {
+	public synchronized boolean validPassword(String password) {
 		// TODO Auto-generated method stub
 		return false;
 	}
