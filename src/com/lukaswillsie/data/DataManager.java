@@ -15,6 +15,7 @@ import com.lukaswillsie.protocol.Protocol;
 import com.lukaswillsie.utility.Log;
 
 import Chess.com.lukaswillsie.chess.Board;
+import Chess.com.lukaswillsie.chess.Colour;
 import Chess.com.lukaswillsie.chess.Pair;
 
 /**
@@ -180,7 +181,21 @@ public class DataManager implements AccountManager {
 	private boolean gameIsFull(Game game) {
 		return ((String)game.getData(GameData.WHITE)).length() > 0 && ((String)game.getData(GameData.BLACK)).length() > 0;
 	}
-
+	
+	/**
+	 * Switch whose turn it is in the given game
+	 * 
+	 * @param game - the Game object whose turn counter should be switched
+	 */
+	private void switchTurn(Game game) {
+		if((Integer) game.getData(GameData.STATE) == 1) {
+			game.setData(GameData.STATE, 0);
+		}
+		else {
+			game.setData(GameData.STATE, 1);
+		}
+	}
+	
 	/**
 	 * Check if the given username is associated with an account in the system.
 	 * 
@@ -628,7 +643,7 @@ public class DataManager implements AccountManager {
 	 * 
 	 * Returns null if the given username doesn't correspond to a user in the system
 	 * 
-	 * @param username - the user whose games this method should fetch
+	 * @param username - the username of the user whose game data is desired
 	 * 
 	 * @return - A list of Game objects corresponding to all games being played by this user
 	 */
@@ -641,7 +656,11 @@ public class DataManager implements AccountManager {
 	 * Create a game with the given gameID under the given user's name.
 	 * 
 	 * @param gameID - The ID of the game to create
-	 * @param username - the user creating the game
+	 * @param username - the username of the user trying to create the game. Should be a valid username
+	 * associated with a user in the system. If an AccountManager object has validated a login or account creation
+	 * for the given username, it is safe to use. Another test is the userExists() method. If an invalid
+	 * username is given, this object will log the problem and return Protocol.SERVER_ERROR.
+	 * 
 	 * @return 	Protocol.SERVER_ERROR 				- an error is encountered <br>
 	 * 			Protocol.CreateGame.SUCCESS 		- game created successfully <br>
 	 * 			Protocol.CreateGame.GAMEID_IN_USE 	- game already exists and hence cannot be created
@@ -754,9 +773,11 @@ public class DataManager implements AccountManager {
 	 * Try to have the given user join the game with the given gameID
 	 * 
 	 * @param gameID - the ID of the game to join
-	 * @param username - the username of the user trying to join the game. Should satisfy
-	 * userExists(). If it does not, this method will log the issue and return 
-	 * Protocol.SERVER_ERROR.
+	 * @param username - the username of the user trying to join the game. Should be a valid username
+	 * associated with a user in the system. If an AccountManager object has validated a login or account creation
+	 * for the given username, it is safe to use. Another test is the userExists() method. If an invalid
+	 * username is given, this object will log the problem and return Protocol.SERVER_ERROR.
+	 * 
 	 * @return 	Protocol.SERVER_ERROR 					- an error is encountered <br>
 	 * 			Protocol.JoinGame.SUCCESS 				- game joined successfully <br>
 	 * 			Protocol.JoinGame.GAME_DOES_NOT_EXIST 	- game does not exist <br>
@@ -796,9 +817,11 @@ public class DataManager implements AccountManager {
 	 * THIS METHOD SHOULD BE CALLED before calling loadGame().
 	 * 
 	 * @param gameID - The game to check
-	 * @param username - the username of the user trying to join the game. Should satisfy
-	 * userExists(). If it does not, this method will log the issue and return 
-	 * Protocol.SERVER_ERROR.
+	 * @param username - the username of the user who might want to load the game. Should be a valid username
+	 * associated with a user in the system. If an AccountManager object has validated a login or account creation
+	 * for the given username, it is safe to use. Another test is the userExists() method. If an invalid
+	 * username is given, this object will log the problem and return Protocol.SERVER_ERROR.
+	 * 
 	 * @return 	Protocol.SERVER_ERROR 					- if an error is encountered <br>
 	 * 			Protocol.LoadGame.SUCCESS 				- if and only if the user is a player in the given game, which exists <br>
 	 * 		   	Protocol.LoadGame.GAME_DOES_NOT_EXIST	- if the given game does not exist <br>
@@ -835,8 +858,6 @@ public class DataManager implements AccountManager {
 	 * 
 	 * The List returned by this method is guaranteed to consist only of Integers and Strings.
 	 * 
-	 * THIS METHOD SHOULD ONLY BE CALLED after canLoad(gameID) has returned Protocol.LoadGame.SUCCESS.
-	 * 
 	 * Returns null if the given gameID does not have any board data (that is, there's no game with the given
 	 * ID in the system)
 	 * 
@@ -863,8 +884,10 @@ public class DataManager implements AccountManager {
 	 * @param gameID - The game to try and make the move in
 	 * @param src - The square the piece that is moving occupies
 	 * @param dest - The square that the piece is moving to
-	 * @param username - the username of the user trying to make the move in the game. Should satisfy userExists(). If
-	 * it does not, this method will log the issue and return null.
+	 * @param username - the username of the user trying to make the move in the game. Should be a valid username
+	 * associated with a user in the system. If an AccountManager object has validated a login or account creation
+	 * for the given username, it is safe to use. Another test is the userExists() method. If an invalid
+	 * username is given, this object will log the problem and return Protocol.SERVER_ERROR.
 	 * 
 	 * @return 	Protocol.SERVER_ERROR				- if an error is encountered
 	 * 			Protocol.Move.SUCCESS				- if the move is successfully made, and the game records are properly updated <br>
@@ -901,12 +924,33 @@ public class DataManager implements AccountManager {
 		else if(!isUserTurn(game, username)) {
 			return Protocol.Move.NOT_USER_TURN;
 		}
+		else if ((Integer) game.getData(GameData.DRAW_OFFERED) == 1) {
+			return Protocol.Move.RESPOND_TO_DRAW;
+		}
 		
 		int result = game.getBoard().move(src, dest);
 		switch(result) {
-			// -1 and 0 both indicate that the move was successful
-			case -1:
+			// We put case 0 before case -1 here to make use of Java's fall-through feature. A return code
+			// of -1 indicates that the move was successfully made, but now a promotion is required. This is
+			// important because it means that the user's turn isn't yet over. So we only want to change the turn flag
+			// and increment the turn counter if we get a 0 return code. However, in both cases we want
+			// to check if the move resulted in checkmate, so we use fall-through here to prevent copying code.
 			case 0:
+				// Increment the turn counter if the user, who just moved, is black
+				Colour colour = (Integer) game.getData(GameData.STATE) == 1 ? Colour.BLACK : Colour.WHITE;
+				if(colour == Colour.BLACK) {
+					game.setData(GameData.TURN, (Integer)game.getData(GameData.TURN) + 1);
+				}
+				
+				// Make it the other player's turn now
+				switchTurn(game);
+			case -1:
+				colour = (Integer) game.getData(GameData.STATE) == 1 ? Colour.BLACK : Colour.WHITE;
+				// The move could have brought checkmate
+				if(game.getBoard().isCheckmate(colour)) {
+					game.setData(GameData.WINNER, username);
+				}
+				
 				requestMade();
 				return Protocol.Move.SUCCESS;
 			case 1:
@@ -919,34 +963,318 @@ public class DataManager implements AccountManager {
 		}
 	}
 	
+	/**
+	 * Attempt to promote a pawn to the piece given by charRep, in the given game, on behalf of the given user. 
+	 * 
+	 * @param gameID - The game in which to try to make the promotion
+	 * @param charRep - A character denoting which piece to upgrade into. One of 'r', 'n', 'b', or 'q'.
+	 * @param username - the username of the user trying to make the move in the game. Should be a valid username
+	 * associated with a user in the system. If an AccountManager object has validated a login or account creation
+	 * for the given username, it is safe to use. Another test is the userExists() method. If an invalid
+	 * username is given, this object will log the problem and return Protocol.SERVER_ERROR.
+	 * 
+	 * @return 	Protocol.SERVER_ERROR 					- if an error is encountered
+	 *			Protocol.Promote.SUCCESS 				- if promotion is successful
+	 *			Protocol.Promote.GAME_DOES_NOT_EXIST 	- if given game does not exist
+	 *			Protocol.Promote.USER_NOT_IN_GAME 		- if the user isn't a player in the given game
+	 *			Protocol.Promote.NO_OPPONENT			- if the user doesn't have an opponent yet in the game
+	 *			Protocol.Promote.GAME_IS_OVER			- if the given game is already over
+	 *			Protocol.Promote.NOT_USER_TURN 			- if it's not the user's turn
+	 *			Protocol.Promote.NO_PROMOTION 			- if no promotion is required
+	 *			Protocol.Promote.CHAR_REP_INVALID 		- if the given charRep is not valid
+	 */
 	public synchronized int promote(String gameID, char charRep, String username) {
-		// TODO Auto-generated method stub
-		return 0;
+		if(!userExists(username)) {
+			Log.error("ERROR: Username \"" + username + "\" is not in the system. Cannot promote.");
+			return Protocol.SERVER_ERROR;
+		}
+		
+		Game game = getGame(gameID);
+		if(game == null) {
+			return Protocol.Promote.GAME_DOES_NOT_EXIST;
+		}
+		else if (!userInGame(game, username)) {
+			return Protocol.Promote.USER_NOT_IN_GAME;
+		}
+		// We know the given user is already in the game, so this is a check that they have an opponent
+		else if (!gameIsFull(game)) {
+			return Protocol.Promote.NO_OPPONENT;
+		}
+		else if (gameIsOver(game)) {
+			return Protocol.Promote.GAME_IS_OVER;
+		}
+		else if (!isUserTurn(game, username)) {
+			return Protocol.Promote.NOT_USER_TURN;
+		}
+		
+		int result = game.getBoard().promote(charRep);
+		switch(result) {
+			case 0:
+				Colour colour = (Integer) game.getData(GameData.STATE) == 1 ? Colour.BLACK : Colour.WHITE;
+				// If it's black's turn, increment the turn counter
+				if(colour == Colour.BLACK) {
+					game.setData(GameData.TURN, (Integer)game.getData(GameData.TURN) + 1);
+				}
+				
+				// It's possible that the user who just promoted actually checkmated their opponent
+				// via the promotion
+				if(game.getBoard().isCheckmate(colour)) {
+					game.setData(GameData.WINNER, username);
+				}
+				
+				switchTurn(game);
+				requestMade();
+				return Protocol.Promote.SUCCESS;
+			case 1:
+				return Protocol.Promote.NO_PROMOTION;
+			// The only other return code means that the given char rep was invalid
+			default:
+				return Protocol.Promote.CHAR_REP_INVALID;
+		}
 	}
-
+	
+	/**
+	 * Attempt to offer/accept a draw on behalf of the given user in the given game.
+	 * 
+	 * @param gameID - the game in which to offer/accept a draw
+	 * @param username - the username of the user trying to offer/accept the draw. Should be a valid username
+	 * associated with a user in the system. If an AccountManager object has validated a login or account creation
+	 * for the given username, it is safe to use. Another test is the userExists() method. If an invalid
+	 * username is given, this object will log the problem and return Protocol.SERVER_ERROR.
+	 * 
+	 * @return 	Protocol.SERVER_ERROR 				- if an error is encountered  <br>
+	 *			Protocol.Draw.SUCCESS 				- if draw offer/accept is successful  <br>
+	 *			Protocol.Draw.GAME_DOES_NOT_EXIST 	- if given game does not exist  <br>
+	 *			Protocol.Draw.USER_NOT_IN_GAME 		- if the user isn't a player in the given game  <br>
+	 *			Protocol.Draw.NO_OPPONENT 			- if the user doesn't have an opponent in the given game yet  <br>
+	 *			Protocol.Draw.GAME_IS_OVER			- if the given game is already over
+	 *			Protocol.Draw.NOT_USER_TURN 		- if it's not the user's turn in the given game
+	 */
 	public synchronized int draw(String gameID, String username) {
-		// TODO Auto-generated method stub
-		return 0;
+		if(!userExists(username)) {
+			Log.error("ERROR: Username \"" + username + "\" is not in the system. Cannot offer/accept a draw.");
+			return Protocol.SERVER_ERROR;
+		}
+		
+		Game game = getGame(gameID);
+		if(game == null) {
+			return Protocol.Draw.GAME_DOES_NOT_EXIST;
+		}
+		else if (!userInGame(game, username)) {
+			return Protocol.Draw.USER_NOT_IN_GAME;
+		}
+		// Since we know the user is in the game, this is a check if they have an opponent
+		else if (!gameIsFull(game)) {
+			return Protocol.Draw.NO_OPPONENT;
+		}
+		else if (gameIsOver(game)) {
+			return Protocol.Draw.GAME_IS_OVER;
+		}
+		else if(!isUserTurn(game, username)) {
+			return Protocol.Draw.NOT_USER_TURN;
+		}
+		
+		// If there currently is a draw offer, accept it
+		if((Integer) game.getData(GameData.DRAW_OFFERED) == 1) {
+			game.setData(GameData.DRAW_OFFERED, 0);
+			game.setData(GameData.DRAWN, 1);
+		}
+		// Otherwise, offer one, and make it the opponent's turn
+		else {
+			game.setData(GameData.DRAW_OFFERED, 1);
+			switchTurn(game);
+		}
+	
+		requestMade();
+		return Protocol.Draw.SUCCESS;
 	}
-
+	
+	/**
+	 * Attempt to reject a draw on behalf of the given user in the given game.
+	 * 
+	 * @param gameID - the game in which to reject a draw
+	 * @param username - the username of the user trying to reject the draw. Should be a valid username
+	 * associated with a user in the system. If an AccountManager object has validated a login or account creation
+	 * for the given username, it is safe to use. Another test is the userExists() method. If an invalid
+	 * username is given, this object will log the problem and return Protocol.SERVER_ERROR.
+	 * 
+	 * @return 	Protocol.SERVER_ERROR 					- if an error is encountered  <br>
+	 *			Protocol.Reject.SUCCESS 				- if draw offer/accept is successful  <br>
+	 *			Protocol.Reject.GAME_DOES_NOT_EXIST 	- if given game does not exist  <br>
+	 *			Protocol.Reject.USER_NOT_IN_GAME 		- if the user isn't a player in the given game  <br>
+	 *			Protocol.Reject.NO_OPPONENT 			- if the user doesn't have an opponent in the given game yet  <br>
+	 *			Protocol.Reject.GAME_IS_OVER			- if the given game is already over <br>
+	 *			Protocol.Reject.NOT_USER_TURN 			- if it's not the user's turn in the given game <br>
+	 *			Protocol.Reject.NO_DRAW_OFFER			- if there is no draw offer for the user to reject in the given game <br>
+	 */
 	public synchronized int reject(String gameID, String username) {
-		// TODO Auto-generated method stub
-		return 0;
+		if(!userExists(username)) {
+			Log.error("ERROR: Username \"" + username + "\" is not in the system. Cannot reject a draw.");
+			return Protocol.SERVER_ERROR;
+		}
+		
+		Game game = getGame(gameID);
+		if(game == null) {
+			return Protocol.Reject.GAME_DOES_NOT_EXIST;
+		}
+		else if (!userInGame(game, username)) {
+			return Protocol.Reject.USER_NOT_IN_GAME;
+		}
+		// Since we know the user is in the game, this is a check if they have an opponent
+		else if (!gameIsFull(game)) {
+			return Protocol.Reject.NO_OPPONENT;
+		}
+		else if (gameIsOver(game)) {
+			return Protocol.Reject.GAME_IS_OVER;
+		}
+		else if(!isUserTurn(game, username)) {
+			return Protocol.Reject.NOT_USER_TURN;
+		}
+		else if ((Integer) game.getData(GameData.DRAW_OFFERED) == 0) {
+			return Protocol.Reject.NO_DRAW_OFFER;
+		}
+		else {
+			// Record the rejection and pass the game back to the player who
+			// offered the draw
+			game.setData(GameData.DRAW_OFFERED, 0);
+			switchTurn(game);
+			
+			requestMade();
+			return Protocol.Reject.SUCCESS;
+		}
 	}
-
+	
+	/**
+	 * Attempt to forfeit the given game on behalf of the given user.
+	 * 
+	 * @param gameID - the game to forfeit
+	 * @param username - the username of the user trying to forfeit the game. Should be a valid username
+	 * associated with a user in the system. If an AccountManager object has validated a login or account creation
+	 * for the given username, it is safe to use. Another test is the userExists() method. If an invalid
+	 * username is given, this object will log the problem and return Protocol.SERVER_ERROR.
+	 * 
+	 * @return  Protocol.SERVER_ERROR 					- if an error is encountered
+	 *			Protocol.Forfeit.SUCCESS				- if forfeiture is successful
+	 *			Protocol.Forfeit.GAME_DOES_NOT_EXIST 	- if the given game does not exist
+	 *			Protocol.Forfeit.USER_NOT_IN_GAME 		- if the user is not in the given game
+	 *			Protocol.Forfeit.NO_OPPONENT 			- if the user does not have an opponent in the given game
+	 * 			Protocol.Forfeit.GAME_IS_OVER 			- if the given game is already over
+	 *			Protocol.Forfeit.NOT_USER_TURN 			- if it is not the user’s turn
+	 */
 	public synchronized int forfeit(String gameID, String username) {
-		// TODO Auto-generated method stub
-		return 0;
+		if(!userExists(username)) {
+			Log.error("ERROR: Username \"" + username + "\" is not in the system. Cannot forfeit a game.");
+			return Protocol.SERVER_ERROR;
+		}
+		
+		Game game = getGame(gameID);
+		if(game == null) {
+			return Protocol.Forfeit.GAME_DOES_NOT_EXIST;
+		}
+		else if (!userInGame(game, username)) {
+			return Protocol.Forfeit.USER_NOT_IN_GAME;
+		}
+		// Since we know the user is in the game, this is a check if they have an opponent
+		else if (!gameIsFull(game)) {
+			return Protocol.Forfeit.NO_OPPONENT;
+		}
+		else if (gameIsOver(game)) {
+			return Protocol.Forfeit.GAME_IS_OVER;
+		}
+		else if(!isUserTurn(game, username)) {
+			return Protocol.Forfeit.NOT_USER_TURN;
+		}
+		
+		// Record that the opponent lost the game
+		if(((String)game.getData(GameData.WHITE)).equals(username)) {
+			game.setData(GameData.WINNER, game.getData(GameData.BLACK));
+		}
+		else {
+			game.setData(GameData.WINNER, game.getData(GameData.WHITE));
+		}
+		
+		requestMade();
+		return Protocol.Forfeit.SUCCESS;
 	}
-
+	
+	/**
+	 * Attempt to mark the given game as archived for the given user. Has no effect if the given game
+	 * is already archived.
+	 * 
+	 * @param gameID - the game to mark as archived
+	 * @param username - the username of the user trying to archive the game. Should be a valid username
+	 * associated with a user in the system. If an AccountManager object has validated a login or account creation
+	 * for the given username, it is safe to use. Another test is the userExists() method. If an invalid
+	 * username is given, this object will log the problem and return Protocol.SERVER_ERROR.
+	 * 
+	 * @return 	Protocol.SERVER_ERROR 					– if an error is encountered
+	 *			Protocol.Archive.SUCCESS 				– if the archive is successful
+	 *			Protocol.Archive.GAME_DOES_NOT_EXIST 	– if the given game does not exist
+	 *			Protocol.Archive.USER_NOT_IN_GAME 		– if the user is not in the given game
+	 */
 	public synchronized int archive(String gameID, String username) {
-		// TODO Auto-generated method stub
-		return 0;
+		if(!userExists(username)) {
+			Log.error("ERROR: Username \"" + username + "\" is not in the system. Cannot archive a game.");
+			return Protocol.SERVER_ERROR;
+		}
+		
+		Game game = getGame(gameID);
+		if(game == null) {
+			return Protocol.Archive.GAME_DOES_NOT_EXIST;
+		}
+		else if (!userInGame(game, username)) {
+			return Protocol.Archive.USER_NOT_IN_GAME;
+		}
+		
+		if(((String)game.getData(GameData.WHITE)).equals(username)) {
+			game.setData(GameData.WHITE_ARCHIVED, 1);
+		}
+		else {
+			game.setData(GameData.BLACK_ARCHIVED, 1);
+		}
+		
+		requestMade();
+		return Protocol.Archive.SUCCESS;
 	}
-
+	
+	/**
+	 * Attempt to restore, or "un-archive", the given game for the given user. That is, simply mark
+	 * it as not archived. Has no effect if the game is already not archived.
+	 * 
+	 * @param gameID - the game to un-archive
+	 * @param username - the username of the user trying to restore the game. Should be a valid username
+	 * associated with a user in the system. If an AccountManager object has validated a login or account creation
+	 * for the given username, it is safe to use. Another test is the userExists() method. If an invalid
+	 * username is given, this object will log the problem and return Protocol.SERVER_ERROR.
+	 * 
+	 * @return 	Protocol.SERVER_ERROR 					– if an error is encountered
+	 *			Protocol.Restore.SUCCESS 				– if the restoration is successful
+	 *			Protocol.Restore.GAME_DOES_NOT_EXIST 	– if the given game does not exist
+	 *			Protocol.Restore.USER_NOT_IN_GAME 		– if the user is not in the given game
+	 */
 	public synchronized int restore(String gameID, String username) {
-		// TODO Auto-generated method stub
-		return 0;
+		if(!userExists(username)) {
+			Log.error("ERROR: Username \"" + username + "\" is not in the system. Cannot archive a game.");
+			return Protocol.SERVER_ERROR;
+		}
+		
+		Game game = getGame(gameID);
+		if(game == null) {
+			return Protocol.Restore.GAME_DOES_NOT_EXIST;
+		}
+		else if (!userInGame(game, username)) {
+			return Protocol.Restore.USER_NOT_IN_GAME;
+		}
+		
+		if(((String)game.getData(GameData.WHITE)).equals(username)) {
+			game.setData(GameData.WHITE_ARCHIVED, 0);
+		}
+		else {
+			game.setData(GameData.BLACK_ARCHIVED, 0);
+		}
+		
+		requestMade();
+		return Protocol.Restore.SUCCESS;
 	}
 	
 	@Override

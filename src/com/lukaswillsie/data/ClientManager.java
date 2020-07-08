@@ -162,7 +162,7 @@ public abstract class ClientManager {
 	 *			Protocol.Reject.NO_OPPONENT 			- if the user doesn't have an opponent in the given game yet  <br>
 	 *			Protocol.Reject.GAME_IS_OVER			- if the given game is already over <br>
 	 *			Protocol.Reject.NOT_USER_TURN 			- if it's not the user's turn in the given game <br>
-	 *			Protoco.Reject.NO_DRAW_OFFERED			- if there is no draw offer for the user to reject in the given game <br>
+	 *			Protocol.Reject.NO_DRAW_OFFERED			- if there is no draw offer for the user to reject in the given game <br>
 	 */
 	public abstract int reject(String gameID);
 	
