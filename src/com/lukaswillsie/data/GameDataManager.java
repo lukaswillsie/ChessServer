@@ -5,7 +5,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Scanner;
@@ -75,37 +74,23 @@ public class GameDataManager {
 	private static final int REQUESTS_BEFORE_SAVE = 20;
 	
 	/**
-	 * Keeps track of whether our list of users has changed SINCE THE LAST SAVE, for example via the
-	 * creation of a new account
-	 */
-	private boolean usersChanged = false;
-	
-	/**
 	 * Keeps track of whether any high-level game data has been changed SINCE THE LAST SAVE. High-level
 	 * game data is the data that is stored in the .csv file containing a list of all games in the system.
 	 */
 	private boolean gamesChanged = false;
 	
+	/**
+	 * Create a new GameDataManager object. Note that this object shouldn't be used
+	 * until build() has been called and has returned a successful code. This object
+	 * will use the given AccountDataManager, which should already have been built at
+	 * the time it's passed to this constructor, to query the system's user records, and
+	 * make decisions regarding whether or not a given username exists.
+	 * 
+	 * @param accountManager - the object that THIS object will use to query the system's
+	 * records of user accounts
+	 */
 	public GameDataManager(AccountDataManager accountManager) {
 		this.accountManager = accountManager;
-	}
-	
-	/**
-	 * A class used solely for the purpose of searching our list of users. When instantiated
-	 * with a username, it becomes a User object with that username and an empty password.
-	 * Can be used to take advantage of the Collections.binarySearch() method, since User
-	 * implements Comparable. I decided to do this instead of implementing my own binary
-	 * search because it's quicker and seems to me like it's cleaner.
-	 * 
-	 * Since User
-	 * implements Comparable, we can use
-	 * @author lukas
-	 *
-	 */
-	private static class SearchUser extends User {
-		public SearchUser(String username) {
-			super(username, "");
-		}
 	}
 	
 	/**
@@ -226,7 +211,6 @@ public class GameDataManager {
 		}
 		
 		// Process the games file, creating a Game object corresponding to each line
-		int lineNumber = 1;
 		String line;
 		String[] data;
 		while(scanner.hasNextLine()) {
@@ -538,6 +522,11 @@ public class GameDataManager {
 		FileOutputStream stream;
 		try {
 			stream = new FileOutputStream(template);
+			try {
+				stream.close();
+			} catch (IOException e) {
+				Log.error("ERROR: Couldn't close new game template file's stream");
+			}
 		} catch (FileNotFoundException e) {
 			Log.error("ERROR: Couldn't open new game template file");
 			return 1;
@@ -549,6 +538,12 @@ public class GameDataManager {
 				Log.error("ERROR: Couldn't write to and initialize new game template file");
 				return 1;
 			}
+		}
+		
+		try {
+			stream.close();
+		} catch (IOException e) {
+			Log.error("ERROR: Couldn't close new game template file's stream");
 		}
 		
 		return 0;
@@ -565,7 +560,10 @@ public class GameDataManager {
 	 * 
 	 * Returns null if the given username doesn't correspond to a user in the system
 	 * 
-	 * @param username - the username of the user whose game data is desired
+	 * @param username - the username of the user whose game data is desired. This username should
+	 * be one associated with a user in the system. In particular, it should satisfy
+	 * AccountManager.usernameExists(). So a username associated with a successful login or account
+	 * creation is also good to go. If this condition isn't satisfied, returns null.
 	 * 
 	 * @return - A list of Game objects corresponding to all games being played by this user
 	 */
@@ -578,10 +576,11 @@ public class GameDataManager {
 	 * Create a game with the given gameID under the given user's name.
 	 * 
 	 * @param gameID - The ID of the game to create
-	 * @param username - the username of the user trying to create the game. Should be a valid username
-	 * associated with a user in the system. If an AccountManager object has validated a login or account creation
-	 * for the given username, it is safe to use. Another test is the userExists() method. If an invalid
-	 * username is given, this object will log the problem and return Protocol.SERVER_ERROR.
+	 * @param username - the username of the user trying to create the game. This username should
+	 * be one associated with a user in the system. In particular, it should satisfy
+	 * AccountManager.usernameExists(). So a username associated with a successful login or account
+	 * creation is also good to go. If the given username doesn't satisfy this condition, this method
+	 * logs the problem and returns Protocol.SERVER_ERROR.
 	 * 
 	 * @return 	Protocol.SERVER_ERROR 				- an error is encountered <br>
 	 * 			Protocol.CreateGame.SUCCESS 		- game created successfully <br>
@@ -695,10 +694,11 @@ public class GameDataManager {
 	 * Try to have the given user join the game with the given gameID
 	 * 
 	 * @param gameID - the ID of the game to join
-	 * @param username - the username of the user trying to join the game. Should be a valid username
-	 * associated with a user in the system. If an AccountManager object has validated a login or account creation
-	 * for the given username, it is safe to use. Another test is the userExists() method. If an invalid
-	 * username is given, this object will log the problem and return Protocol.SERVER_ERROR.
+	 * @param username - the username of the user trying to join the game. This username should
+	 * be one associated with a user in the system. In particular, it should satisfy
+	 * AccountManager.usernameExists(). So a username associated with a successful login or account
+	 * creation is also good to go. If the given username doesn't satisfy this condition, this method
+	 * logs the problem and returns Protocol.SERVER_ERROR.
 	 * 
 	 * @return 	Protocol.SERVER_ERROR 					- an error is encountered <br>
 	 * 			Protocol.JoinGame.SUCCESS 				- game joined successfully <br>
@@ -739,10 +739,11 @@ public class GameDataManager {
 	 * THIS METHOD SHOULD BE CALLED before calling loadGame().
 	 * 
 	 * @param gameID - The game to check
-	 * @param username - the username of the user who might want to load the game. Should be a valid username
-	 * associated with a user in the system. If an AccountManager object has validated a login or account creation
-	 * for the given username, it is safe to use. Another test is the userExists() method. If an invalid
-	 * username is given, this object will log the problem and return Protocol.SERVER_ERROR.
+	 * @param username - the username of the user who might want to load the game. This username should
+	 * be one associated with a user in the system. In particular, it should satisfy
+	 * AccountManager.usernameExists(). So a username associated with a successful login or account
+	 * creation is also good to go. If the given username doesn't satisfy this condition, this method
+	 * logs the problem and returns Protocol.SERVER_ERROR.
 	 * 
 	 * @return 	Protocol.SERVER_ERROR 					- if an error is encountered <br>
 	 * 			Protocol.LoadGame.SUCCESS 				- if and only if the user is a player in the given game, which exists <br>
@@ -806,10 +807,11 @@ public class GameDataManager {
 	 * @param gameID - The game to try and make the move in
 	 * @param src - The square the piece that is moving occupies
 	 * @param dest - The square that the piece is moving to
-	 * @param username - the username of the user trying to make the move in the game. Should be a valid username
-	 * associated with a user in the system. If an AccountManager object has validated a login or account creation
-	 * for the given username, it is safe to use. Another test is the userExists() method. If an invalid
-	 * username is given, this object will log the problem and return Protocol.SERVER_ERROR.
+	 * @param username - the username of the user trying to make the move in the game. This username should
+	 * be one associated with a user in the system. In particular, it should satisfy
+	 * AccountManager.usernameExists(). So a username associated with a successful login or account
+	 * creation is also good to go. If the given username doesn't satisfy this condition, this method
+	 * logs the problem and returns Protocol.SERVER_ERROR.
 	 * 
 	 * @return 	Protocol.SERVER_ERROR				- if an error is encountered
 	 * 			Protocol.Move.SUCCESS				- if the move is successfully made, and the game records are properly updated <br>
@@ -890,10 +892,11 @@ public class GameDataManager {
 	 * 
 	 * @param gameID - The game in which to try to make the promotion
 	 * @param charRep - A character denoting which piece to upgrade into. One of 'r', 'n', 'b', or 'q'.
-	 * @param username - the username of the user trying to make the move in the game. Should be a valid username
-	 * associated with a user in the system. If an AccountManager object has validated a login or account creation
-	 * for the given username, it is safe to use. Another test is the userExists() method. If an invalid
-	 * username is given, this object will log the problem and return Protocol.SERVER_ERROR.
+	 * @param username - the username of the user trying to make the move in the game. This username should
+	 * be one associated with a user in the system. In particular, it should satisfy
+	 * AccountManager.usernameExists(). So a username associated with a successful login or account
+	 * creation is also good to go. If the given username doesn't satisfy this condition, this method
+	 * logs the problem and returns Protocol.SERVER_ERROR.
 	 * 
 	 * @return 	Protocol.SERVER_ERROR 					- if an error is encountered
 	 *			Protocol.Promote.SUCCESS 				- if promotion is successful
@@ -959,10 +962,11 @@ public class GameDataManager {
 	 * Attempt to offer/accept a draw on behalf of the given user in the given game.
 	 * 
 	 * @param gameID - the game in which to offer/accept a draw
-	 * @param username - the username of the user trying to offer/accept the draw. Should be a valid username
-	 * associated with a user in the system. If an AccountManager object has validated a login or account creation
-	 * for the given username, it is safe to use. Another test is the userExists() method. If an invalid
-	 * username is given, this object will log the problem and return Protocol.SERVER_ERROR.
+	 * @param username - the username of the user trying to offer/accept the draw. This username should
+	 * be one associated with a user in the system. In particular, it should satisfy
+	 * AccountManager.usernameExists(). So a username associated with a successful login or account
+	 * creation is also good to go. If the given username doesn't satisfy this condition, this method
+	 * logs the problem and returns Protocol.SERVER_ERROR.
 	 * 
 	 * @return 	Protocol.SERVER_ERROR 				- if an error is encountered  <br>
 	 *			Protocol.Draw.SUCCESS 				- if draw offer/accept is successful  <br>
@@ -1015,10 +1019,11 @@ public class GameDataManager {
 	 * Attempt to reject a draw on behalf of the given user in the given game.
 	 * 
 	 * @param gameID - the game in which to reject a draw
-	 * @param username - the username of the user trying to reject the draw. Should be a valid username
-	 * associated with a user in the system. If an AccountManager object has validated a login or account creation
-	 * for the given username, it is safe to use. Another test is the userExists() method. If an invalid
-	 * username is given, this object will log the problem and return Protocol.SERVER_ERROR.
+	 * @param username - the username of the user trying to reject the draw. This username should
+	 * be one associated with a user in the system. In particular, it should satisfy
+	 * AccountManager.usernameExists(). So a username associated with a successful login or account
+	 * creation is also good to go. If the given username doesn't satisfy this condition, this method
+	 * logs the problem and returns Protocol.SERVER_ERROR.
 	 * 
 	 * @return 	Protocol.SERVER_ERROR 					- if an error is encountered  <br>
 	 *			Protocol.Reject.SUCCESS 				- if draw offer/accept is successful  <br>
@@ -1070,10 +1075,11 @@ public class GameDataManager {
 	 * Attempt to forfeit the given game on behalf of the given user.
 	 * 
 	 * @param gameID - the game to forfeit
-	 * @param username - the username of the user trying to forfeit the game. Should be a valid username
-	 * associated with a user in the system. If an AccountManager object has validated a login or account creation
-	 * for the given username, it is safe to use. Another test is the userExists() method. If an invalid
-	 * username is given, this object will log the problem and return Protocol.SERVER_ERROR.
+	 * @param username - the username of the user trying to forfeit the game. This username should
+	 * be one associated with a user in the system. In particular, it should satisfy
+	 * AccountManager.usernameExists(). So a username associated with a successful login or account
+	 * creation is also good to go. If the given username doesn't satisfy this condition, this method
+	 * logs the problem and returns Protocol.SERVER_ERROR.
 	 * 
 	 * @return  Protocol.SERVER_ERROR 					- if an error is encountered
 	 *			Protocol.Forfeit.SUCCESS				- if forfeiture is successful
@@ -1124,10 +1130,11 @@ public class GameDataManager {
 	 * is already archived.
 	 * 
 	 * @param gameID - the game to mark as archived
-	 * @param username - the username of the user trying to archive the game. Should be a valid username
-	 * associated with a user in the system. If an AccountManager object has validated a login or account creation
-	 * for the given username, it is safe to use. Another test is the userExists() method. If an invalid
-	 * username is given, this object will log the problem and return Protocol.SERVER_ERROR.
+	 * @param username - the username of the user trying to archive the game. This username should
+	 * be one associated with a user in the system. In particular, it should satisfy
+	 * AccountManager.usernameExists(). So a username associated with a successful login or account
+	 * creation is also good to go. If the given username doesn't satisfy this condition, this method
+	 * logs the problem and returns Protocol.SERVER_ERROR.
 	 * 
 	 * @return 	Protocol.SERVER_ERROR 					– if an error is encountered
 	 *			Protocol.Archive.SUCCESS 				– if the archive is successful
@@ -1164,10 +1171,11 @@ public class GameDataManager {
 	 * it as not archived. Has no effect if the game is already not archived.
 	 * 
 	 * @param gameID - the game to un-archive
-	 * @param username - the username of the user trying to restore the game. Should be a valid username
-	 * associated with a user in the system. If an AccountManager object has validated a login or account creation
-	 * for the given username, it is safe to use. Another test is the userExists() method. If an invalid
-	 * username is given, this object will log the problem and return Protocol.SERVER_ERROR.
+	 * @param username - the username of the user trying to restore the game. This username should
+	 * be one associated with a user in the system. In particular, it should satisfy
+	 * AccountManager.usernameExists(). So a username associated with a successful login or account
+	 * creation is also good to go. If the given username doesn't satisfy this condition, this method
+	 * logs the problem and returns Protocol.SERVER_ERROR.
 	 * 
 	 * @return 	Protocol.SERVER_ERROR 					– if an error is encountered
 	 *			Protocol.Restore.SUCCESS 				– if the restoration is successful

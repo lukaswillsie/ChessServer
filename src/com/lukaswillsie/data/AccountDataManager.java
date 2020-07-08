@@ -16,9 +16,16 @@ import com.lukaswillsie.utility.Log;
  * Keeps a registry of all the system's users in memory, and periodically saves information
  * to disk.
  * 
+ * This class is intended to be used as a singleton. Also, an AccountDataManager
+ * object SHOULD NOT be used until build() has been called and returned a successful
+ * code.
+ * 
  * @author Lukas Willsie
  */
 public class AccountDataManager {
+	/**
+	 * Define the locations on disk of our key files
+	 */
 	private static final String accountsFile = "serverdata/accounts.csv";
 	private static final String dumpFile = "serverdata/error/users_error.txt";
 	
@@ -27,18 +34,29 @@ public class AccountDataManager {
 	 */
 	private static int USER_ACCOUNTS_BEFORE_SAVE = 10;
 	
+	/**
+	 * A list of all new user accounts that we've created but so far but whose
+	 * existence we haven't yet saved to disk
+	 */
 	private List<User> unsavedUsers = new ArrayList<User>();
 	
+	/**
+	 * Keeps track of all the user accounts in the system at runtime. Maps usernames
+	 * to User objects.
+	 */
 	private HashMap<String, User> users = new HashMap<String, User>();
 	
 	/**
 	 * Set this object up for use. AccountDataManager objects should NOT be used unless
 	 * this method has been called and has returned successfully.
-	 * @return
+	 * 
+	 * @return 0 if the build process is successful, 1 otherwise
 	 */
 	public int build() {
 		// In case this is our first execution, create any requisite file(s)
-		createFiles();
+		if(createFiles() == 1) {
+			return 1;
+		}
 		
 		Scanner scanner;
 		try {
@@ -72,15 +90,6 @@ public class AccountDataManager {
 		return 0;
 	}
 	
-	private List<User> getUsers() {
-		List<User> allUsers = new ArrayList<User>();
-		for(String username : users.keySet()) {
-			allUsers.add(users.get(username));
-		}
-		
-		return allUsers;
-	}
-	
 	/**
 	 * Save all of this object's unsaved Users to disk. Goes through unsavedUsers, removing
 	 * Users if their information is successfully saved, leaving them in the list and logging
@@ -106,7 +115,6 @@ public class AccountDataManager {
 			}
 		} catch (FileNotFoundException e) {
 			Log.error("ERROR: Couldn't open accounts file to save user data");
-			
 		}
 		// Thrown if usersOutput fails to close
 		catch (IOException e) {
@@ -159,6 +167,8 @@ public class AccountDataManager {
 	/**
 	 * Create any and all files that this object needs to exist in order to run. Files already in existence
 	 * are not changed.
+	 * 
+	 * Currently, this just creates the text file that we keep our list of users in
 	 * 
 	 * @return 0 if there are no errors, 1 otherwise
 	 */
@@ -234,9 +244,8 @@ public class AccountDataManager {
 	 * 
 	 * @param username - The username to create the new account under
 	 * @param password - The password to create the new account under
-	 * @return One of the following: <br>
-	 * 		0 - the account was successfully created <br>
-	 * 		1 - the account cannot be created because the given username already exists <br>
+	 * @return true if and only if an account is successfully created with the given username
+	 * and password
 	 */
 	public boolean addAccount(String username, String password) {
 		if(usernameExists(username)) {
