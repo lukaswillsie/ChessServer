@@ -37,24 +37,19 @@ import Chess.com.lukaswillsie.chess.Pair;
  * @author Lukas Willsie
  *
  */
-public class GameDataManager implements AccountManager {	
-	private static final String accountsFile = "serverdata/accounts.csv";
+public class GameDataManager {	
 	private static final String gamesFile = "serverdata/active_games.csv";
 	private static final String gamesDir = "serverdata/games";
 	private static final String newGameTemplate = "serverdata/games/standard/new_board.txt";
 	private static final String templateFolder = "serverdata/games/standard";
+	
+	private AccountDataManager accountManager;
 	
 	/**
 	 * A collection of every game in our system, where keys are game IDs and values
 	 * are the corresponding game objects.
 	 */
 	private HashMap<String, Game> games = new HashMap<String, Game>();
-	
-	/**
-	 * A list of every single user account that the server has on record, sorted lexicographically,
-	 * by username
-	 */
-	private List<User> users = new ArrayList<User>();
 	
 	/**
 	 * Maps each user, via their username, to a list of every game that the user is
@@ -90,6 +85,10 @@ public class GameDataManager implements AccountManager {
 	 * game data is the data that is stored in the .csv file containing a list of all games in the system.
 	 */
 	private boolean gamesChanged = false;
+	
+	public GameDataManager(AccountDataManager accountManager) {
+		this.accountManager = accountManager;
+	}
 	
 	/**
 	 * A class used solely for the purpose of searching our list of users. When instantiated
@@ -200,14 +199,10 @@ public class GameDataManager implements AccountManager {
 	 * Check if the given username is associated with an account in the system.
 	 * 
 	 * @param username - the username to search for
-	 * @return true if and only if there is a User object with the given username in
-	 * this object's users field
+	 * @return true if and only if the given username is associated with a user in the system
 	 */
-	// TODO: Will need to add this method to ClientManager interface
-	public boolean userExists(String username) {
-		User search = new SearchUser(username);
-		int result = Collections.binarySearch(users, search);
-		return result >= 0;
+	private boolean userExists(String username) {
+		return accountManager.usernameExists(username);
 	}
 	
 	/**
@@ -223,36 +218,6 @@ public class GameDataManager implements AccountManager {
 		
 		Scanner scanner;
 		try {
-			scanner = new Scanner(new File(accountsFile));
-		} catch (FileNotFoundException e) {
-			Log.error("ERROR: Couldn't open accounts file for scanning");
-			return 1;
-		}
-		
-		// Process the accounts file
-		String line;
-		String[] split;
-		int lineNumber = 1;
-		User user;
-		while(scanner.hasNextLine()) {
-			line = scanner.nextLine();
-			split = line.split(",");
-			
-			if(split.length != 2) {
-				Log.error("ERROR: Line " + lineNumber + " of accounts file is incorrectly formatted");
-				return 1;
-			}
-			
-			// Add the user to our list of users and create an empty list of games for them in
-			// userGames
-			user = new User(split[0], split[1]);
-			addUser(user);
-			userGames.put(user.getUsername(), new ArrayList<Game>());
-			
-			lineNumber++;
-		}
-		
-		try {
 			scanner = new Scanner(new File(gamesFile));
 		}
 		catch(FileNotFoundException e) {
@@ -261,7 +226,8 @@ public class GameDataManager implements AccountManager {
 		}
 		
 		// Process the games file, creating a Game object corresponding to each line
-		lineNumber = 1;
+		int lineNumber = 1;
+		String line;
 		String[] data;
 		while(scanner.hasNextLine()) {
 			line = scanner.nextLine();
@@ -328,13 +294,7 @@ public class GameDataManager implements AccountManager {
 	/**
 	 * Prints the contents of this DataManager to the console for debugging
 	 */
-	public void display() {
-		System.out.println("Users:");
-		for(User user : users) {
-			System.out.print(user.getUsername() + ",");
-		}
-		System.out.println();
-		
+	public void display() {		
 		System.out.println("Games:");
 		for(Game game : getGames()) {
 			System.out.print(game.getData(GameData.GAMEID) + ",");
@@ -352,19 +312,6 @@ public class GameDataManager implements AccountManager {
 	}
 	
 	/**
-	 * Insert the given user into our list of users, maintaining the sortedness of the list
-	 * 
-	 * @param user - the user to insert
-	 */
-	private void addUser(User user) {
-		// Iterate until i points to a user with a username lexicographically greater than
-		// that of user, or the end of the list, and then insert
-		int i;
-		for(i = 0; i < users.size() && users.get(i).getUsername().compareTo(user.getUsername()) < 0; i++);
-		users.add(i, user);
-	}
-	
-	/**
 	 * Takes the given Game object and adds it to our collection of Game objects. Adds it to our
 	 * HashMap of games, and also ensures that it's added to its player(s) respective lists of
 	 * games.
@@ -376,35 +323,48 @@ public class GameDataManager implements AccountManager {
 		String white = (String)game.getData(GameData.WHITE);
 		String black = (String)game.getData(GameData.BLACK);
 		
+		// If there's a white player
 		if(white.length() > 0) {
-			userGames.get(white).add(game);
+			// If we don't already have a list of games that the white player is in,
+			// we have to create one for him and add the current game to it
+			if(userGames.get(white) == null) {
+				ArrayList<Game> whiteGames = new ArrayList<Game>();
+				whiteGames.add(game);
+				userGames.put(white, whiteGames);
+			}
+			// Otherwise, just add the new game to the list that already exists
+			else {
+				userGames.get(white).add(game);
+			}
 		}
 		
+		// If there's a black player
 		if(black.length() > 0) {
-			userGames.get(black).add(game);
+			// If we don't already have a list of games that the black player is in,
+			// we have to create one for him and add the current game to it
+			if(userGames.get(black) == null) {
+				ArrayList<Game> blackGames = new ArrayList<Game>();
+				blackGames.add(game);
+				userGames.put(black, blackGames);
+			}
+			// Otherwise, just add the new game to the list that already exists
+			else {
+				userGames.get(black).add(game);
+			}
 		}
 		
 	}
 	
 	/**
 	 * Create all the files and folders that this object needs to exist before it
+	 * 
 	 * can work properly. Does not modify files/folders that already exist.
-	 * @return
+	 * @return 0 on success, 1 on failure
 	 */
 	private int createFiles() {
 		File gamesFolder = new File(gamesDir);
 		if(!gamesFolder.exists() && !gamesFolder.mkdirs()) {
 			Log.error("ERROR: Couldn't create folder(s) \"" + gamesDir + "\"");
-			return 1;
-		}
-		
-		File accounts = new File(accountsFile);
-		try {
-			// We don't care about createNewFile's return value because regardless,
-			// we know that the file has been created the way we want it to
-			accounts.createNewFile();
-		} catch (IOException e) {
-			Log.error("ERROR: Couldn't create accounts file with path \"" + accountsFile + "\"");
 			return 1;
 		}
 		
@@ -417,7 +377,6 @@ public class GameDataManager implements AccountManager {
 		}
 		
 		return createTemplateFile();
-		
 	}
 	
 	/**
@@ -448,29 +407,6 @@ public class GameDataManager implements AccountManager {
 				Log.error("ERROR: Couldn't close games FileOutputStream");
 				e.printStackTrace();
 			}	
-		}
-		
-		// Save all of our user data in the proper file, if the collection has changed
-		if(usersChanged) {
-			try(FileOutputStream usersOutput = new FileOutputStream(new File(accountsFile))) {
-				String line;
-				try {
-					for(User user : users) {
-						line = user.getUsername() + "," + user.getPassword() + "\n";
-						usersOutput.write(line.getBytes());
-					}
-				}
-				catch(IOException e) {
-					
-				}
-			} catch (FileNotFoundException e) {
-				e.printStackTrace();
-			}
-			// Thrown if usersOutput fails to close
-			catch (IOException e) {
-				Log.error("ERROR: Couldn't close accounts FileOutputStream");
-				e.printStackTrace();
-			}
 		}
 		
 		// Try and save data for all of our as yet unsaved games
@@ -529,20 +465,6 @@ public class GameDataManager implements AccountManager {
 		}
 		Log.error(errorMessage);
 	}
-	
-	/**
-	 * If an IO error prevents us from saving an updated list of all registered users, we use
-	 * this method to display a brief error message and dump what the contents of our records
-	 * file SHOULD be, so we can go back later and update our file, if necessary.
-	 */
-	private void dumpUsers() {
-		List<String> errorMessage = new ArrayList<String>();
-		errorMessage.add("Couldn't save users data. Dumping...");
-		for(User user : this.users) {
-			errorMessage.add(user.getUsername() + "," + user.getPassword());
-		}
-		Log.error(errorMessage);
-	} 
 	
 	/**
 	 * Convert the data contained in the given Game object into a line of the active_games.csv
@@ -1275,36 +1197,5 @@ public class GameDataManager implements AccountManager {
 		
 		requestMade();
 		return Protocol.Restore.SUCCESS;
-	}
-	
-	@Override
-	public synchronized int validCredentials(String username, String password) {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public synchronized int usernameExists(String username) {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public synchronized int addAccount(String username, String password) {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public synchronized boolean validUsername(String username) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public synchronized boolean validPassword(String password) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-	
+	}	
 }
