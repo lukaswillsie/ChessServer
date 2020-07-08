@@ -37,7 +37,7 @@ import Chess.com.lukaswillsie.chess.Pair;
  * @author Lukas Willsie
  *
  */
-public class DataManager implements AccountManager {	
+public class GameDataManager implements AccountManager {	
 	private static final String accountsFile = "serverdata/accounts.csv";
 	private static final String gamesFile = "serverdata/active_games.csv";
 	private static final String gamesDir = "serverdata/games";
