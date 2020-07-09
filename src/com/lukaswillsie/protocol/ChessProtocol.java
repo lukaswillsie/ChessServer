@@ -5,13 +5,13 @@ import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketException;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 
 import com.lukaswillsie.data.AccountManager;
 import com.lukaswillsie.data.AccountManagerFactory;
-import com.lukaswillsie.data.ClientManager;
-import com.lukaswillsie.data.ClientManagerFactory;
+import com.lukaswillsie.data.Game;
+import com.lukaswillsie.data.GameManager;
+import com.lukaswillsie.data.GameManagerFactory;
 import com.lukaswillsie.data.GameData;
 import com.lukaswillsie.utility.Log;
 
@@ -36,10 +36,9 @@ class ChessProtocol implements Protocol {
 	// The object responsible for actually managing and accessing data for the client.
 	// This oject is only initialized once the client logs in a user. So if this field
 	// has null value, we know the client hasn't logged in a user
-	private ClientManager manager;
+	private GameManager manager;
 	
 	// The username of whatever user is logged in by the client at the moment.
-	// Used for logging purposes.
 	private String username;
 	
 	// If a request from the client is of the following format: keyword <params>,
@@ -67,6 +66,7 @@ class ChessProtocol implements Protocol {
 	 * @param socket The socket that this ChessProtocol object will write to
 	 */
 	ChessProtocol(Socket socket) {
+		manager = GameManagerFactory.build();
 		try{
 			out = new DataOutputStream(socket.getOutputStream());
 			this.socket = socket;
@@ -139,8 +139,6 @@ class ChessProtocol implements Protocol {
 			if(command.equals("logout")) {
 				Log.log("Logged out user " + this.username + " for client " + socket.getInetAddress());
 				
-				// Reassign manager reference so that manager can be garbage-collected
-				this.manager = null;
 				this.username = null;
 			}
 			else {
@@ -166,7 +164,8 @@ class ChessProtocol implements Protocol {
 	private int processCreateUser(String rest) {
 		String[] splitted = rest.split(" ");
 		
-		// Check input for validity; we should have
+		// Check input for validity; rest should be of the form "username password",
+		// where "username" and "password" both don't contain spaces
 		if(splitted.length != 2) {
 			Log.log("Command from " + socket.getInetAddress() + " is invalid");
 			return this.writeToClient(FORMAT_INVALID);
@@ -184,7 +183,6 @@ class ChessProtocol implements Protocol {
 		
 		if(accountManager.addAccount(username, password)) {
 			Log.log("Adding account " + username + "," + password);
-			this.manager = ClientManagerFactory.build(username);
 			this.username = username;
 			return this.writeToClient(Create.SUCCESS);
 		}
@@ -238,10 +236,9 @@ class ChessProtocol implements Protocol {
 		
 		// If the user has successfully been logged in, we need to send the client all of
 		// the user's game data
-		this.manager = ClientManagerFactory.build(username);
 		this.username = username;
 		
-		List<HashMap<GameData, Object>> games = manager.getGameData();
+		List<Game> games = manager.getGameData(username);
 		if(games == null) {
 			Log.error("Error encountered in ClientManager.getGameData()");
 			return this.writeToClient(SERVER_ERROR);
@@ -252,16 +249,16 @@ class ChessProtocol implements Protocol {
 		
 		// Then we take each game and write all of its data to the client in the proper order
 		int status;
-		for(HashMap<GameData, Object> game : games) {
+		for(Game game : games) {
 			for(GameData data : GameData.order) {
 				if(data.type == 'i') {
-					status = writeToClient((Integer)game.get(data));
+					status = writeToClient((Integer)game.getData(data));
 					if(status == 1) {
 						return 1;
 					}
 				}
 				else {
-					status = writeToClient((String)game.get(data));
+					status = writeToClient((String)game.getData(data));
 					if(status == 1) {
 						return 1;
 					}
@@ -284,7 +281,7 @@ class ChessProtocol implements Protocol {
 	private int processCreateGame(String gameID) {
 		// The client can't create a game if it hasn't logged in a user, so check if
 		// it's logged anyone in and send the appropriate return code if they haven't.
-		if(this.manager == null) {
+		if(this.username == null) {
 			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot create a game.");
 			return this.writeToClient(NO_USER);
 		}
@@ -296,7 +293,7 @@ class ChessProtocol implements Protocol {
 			return this.writeToClient(CreateGame.FORMAT_INVALID);
 		}
 		
-		int code = this.manager.createGame(gameID);
+		int code = this.manager.createGame(gameID, username);
 		if(code == CreateGame.SUCCESS) {
 			Log.log("Game \"" + gameID + "\" successfully created.");
 			return this.writeToClient(CreateGame.SUCCESS);
@@ -323,12 +320,12 @@ class ChessProtocol implements Protocol {
 	private int processJoingame(String gameID) {
 		// The client can't create a game if it hasn't logged in a user, so check if
 		// it's logged anyone in and send the appropriate return code if they haven't.
-		if(this.manager == null) {
+		if(this.username == null) {
 			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot join a game.");
 			return this.writeToClient(NO_USER);
 		}
 		
-		int code = manager.joinGame(gameID);
+		int code = manager.joinGame(gameID, username);
 		if(code == JoinGame.SUCCESS) {
 			Log.log("User " + this.username + " joined game \"" + gameID + "\" successfully");
 			return this.writeToClient(JoinGame.SUCCESS);
@@ -364,12 +361,12 @@ class ChessProtocol implements Protocol {
 	private int processLoadgame(String gameID) {
 		// The client can't create a game if it hasn't logged in a user, so check if
 		// it's logged anyone in and send the appropriate return code if they haven't.
-		if(this.manager == null) {
+		if(this.username == null) {
 			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot load a game.");
 			return this.writeToClient(NO_USER);
 		}
 		
-		int code = this.manager.canLoadGame(gameID);
+		int code = this.manager.canLoadGame(gameID, username);
 		if(code == LoadGame.SUCCESS) {
 			List<Object> lines = this.manager.loadGame(gameID);
 			// Since we check canLoadGame() first, we know that if lines is null an error occurred
@@ -425,7 +422,7 @@ class ChessProtocol implements Protocol {
 	private int processMove(String rest) {
 		// The client can't create a game if it hasn't logged in a user, so check if
 		// it's logged anyone in and send the appropriate return code if they haven't.
-		if(this.manager == null) {
+		if(this.username == null) {
 			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot make a move.");
 			return this.writeToClient(NO_USER);
 		}
@@ -467,7 +464,7 @@ class ChessProtocol implements Protocol {
 			return this.writeToClient(FORMAT_INVALID);
 		}
 		
-		int result = this.manager.makeMove(gameID, src_square, dest_square);
+		int result = this.manager.makeMove(gameID, src_square, dest_square, username);
 		switch(result) {
 				case Move.SUCCESS:
 					Log.log("Move " + src + "->" + dest + " successfully made by user \"" + this.username + "\"");
@@ -514,7 +511,7 @@ class ChessProtocol implements Protocol {
 	private int processPromotion(String rest) {
 		// The client can't promote a pawn for a user if it hasn't logged in a user, so check if
 		// it's logged anyone in and send the appropriate return code if they haven't.
-		if(this.manager == null) {
+		if(this.username == null) {
 			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot process promotion.");
 			return this.writeToClient(NO_USER);
 		}
@@ -527,7 +524,7 @@ class ChessProtocol implements Protocol {
 		String gameID = splitted[0];
 		String charRep = splitted[1];
 		
-		int code = this.manager.promote(gameID, charRep.charAt(0));
+		int code = this.manager.promote(gameID, charRep.charAt(0), username);
 		switch(code) {
 			case Promote.SUCCESS:
 				Log.log("Promotion to " + charRep + " successful");
@@ -571,12 +568,12 @@ class ChessProtocol implements Protocol {
 	private int processDraw(String rest) {
 		// The client can't offer/accept a draw for a user if it hasn't logged in a user, so check if
 		// it's logged anyone in and send the appropriate return code if they haven't.
-		if(this.manager == null) {
+		if(this.username == null) {
 			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot process draw attempt.");
 			return this.writeToClient(NO_USER);
 		}
 				
-		int code = this.manager.draw(rest);
+		int code = this.manager.draw(rest, username);
 		
 		switch(code) {
 			case Draw.SUCCESS:
@@ -615,12 +612,12 @@ class ChessProtocol implements Protocol {
 	private int processReject(String rest) {
 		// The client can't offer/accept a draw for a user if it hasn't logged in a user, so check if
 		// it's logged anyone in and send the appropriate return code if they haven't.
-		if(this.manager == null) {
+		if(this.username == null) {
 			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot process draw rejection.");
 			return this.writeToClient(NO_USER);
 		}
 				
-		int code = this.manager.reject(rest);
+		int code = this.manager.reject(rest, username);
 		
 		switch(code) {
 			case Reject.SUCCESS:
@@ -662,12 +659,12 @@ class ChessProtocol implements Protocol {
 	private int processForfeit(String rest) {
 		// The client can't forfeit a game if it hasn't logged in a user, so check if
 		// it's logged anyone in and send the appropriate return code if they haven't.
-		if(this.manager == null) {
+		if(this.username == null) {
 			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot process forfeiture.");
 			return this.writeToClient(NO_USER);
 		}
 				
-		int code = this.manager.forfeit(rest);
+		int code = this.manager.forfeit(rest, username);
 		
 		switch(code) {
 			case Forfeit.SUCCESS:
@@ -706,12 +703,12 @@ class ChessProtocol implements Protocol {
 	private int processArchive(String rest) {
 		// The client can't archive a game if it hasn't logged in a user, so check if
 		// it's logged anyone in and send the appropriate return code if they haven't.
-		if(this.manager == null) {
+		if(this.username == null) {
 			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot archive a game.");
 			return this.writeToClient(NO_USER);
 		}
 		
-		int code = this.manager.archive(rest);
+		int code = this.manager.archive(rest, username);
 		
 		switch(code) {
 			case Protocol.Archive.SUCCESS:
@@ -741,12 +738,12 @@ class ChessProtocol implements Protocol {
 	private int processRestore(String rest) {
 		// The client can't archive a game if it hasn't logged in a user, so check if
 		// it's logged anyone in and send the appropriate return code if they haven't.
-		if(this.manager == null) {
+		if(this.username == null) {
 			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot restore a game.");
 			return this.writeToClient(NO_USER);
 		}
 		
-		int code = this.manager.restore(rest);
+		int code = this.manager.restore(rest, username);
 		
 		switch(code) {
 			case Protocol.Restore.SUCCESS:

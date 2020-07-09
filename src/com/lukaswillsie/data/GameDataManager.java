@@ -36,7 +36,7 @@ import Chess.com.lukaswillsie.chess.Pair;
  * @author Lukas Willsie
  *
  */
-public class GameDataManager {	
+public class GameDataManager implements GameManager {	
 	private static final String gamesFile = "serverdata/active_games.csv";
 	private static final String gamesDir = "serverdata/games";
 	private static final String newGameTemplate = "serverdata/games/standard/new_board.txt";
@@ -522,11 +522,6 @@ public class GameDataManager {
 		FileOutputStream stream;
 		try {
 			stream = new FileOutputStream(template);
-			try {
-				stream.close();
-			} catch (IOException e) {
-				Log.error("Couldn't close new game template file's stream");
-			}
 		} catch (FileNotFoundException e) {
 			Log.error("Couldn't open new game template file");
 			return 1;
@@ -536,6 +531,11 @@ public class GameDataManager {
 				stream.write((line + "\n").getBytes());
 			} catch (IOException e) {
 				Log.error("Couldn't write to and initialize new game template file");
+				try {
+					stream.close();
+				} catch (IOException e1) {
+					Log.error("Couldn't close new game template file's stream");
+				}
 				return 1;
 			}
 		}
