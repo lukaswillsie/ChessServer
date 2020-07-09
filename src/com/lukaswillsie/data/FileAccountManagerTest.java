@@ -4,7 +4,13 @@ import java.util.Scanner;
 
 public class FileAccountManagerTest {
 	public static void main(String[] args) {
-		FileAccountManager manager = new FileAccountManager();
+		int error = Managers.build();
+		if(error == 1) {
+			System.out.println("Build failed");
+			return;
+		}
+		
+		AccountManager manager = Managers.getAccountManager();
 		Scanner scanner = new Scanner(System.in);
 		System.out.println(manager.usernameExists("Peter"));
 		scanner.nextLine();

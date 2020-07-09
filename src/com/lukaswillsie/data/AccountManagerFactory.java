@@ -14,6 +14,6 @@ public class AccountManagerFactory {
 	 * @return An AccountManager object
 	 */
 	public static AccountManager build() {
-		return new FileAccountManager();
+		return Managers.getAccountManager();
 	}
 }

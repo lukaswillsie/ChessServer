@@ -22,7 +22,7 @@ import com.lukaswillsie.utility.Log;
  * 
  * @author Lukas Willsie
  */
-public class AccountDataManager {
+public class AccountDataManager implements AccountManager {
 	/**
 	 * Define the locations on disk of our key files
 	 */
@@ -211,6 +211,7 @@ public class AccountDataManager {
 	 * @return true if and only if there is a user with the given username and password
 	 * in the system
 	 */
+	@Override
 	public boolean validCredentials(String username, String password) {
 		User user = users.get(username);
 		
@@ -232,6 +233,7 @@ public class AccountDataManager {
 	 * @return true if and only if the given username is already associated with an
 	 * account in the sytem
 	 */
+	@Override
 	public boolean usernameExists(String username) {
 		return users.get(username) != null;
 	}
@@ -247,6 +249,7 @@ public class AccountDataManager {
 	 * @return true if and only if an account is successfully created with the given username
 	 * and password
 	 */
+	@Override
 	public boolean addAccount(String username, String password) {
 		if(usernameExists(username)) {
 			return false;
@@ -275,6 +278,7 @@ public class AccountDataManager {
 	 * @param username - The username to check
 	 * @return Whether or not the given username is properly formatted
 	 */
+	@Override
 	public boolean validUsername(String username) {
 		return username.length() >= 1 && username.indexOf(',') == -1 && username.indexOf(' ') == -1;
 	}
@@ -288,6 +292,7 @@ public class AccountDataManager {
 	 * @param username - The username to check
 	 * @return Whether or not the given username is properly formatted
 	 */
+	@Override
 	public boolean validPassword(String password) {
 		return password.length() >= 1 && password.indexOf(',') == -1 && password.indexOf(' ') == -1;
 	}

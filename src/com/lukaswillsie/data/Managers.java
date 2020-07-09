@@ -19,7 +19,7 @@ public class Managers {
 	 * @return A reference to the AccountDataManager the program is using to
 	 * query and update account information
 	 */
-	public static AccountDataManager getAccountManager() {
+	public static AccountManager getAccountManager() {
 		return accountManager;
 	}
 	

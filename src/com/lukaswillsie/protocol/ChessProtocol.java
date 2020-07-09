@@ -182,20 +182,15 @@ class ChessProtocol implements Protocol {
 			return this.writeToClient(Create.FORMAT_INVALID);
 		}
 		
-		int result = accountManager.addAccount(username, password);
-		if(result == 0) {
+		if(accountManager.addAccount(username, password)) {
 			Log.log("Adding account " + username + "," + password);
 			this.manager = ClientManagerFactory.build(username);
 			this.username = username;
 			return this.writeToClient(Create.SUCCESS);
 		}
-		else if (result == 1) {
+		else {
 			Log.log("Username " + username + " is already in use.");
 			return this.writeToClient(Create.USERNAME_IN_USE);
-		}
-		else {
-			Log.error("ERROR: error encountered in AccountManager.addAccount()");
-			return this.writeToClient(SERVER_ERROR);
 		}
 	}
 
@@ -222,33 +217,23 @@ class ChessProtocol implements Protocol {
 		AccountManager accountManager = AccountManagerFactory.build();
 		
 		// Check whether or not the given username exists
-		int result = accountManager.usernameExists(username);
-		if(result == 0) {
+		if(!accountManager.usernameExists(username)) {
 			Log.log("Username " + username + " does not exist.");
 			return this.writeToClient(Login.USERNAME_DOES_NOT_EXIST);
 		}
-		else if (result == 2) {
-			Log.error("ERROR: Server error encountered in AccountManager.usernameExists()");
-			return this.writeToClient(SERVER_ERROR);
-		}
 		
 		// Check whether the given username-password combo is valid
-		result = accountManager.validCredentials(username, password);
-		if(result == 0) {
+		if(!accountManager.validCredentials(username, password)) {
 			Log.log("Username,password combination " + username + "," + password + " is invalid.");
 			return this.writeToClient(Login.PASSWORD_INVALID);
 		}
-		else if (result == 1) {
+		else {
 			// Write the success code to the client, but don't return unless they disconnected.
-			// We have more data to send
+			// We have more data to send.
 			Log.log("Login request " + username + "," + password + " is valid. Notifying client...");
 			if(this.writeToClient(Login.SUCCESS) == 1) {
 				return 1;
 			}
-		}
-		else {
-			Log.error("ERROR: Server error encountered in AccountManager.validCredentials()");
-			return this.writeToClient(SERVER_ERROR);
 		}
 		
 		// If the user has successfully been logged in, we need to send the client all of

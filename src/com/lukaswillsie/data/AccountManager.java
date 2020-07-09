@@ -10,39 +10,35 @@ public interface AccountManager {
 	/**
 	 * Compute whether or not the given username and password are a valid
 	 * login combination
+	 * 
 	 * @param username - The username to check
 	 * @param password - The password to check
-	 * @return One of the following: <br>
-	 * 		0 - the credentials are not valid <br>
-	 * 		1 - the credentials are valid and a login should be allowed <br>
-	 * 		2 - an error/exception occurred <br>
+	 * @return true if and only if there is a user with the given username and password
+	 * in the system
 	 */
-	int validCredentials(String username, String password);
+	boolean validCredentials(String username, String password);
 	
 	/**
 	 * Check if the given username is already being used in the system
 	 * 
 	 * @param username - The username to check
-	 * @return One of the following: <br>
-	 * 		0 - username does not exist <br>
-	 * 		1 - the username exists <br>
-	 * 		2 - an error/exception occurred <br>
+	 * @return true if and only if the given username is already associated with an
+	 * account in the sytem
 	 */
-	int usernameExists(String username);
+	boolean usernameExists(String username);
 	
 	/**
-	 * Create a new account under the given username and password.
-	 * 
-	 * Returns an integer indicating whether or not account creation was successful
+	 * Create a new account under the given username and password. Returns false if the
+	 * given username is already associated with a user in the system, or if either of the
+	 * given username or password is invalidly formatted, according to validUsername() and
+	 * validPassword().
 	 * 
 	 * @param username - The username to create the new account under
 	 * @param password - The password to create the new account under
-	 * @return One of the following: <br>
-	 * 		0 - the account was successfully created <br>
-	 * 		1 - the account cannot be created because the given username already exists <br>
-	 * 		2 - an error/exception occurred <br>
+	 * @return true if and only if an account is successfully created with the given username
+	 * and password
 	 */
-	int addAccount(String username, String password);
+	boolean addAccount(String username, String password);
 	
 	/**
 	 * An implementation of this interface should implement this method and the one below so 
