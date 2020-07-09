@@ -100,7 +100,7 @@ class FileClientManager extends ClientManager {
 		}
 		catch(IOException e) {
 			e.printStackTrace();
-			Log.error("ERROR: Could not open active_games file for reading in getGameData().");
+			Log.error("Could not open active_games file for reading in getGameData().");
 			return null;
 		}
 		
@@ -114,7 +114,7 @@ class FileClientManager extends ClientManager {
 			
 			// We should have as many columns as we do GameData values
 			if(data.length != GameData.values().length) {
-				Log.error("ERROR: Error in active_games file. Line number " + lineNum + " does not have correct number of columns.");
+				Log.error("Error in active_games file. Line number " + lineNum + " does not have correct number of columns.");
 				scanner.close();
 				return null;
 			}
@@ -129,7 +129,7 @@ class FileClientManager extends ClientManager {
 					if(dataType.type == 'i') {
 						try {game.put(dataType, Integer.parseInt(data[dataType.getColumn()]));}
 						catch(NumberFormatException e) {
-							Log.error("ERROR: In active_games file, line " + lineNum + ", couldn't cast data " + dataType + " to int");
+							Log.error("In active_games file, line " + lineNum + ", couldn't cast data " + dataType + " to int");
 							scanner.close();
 							return null;
 						}
@@ -214,7 +214,7 @@ class FileClientManager extends ClientManager {
 		}
 		catch(IOException e) {
 			e.printStackTrace();
-			Log.error("ERROR: Failed to open/write to active_games file. New game could not be created.");
+			Log.error("Failed to open/write to active_games file. New game could not be created.");
 			return Protocol.SERVER_ERROR;
 		}
 		
@@ -224,7 +224,7 @@ class FileClientManager extends ClientManager {
 			game_file.createNewFile();
 		}
 		catch(IOException e) {
-			Log.error("ERROR: Could not create board data file for game \"" + gameID + "\"");
+			Log.error("Could not create board data file for game \"" + gameID + "\"");
 			return Protocol.SERVER_ERROR;
 		}
 		
@@ -235,7 +235,7 @@ class FileClientManager extends ClientManager {
 			scanner = new Scanner(new_board);
 		}
 		catch(FileNotFoundException e) {
-			Log.error("ERROR: Couldn't open new_board file. Path is probably wrong.");
+			Log.error("Couldn't open new_board file. Path is probably wrong.");
 			return Protocol.SERVER_ERROR;
 		}
 		
@@ -245,7 +245,7 @@ class FileClientManager extends ClientManager {
 			out = new FileOutputStream(game_file);
 		}
 		catch(FileNotFoundException e) {
-			Log.error("ERROR: Could not open new board data file for initialization");
+			Log.error("Could not open new board data file for initialization");
 			scanner.close();
 			return Protocol.SERVER_ERROR;
 		}
@@ -255,11 +255,11 @@ class FileClientManager extends ClientManager {
 			try {
 				out.write((scanner.nextLine()+"\n").getBytes());
 			} catch (IOException e) {
-				Log.error("ERROR: Failed to write to new board data file for game \"" + gameID + "\"");
+				Log.error("Failed to write to new board data file for game \"" + gameID + "\"");
 				try {
 					out.close();
 				} catch (IOException e1) {
-					Log.error("ERROR: Failed to close FileOutputStream");
+					Log.error("Failed to close FileOutputStream");
 				}
 				scanner.close();
 				return Protocol.SERVER_ERROR;
@@ -374,7 +374,7 @@ class FileClientManager extends ClientManager {
 				// Split the line of the .csv file into its columns
 				data = line.split(",");
 				if(data.length != GameData.values().length) {
-					Log.error("ERROR: Error in active_games file. Line number " + lineNumber + " does not have the right number of columns");
+					Log.error("Error in active_games file. Line number " + lineNumber + " does not have the right number of columns");
 					return Protocol.SERVER_ERROR;
 				}
 				if(data[GameData.GAMEID.getColumn()].equals(gameID)) {
@@ -419,7 +419,7 @@ class FileClientManager extends ClientManager {
 	@Override
 	public List<Object> loadGame(String gameID) {
 		if(!this.games_folder.isDirectory()) {
-			Log.error("ERROR: games_folder is not a directory, path must be wrong.");
+			Log.error("games_folder is not a directory, path must be wrong.");
 			return null;
 		}
 
@@ -444,7 +444,7 @@ class FileClientManager extends ClientManager {
 			scanner = new Scanner(data_file);
 		}
 		catch(FileNotFoundException e) {
-			Log.error("ERROR: Could not open board data file for game \"" + gameID + "\"");
+			Log.error("Could not open board data file for game \"" + gameID + "\"");
 			return null;
 		}
 		
@@ -457,19 +457,19 @@ class FileClientManager extends ClientManager {
 			try {
 				int line = Integer.parseInt(scanner.nextLine());
 				if(line != 0 && line != 1) {
-					Log.error("ERROR: Line " + lineNumber + " of " + data_filename + " is not 1 or 0");
+					Log.error("Line " + lineNumber + " of " + data_filename + " is not 1 or 0");
 					scanner.close();
 					return null;
 				}
 				lines.add(line);
 			}
 			catch(NumberFormatException e) {
-				Log.error("ERROR: Line " + lineNumber + " of " + data_filename + " could not be parsed to int");
+				Log.error("Line " + lineNumber + " of " + data_filename + " could not be parsed to int");
 				scanner.close();
 				return null;
 			}
 			catch(NoSuchElementException e) {
-				Log.error("ERROR: End of file " + data_filename + " reached too early");
+				Log.error("End of file " + data_filename + " reached too early");
 				scanner.close();
 				return null;
 			}
@@ -484,21 +484,21 @@ class FileClientManager extends ClientManager {
 				line = scanner.nextLine();
 			}
 			catch(NoSuchElementException e) {
-				Log.error("ERROR: End of file " + data_filename + " reached too early");
+				Log.error("End of file " + data_filename + " reached too early");
 				scanner.close();
 				return null;
 			}
 			
 			
 			if(line.length() != 8) {
-				Log.error("ERROR: Line " + lineNumber + " of file " + data_filename + " does not have 8 characters");
+				Log.error("Line " + lineNumber + " of file " + data_filename + " does not have 8 characters");
 				scanner.close();
 				return null;
 			}
 			for(int j = 0; j < line.length(); j++) {
 				char c = line.charAt(j);
 				if(!this.validBoardChar(c)) {
-					Log.error("ERROR: Line " + lineNumber + " of " + data_filename + " contains an invalid character.");
+					Log.error("Line " + lineNumber + " of " + data_filename + " contains an invalid character.");
 					scanner.close();
 					return null;
 				}
@@ -513,7 +513,7 @@ class FileClientManager extends ClientManager {
 			line = scanner.nextLine();
 		}
 		catch(NoSuchElementException e) {
-			Log.error("ERROR: End of file " + data_filename + " reached too early");
+			Log.error("End of file " + data_filename + " reached too early");
 			scanner.close();
 			return null;
 		}
@@ -521,7 +521,7 @@ class FileClientManager extends ClientManager {
 		try {
 			int last = Integer.parseInt(line);
 			if(last != 1 && last != 0) {
-				Log.error("ERROR: Line " + lineNumber + " of " + data_filename + " is not 1 or 0");
+				Log.error("Line " + lineNumber + " of " + data_filename + " is not 1 or 0");
 				scanner.close();
 				return null;
 			}
@@ -529,7 +529,7 @@ class FileClientManager extends ClientManager {
 			lines.add((Integer)last);
 		}
 		catch(NumberFormatException e) {
-			Log.error("ERROR: Line " + lineNumber + " of " + data_filename + " could not be parsed to int");
+			Log.error("Line " + lineNumber + " of " + data_filename + " could not be parsed to int");
 			scanner.close();
 			return null;
 		}
@@ -585,7 +585,7 @@ class FileClientManager extends ClientManager {
 			scanner = new Scanner(this.active_games);
 		}
 		catch(FileNotFoundException e) {
-			Log.error("ERROR: Couldn't open active_games file for reading");
+			Log.error("Couldn't open active_games file for reading");
 			return Protocol.SERVER_ERROR;
 		}
 		
@@ -618,14 +618,14 @@ class FileClientManager extends ClientManager {
 			
 		}
 		catch(NumberFormatException e) {
-			Log.error("ERROR: Line number " + lineNumber + " contains an entry that could not be converted to int");
+			Log.error("Line number " + lineNumber + " contains an entry that could not be converted to int");
 			return Protocol.SERVER_ERROR;
 		}
 		
 		// Now that we've error-checked every aspect of the move request except the validity of the move
 		// in the context of chess, we proceed.
 		if(!this.games_folder.isDirectory()) {
-			Log.error("ERROR: games folder is not directory. Path might be wrong.");
+			Log.error("games folder is not directory. Path might be wrong.");
 			scanner.close();
 			return Protocol.SERVER_ERROR;
 		}
@@ -634,7 +634,7 @@ class FileClientManager extends ClientManager {
 		try {
 			scanner = new Scanner(new File(this.games_folder, this.getFilename(gameID)));
 		} catch (FileNotFoundException e) {
-			Log.error("ERROR: Could not open game file for game: " + gameID);
+			Log.error("Could not open game file for game: " + gameID);
 			return Protocol.SERVER_ERROR;
 		}
 		Board board = new Board();
@@ -741,7 +741,7 @@ class FileClientManager extends ClientManager {
 			active_games_stream = new FileOutputStream(this.active_games);
 			board_data_stream = new FileOutputStream(new File(this.games_folder, this.getFilename(gameID)));
 		} catch (FileNotFoundException e) {
-			Log.error("ERROR: Couldn't open either active_games file or board data file for game \"" + gameID + "\"");
+			Log.error("Couldn't open either active_games file or board data file for game \"" + gameID + "\"");
 			return Protocol.SERVER_ERROR;
 		}
 		
@@ -749,7 +749,7 @@ class FileClientManager extends ClientManager {
 			this.writeLines(active_games_stream, lines);
 			active_games_stream.close();
 		} catch (IOException e) {
-			Log.error("ERROR: Couldn't write to active_games file");
+			Log.error("Couldn't write to active_games file");
 			return Protocol.SERVER_ERROR;
 		}
 		
@@ -758,7 +758,7 @@ class FileClientManager extends ClientManager {
 			board_data_stream.close();
 		}
 		catch(IOException e) {
-			Log.error("ERROR: Couldn't write to board data file for game \"" + gameID + "\"");
+			Log.error("Couldn't write to board data file for game \"" + gameID + "\"");
 			return Protocol.SERVER_ERROR;
 		}
 		
@@ -826,7 +826,7 @@ class FileClientManager extends ClientManager {
 		try {
 			int promotion = Integer.parseInt(data[GameData.PROMOTION_NEEDED.getColumn()]);
 			if(promotion != 0 && promotion != 1) {
-				Log.error("ERROR: Line number " + lineNumber + " of active_games file has " + GameData.PROMOTION_NEEDED + " value not 0 or 1");
+				Log.error("Line number " + lineNumber + " of active_games file has " + GameData.PROMOTION_NEEDED + " value not 0 or 1");
 				return Protocol.SERVER_ERROR;
 			}
 			
@@ -836,14 +836,14 @@ class FileClientManager extends ClientManager {
 			}
 		}
 		catch(NumberFormatException e) {
-			Log.error("ERROR: Line number " + lineNumber + " of active_games file has " + GameData.PROMOTION_NEEDED + " value that couldn't be converted to int.");
+			Log.error("Line number " + lineNumber + " of active_games file has " + GameData.PROMOTION_NEEDED + " value that couldn't be converted to int.");
 			return Protocol.SERVER_ERROR;
 		}
 		
 		// Now we actually process the promotion order
 		
 		if(!this.games_folder.isDirectory()) {
-			Log.error("ERROR: games folder is not directory. Path might be wrong.");
+			Log.error("games folder is not directory. Path might be wrong.");
 			return Protocol.SERVER_ERROR;
 		}
 		
@@ -852,7 +852,7 @@ class FileClientManager extends ClientManager {
 		try {
 			scanner = new Scanner(new File(this.games_folder, this.getFilename(gameID)));
 		} catch (FileNotFoundException e) {
-			Log.error("ERROR: Could not open game file for game: " + gameID);
+			Log.error("Could not open game file for game: " + gameID);
 			return Protocol.SERVER_ERROR;
 		}
 		Board board = new Board();
@@ -871,7 +871,7 @@ class FileClientManager extends ClientManager {
 				// Update whose turn it is
 				int state = Integer.parseInt(data[GameData.STATE.getColumn()]);
 				if(state != 0 && state != 1) {
-					Log.error("ERROR: Line number " + lineNumber + " has " + GameData.STATE + " value that is not 0 or 1.");
+					Log.error("Line number " + lineNumber + " has " + GameData.STATE + " value that is not 0 or 1.");
 					return Protocol.SERVER_ERROR;
 				}
 				data[GameData.STATE.getColumn()] = (state == 0) ? "1" : "0";
@@ -892,7 +892,7 @@ class FileClientManager extends ClientManager {
 				}
 			}
 			catch(NumberFormatException e) {
-				Log.error("ERROR: Line number " + lineNumber + " of active_games.csv has value that couldn't be converted to int.");
+				Log.error("Line number " + lineNumber + " of active_games.csv has value that couldn't be converted to int.");
 				return Protocol.SERVER_ERROR;
 			}
 			
@@ -905,11 +905,11 @@ class FileClientManager extends ClientManager {
 				this.writeLines(stream, lines);
 			}
 			catch(FileNotFoundException e) {
-				Log.error("ERROR: Couldn't open active_games file for writing.");
+				Log.error("Couldn't open active_games file for writing.");
 				return Protocol.SERVER_ERROR;
 			}
 			catch(IOException e) {
-				Log.error("ERROR: Couldn't write to active_games file to save changes");
+				Log.error("Couldn't write to active_games file to save changes");
 				return Protocol.SERVER_ERROR;
 			}
 			
@@ -919,10 +919,10 @@ class FileClientManager extends ClientManager {
 				board.saveGame(stream);
 			}
 			catch(FileNotFoundException e) {
-				Log.error("ERROR: Couldn't open file " + this.getFilename(gameID) + " for writing.");
+				Log.error("Couldn't open file " + this.getFilename(gameID) + " for writing.");
 				return Protocol.SERVER_ERROR;
 			} catch (IOException e) {
-				Log.error("ERROR: Couldn't write to file " + this.getFilename(gameID));
+				Log.error("Couldn't write to file " + this.getFilename(gameID));
 				return Protocol.SERVER_ERROR;
 			}
 			
@@ -996,7 +996,7 @@ class FileClientManager extends ClientManager {
 			draw_offered = Integer.parseInt(data[GameData.DRAW_OFFERED.getColumn()]);
 		}
 		catch(NumberFormatException e) { 
-			Log.error("ERROR: Line number " + lineNumber + " has " + GameData.DRAW_OFFERED + " value that couldn't be converted to int.");
+			Log.error("Line number " + lineNumber + " has " + GameData.DRAW_OFFERED + " value that couldn't be converted to int.");
 			return Protocol.SERVER_ERROR;
 		}
 		
@@ -1006,13 +1006,13 @@ class FileClientManager extends ClientManager {
 			try {
 				int state = Integer.parseInt(data[GameData.STATE.getColumn()]);
 				if(state != 0 && state != 1) {
-					Log.error("ERROR: Line number " + lineNumber + " has " + GameData.STATE + " value that is not 0 or 1.");
+					Log.error("Line number " + lineNumber + " has " + GameData.STATE + " value that is not 0 or 1.");
 					return Protocol.SERVER_ERROR;
 				}
 				data[GameData.STATE.getColumn()] = (state == 0) ? "1" : "0";
 			}
 			catch(NumberFormatException e) {
-				Log.error("ERROR: Line number " + lineNumber + " has " + GameData.STATE + " value that couldn't be converted to int.");
+				Log.error("Line number " + lineNumber + " has " + GameData.STATE + " value that couldn't be converted to int.");
 				return Protocol.SERVER_ERROR;
 			}
 		}
@@ -1022,7 +1022,7 @@ class FileClientManager extends ClientManager {
 			// The game is now over, so we don't flip the turn counter or anything, we just leave everything as it is
 		}
 		else {
-			Log.error("ERROR: Line number " + lineNumber + " has " + GameData.DRAW_OFFERED + " value that is not 0 or 1.");
+			Log.error("Line number " + lineNumber + " has " + GameData.DRAW_OFFERED + " value that is not 0 or 1.");
 			return Protocol.SERVER_ERROR;
 		}
 		
@@ -1039,7 +1039,7 @@ class FileClientManager extends ClientManager {
 		try {
 			this.writeLines(stream, lines);
 		} catch (IOException e) {
-			Log.error("ERROR: Couldn't write to active_games file.");
+			Log.error("Couldn't write to active_games file.");
 			return Protocol.SERVER_ERROR;
 		}
 		
@@ -1108,7 +1108,7 @@ class FileClientManager extends ClientManager {
 			draw_offered = Integer.parseInt(data[GameData.DRAW_OFFERED.getColumn()]);
 		}
 		catch(NumberFormatException e) { 
-			Log.error("ERROR: Line number " + lineNumber + " has " + GameData.DRAW_OFFERED + " value that couldn't be converted to int.");
+			Log.error("Line number " + lineNumber + " has " + GameData.DRAW_OFFERED + " value that couldn't be converted to int.");
 			return Protocol.SERVER_ERROR;
 		}
 		
@@ -1124,18 +1124,18 @@ class FileClientManager extends ClientManager {
 			try {
 				int state = Integer.parseInt(data[GameData.STATE.getColumn()]);
 				if(state != 0 && state != 1) {
-					Log.error("ERROR: Line number " + lineNumber + " has " + GameData.STATE + " value that is not 0 or 1.");
+					Log.error("Line number " + lineNumber + " has " + GameData.STATE + " value that is not 0 or 1.");
 					return Protocol.SERVER_ERROR;
 				}
 				data[GameData.STATE.getColumn()] = (state == 0) ? "1" : "0";
 			}
 			catch(NumberFormatException e) {
-				Log.error("ERROR: Line number " + lineNumber + " has " + GameData.STATE + " value that couldn't be converted to int.");
+				Log.error("Line number " + lineNumber + " has " + GameData.STATE + " value that couldn't be converted to int.");
 				return Protocol.SERVER_ERROR;
 			}
 		}
 		else {
-			Log.error("ERROR: Line number " + lineNumber + " has " + GameData.DRAW_OFFERED + " value that is not 0 or 1.");
+			Log.error("Line number " + lineNumber + " has " + GameData.DRAW_OFFERED + " value that is not 0 or 1.");
 			return Protocol.SERVER_ERROR;
 		}
 		
@@ -1152,7 +1152,7 @@ class FileClientManager extends ClientManager {
 		try {
 			this.writeLines(stream, lines);
 		} catch (IOException e) {
-			Log.error("ERROR: Couldn't write to active_games file.");
+			Log.error("Couldn't write to active_games file.");
 			return Protocol.SERVER_ERROR;
 		}
 		
@@ -1224,7 +1224,7 @@ class FileClientManager extends ClientManager {
 			stream = new FileOutputStream(this.active_games);
 		}
 		catch(FileNotFoundException e) {
-			Log.error("ERROR: Couldn't open active_games file for writing");
+			Log.error("Couldn't open active_games file for writing");
 			return Protocol.SERVER_ERROR;
 		}
 		
@@ -1234,7 +1234,7 @@ class FileClientManager extends ClientManager {
 		try {
 			this.writeLines(stream, lines);
 		} catch (IOException e) {
-			Log.error("ERROR: Couldn't write to active_games file");
+			Log.error("Couldn't write to active_games file");
 			return Protocol.SERVER_ERROR;
 		}
 		
@@ -1294,7 +1294,7 @@ class FileClientManager extends ClientManager {
 			stream = new FileOutputStream(this.active_games);
 		}
 		catch(FileNotFoundException e) {
-			Log.error("ERROR: Couldn't open active_games file for writing");
+			Log.error("Couldn't open active_games file for writing");
 			return Protocol.SERVER_ERROR;
 		}
 		
@@ -1304,7 +1304,7 @@ class FileClientManager extends ClientManager {
 		try {
 			this.writeLines(stream, lines);
 		} catch (IOException e) {
-			Log.error("ERROR: Couldn't write to active_games file");
+			Log.error("Couldn't write to active_games file");
 			return Protocol.SERVER_ERROR;
 		}
 		
@@ -1365,7 +1365,7 @@ class FileClientManager extends ClientManager {
 			stream = new FileOutputStream(this.active_games);
 		}
 		catch(FileNotFoundException e) {
-			Log.error("ERROR: Couldn't open active_games file for writing");
+			Log.error("Couldn't open active_games file for writing");
 			return Protocol.SERVER_ERROR;
 		}
 		
@@ -1375,7 +1375,7 @@ class FileClientManager extends ClientManager {
 		try {
 			this.writeLines(stream, lines);
 		} catch (IOException e) {
-			Log.error("ERROR: Couldn't write to active_games file");
+			Log.error("Couldn't write to active_games file");
 			return Protocol.SERVER_ERROR;
 		}
 		
@@ -1464,7 +1464,7 @@ class FileClientManager extends ClientManager {
 			scanner = new Scanner(this.active_games);
 		}
 		catch(FileNotFoundException e) {
-			Log.error("ERROR: Couldn't open active_games file");
+			Log.error("Couldn't open active_games file");
 			map.put("data", null);
 			map.put("lines", null);
 			map.put("lineNumber", 0);
@@ -1487,7 +1487,7 @@ class FileClientManager extends ClientManager {
 				data = line.split(",");
 				
 				if(data.length != GameData.order.length) {
-					Log.error("ERROR: Line number " + lineNumber + " does not have correct number of columns");
+					Log.error("Line number " + lineNumber + " does not have correct number of columns");
 					scanner.close();
 					map.put("data", null);
 					map.put("lines", null);

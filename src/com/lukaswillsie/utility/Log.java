@@ -38,12 +38,13 @@ public class Log {
 	}
 	
 	/**
-	 * Log the given message to the console, as well as to standard error.
+	 * Log the given message to standard out, as well as to standard error.
+	 * When logged to standard out, message is preceded by the "ERROR: " flag
 	 * 
 	 * @param message - the message to log
 	 */
 	public static synchronized void error(String message) {
-		System.out.println(message);
+		System.out.println("ERROR: " + message);
 		System.err.println(message);
 	}
 	
@@ -81,9 +82,9 @@ public class Log {
 				Log.log("Couldn't close command output stream");
 			}
 		} catch (FileNotFoundException e) {
-			Log.error("INTERNAL ERROR: Couldn't open file for logging commands");
+			Log.error("Couldn't open file for logging commands");
 		} catch (IOException e) {
-			Log.error("INTERNAL ERROR: Couldn't log command");
+			Log.error("Couldn't log the command: \"" + command + "\"");
 		}
 	}
 }

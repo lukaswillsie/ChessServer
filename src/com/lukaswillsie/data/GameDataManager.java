@@ -206,7 +206,7 @@ public class GameDataManager {
 			scanner = new Scanner(new File(gamesFile));
 		}
 		catch(FileNotFoundException e) {
-			Log.error("ERROR: Couldn't open games file for scanning");
+			Log.error("Couldn't open games file for scanning");
 			return 1;
 		}
 		
@@ -257,11 +257,11 @@ public class GameDataManager {
 				return board;
 			}
 			else {
-				Log.error("ERROR: Board object couldn't be initialized from \"" + getFilename(gameID) + "\"");
+				Log.error("Board object couldn't be initialized from \"" + getFilename(gameID) + "\"");
 				return null;
 			}
 		} catch (FileNotFoundException e) {
-			Log.error("ERROR: Couldn't open board data file for game \"" + gameID + "\"");
+			Log.error("Couldn't open board data file for game \"" + gameID + "\"");
 			return null;
 		}
 		
@@ -348,7 +348,7 @@ public class GameDataManager {
 	private int createFiles() {
 		File gamesFolder = new File(gamesDir);
 		if(!gamesFolder.exists() && !gamesFolder.mkdirs()) {
-			Log.error("ERROR: Couldn't create folder(s) \"" + gamesDir + "\"");
+			Log.error("Couldn't create folder(s) \"" + gamesDir + "\"");
 			return 1;
 		}
 		
@@ -356,7 +356,7 @@ public class GameDataManager {
 		try {
 			games.createNewFile();
 		} catch (IOException e) {
-			Log.error("ERROR: Couldn't create games file with path \"" + gamesFile + "\"");
+			Log.error("Couldn't create games file with path \"" + gamesFile + "\"");
 			return 1;
 		}
 		
@@ -379,16 +379,16 @@ public class GameDataManager {
 					}		
 				}
 				catch(IOException e) {
-					Log.error("ERROR: Problem writing to games file \"" + gamesFile + "\"");
+					Log.error("Problem writing to games file \"" + gamesFile + "\"");
 					dumpGames();
 				}
 			} catch (FileNotFoundException e) {
-				Log.error("ERROR: games file \"" + gamesFile + "\" does not exist.");
+				Log.error("games file \"" + gamesFile + "\" does not exist.");
 				dumpGames();
 			}
 			// Thrown if gamesOutput fails to close
 			catch (IOException e) {
-				Log.error("ERROR: Couldn't close games FileOutputStream");
+				Log.error("Couldn't close games FileOutputStream");
 				e.printStackTrace();
 			}	
 		}
@@ -405,17 +405,17 @@ public class GameDataManager {
 					unsavedGames.remove(game);
 				}
 				catch(IOException e) {
-					Log.error("ERROR: Couldn't save game data for game \"" + game.getData(GameData.GAMEID) + "\"");
+					Log.error("Couldn't save game data for game \"" + game.getData(GameData.GAMEID) + "\"");
 					dumpGame(game);
 				}
 			}
 			catch (FileNotFoundException e) {
-				Log.error("ERROR: No game data file for game \"" +  game.getData(GameData.GAMEID) + "\"");
+				Log.error("No game data file for game \"" +  game.getData(GameData.GAMEID) + "\"");
 				dumpGame(game);
 			} 
 			// Thrown if stream fails to close
 			catch (IOException e) {
-				Log.error("ERROR: Couldn't close FileOutputStream opened on file \"" + getFilename((String)game.getData(GameData.GAMEID)) + "\"");
+				Log.error("Couldn't close FileOutputStream opened on file \"" + getFilename((String)game.getData(GameData.GAMEID)) + "\"");
 				e.printStackTrace();
 			}
 		}
@@ -507,7 +507,7 @@ public class GameDataManager {
 		
 		File standardFolder = new File(templateFolder);
 		if(!standardFolder.exists() && !standardFolder.mkdirs()) {
-			Log.error("ERROR: Couldn't create folder(s) \"" + templateFolder + "\""); 
+			Log.error("Couldn't create folder(s) \"" + templateFolder + "\""); 
 			return 1;
 		}
 		
@@ -515,7 +515,7 @@ public class GameDataManager {
 		try {
 			template.createNewFile();
 		} catch (IOException e) {
-			Log.error("ERROR: Couldn't create file \"" + newGameTemplate + "\"");
+			Log.error("Couldn't create file \"" + newGameTemplate + "\"");
 			return 1;
 		}
 		
@@ -525,17 +525,17 @@ public class GameDataManager {
 			try {
 				stream.close();
 			} catch (IOException e) {
-				Log.error("ERROR: Couldn't close new game template file's stream");
+				Log.error("Couldn't close new game template file's stream");
 			}
 		} catch (FileNotFoundException e) {
-			Log.error("ERROR: Couldn't open new game template file");
+			Log.error("Couldn't open new game template file");
 			return 1;
 		}
 		for(String line : lines) {
 			try {
 				stream.write((line + "\n").getBytes());
 			} catch (IOException e) {
-				Log.error("ERROR: Couldn't write to and initialize new game template file");
+				Log.error("Couldn't write to and initialize new game template file");
 				return 1;
 			}
 		}
@@ -543,7 +543,7 @@ public class GameDataManager {
 		try {
 			stream.close();
 		} catch (IOException e) {
-			Log.error("ERROR: Couldn't close new game template file's stream");
+			Log.error("Couldn't close new game template file's stream");
 		}
 		
 		return 0;
@@ -592,7 +592,7 @@ public class GameDataManager {
 		}
 		else if (!userExists(username)) {
 			// TODO: Consider adding a return code for this scenario
-			Log.error("ERROR: Username \"" + username + "\" is not a valid username. Cannot process request to create game.");
+			Log.error("Username \"" + username + "\" is not a valid username. Cannot process request to create game.");
 			return Protocol.SERVER_ERROR;
 		}
 		else {
@@ -608,13 +608,13 @@ public class GameDataManager {
 			try {
 				created = file.createNewFile();
 			} catch (IOException e) {
-				Log.error("ERROR: Couldn't create file for new game \"" + gameID + "\".");
+				Log.error("Couldn't create file for new game \"" + gameID + "\".");
 				return Protocol.SERVER_ERROR;
 			}
 			// This means the file already exists, but we don't have a Game object for it, because of the
 			// check we already did above, which is a problem
 			if(!created) {
-				Log.error("ERROR: There is no record of game \"" + gameID + "\" but there is a board data file.");
+				Log.error("There is no record of game \"" + gameID + "\" but there is a board data file.");
 				return Protocol.SERVER_ERROR;
 			}
 			else {
@@ -631,16 +631,16 @@ public class GameDataManager {
 						}
 					}
 					catch(IOException e) {
-						Log.error("ERROR: Couldn't initialize board data file for game \"" + gameID + "\" from template.");
+						Log.error("Couldn't initialize board data file for game \"" + gameID + "\" from template.");
 						// We delete the board data file we were going to use because we don't want it sticking
 						// around if we weren't able to initialize it
 						if(!file.delete()) {
-							Log.error("ERROR: Couldn't delete created but un-initialized file \"" + getFilename(gameID) + "\"");
+							Log.error("Couldn't delete created but un-initialized file \"" + getFilename(gameID) + "\"");
 						}
 						try {
 							stream.close();
 						} catch (IOException e1) {
-							Log.error("ERROR: Couldn't close a FileOutputStream.");
+							Log.error("Couldn't close a FileOutputStream.");
 							e1.printStackTrace();
 						}
 						scanner.close();
@@ -650,16 +650,16 @@ public class GameDataManager {
 					try {
 						stream.close();
 					} catch (IOException e) {
-						Log.error("ERROR: Couldn't close a FileOutputStream.");
+						Log.error("Couldn't close a FileOutputStream.");
 						e.printStackTrace();
 					}
 				}
 				// Thrown if we can't open our newly-created file or the new game template
 				catch (FileNotFoundException e) {
-					Log.error("ERROR: Couldn't open either the file \"" + getFilename(gameID) + "\" or the file \"" + newGameTemplate + "\"");
+					Log.error("Couldn't open either the file \"" + getFilename(gameID) + "\" or the file \"" + newGameTemplate + "\"");
 					// Since we couldn't initialize the file, we delete it
 					if(!file.delete()) {
-						Log.error("ERROR: Couldn't delete created but un-initialized file \"" + getFilename(gameID) + "\"");
+						Log.error("Couldn't delete created but un-initialized file \"" + getFilename(gameID) + "\"");
 					}
 					return Protocol.SERVER_ERROR;
 				}
@@ -673,9 +673,9 @@ public class GameDataManager {
 				board = new Board();
 				board.initialize(scanner);
 			} catch (FileNotFoundException e) {
-				Log.error("ERROR: Couldn't open newly-created and initialized file \"" + getFilename(gameID) + "\" for scanning.");
+				Log.error("Couldn't open newly-created and initialized file \"" + getFilename(gameID) + "\" for scanning.");
 				if(!file.delete()) {
-					Log.error("ERROR: Couldn't delete created but un-initialized file \"" + getFilename(gameID) + "\"");
+					Log.error("Couldn't delete created but un-initialized file \"" + getFilename(gameID) + "\"");
 				}
 				return Protocol.SERVER_ERROR;
 			}
@@ -708,7 +708,7 @@ public class GameDataManager {
 	 */
 	public synchronized int joinGame(String gameID, String username) {
 		if(!userExists(username)) {
-			Log.error("ERROR: Username \"" + username + "\" is not associated with a user in the system. Cannot join a game.");
+			Log.error("Username \"" + username + "\" is not associated with a user in the system. Cannot join a game.");
 			return Protocol.SERVER_ERROR;
 		}
 		
@@ -752,7 +752,7 @@ public class GameDataManager {
  	 */
 	public synchronized int canLoadGame(String gameID, String username) {
 		if(!userExists(username)) {
-			Log.error("ERROR: Username \"" + username + "\" is not associated with a user in the system. Cannot load a game.");
+			Log.error("Username \"" + username + "\" is not associated with a user in the system. Cannot load a game.");
 			return Protocol.SERVER_ERROR;
 		}
 		
@@ -826,7 +826,7 @@ public class GameDataManager {
 	 */
 	public synchronized int makeMove(String gameID, Pair src, Pair dest, String username) {
 		if(!userExists(username)) {
-			Log.error("ERROR: Username \"" + username + "\" is not associated with a user in the system. Cannot make a move.");
+			Log.error("Username \"" + username + "\" is not associated with a user in the system. Cannot make a move.");
 			return Protocol.SERVER_ERROR;
 		}
 		
@@ -910,7 +910,7 @@ public class GameDataManager {
 	 */
 	public synchronized int promote(String gameID, char charRep, String username) {
 		if(!userExists(username)) {
-			Log.error("ERROR: Username \"" + username + "\" is not in the system. Cannot promote.");
+			Log.error("Username \"" + username + "\" is not in the system. Cannot promote.");
 			return Protocol.SERVER_ERROR;
 		}
 		
@@ -978,7 +978,7 @@ public class GameDataManager {
 	 */
 	public synchronized int draw(String gameID, String username) {
 		if(!userExists(username)) {
-			Log.error("ERROR: Username \"" + username + "\" is not in the system. Cannot offer/accept a draw.");
+			Log.error("Username \"" + username + "\" is not in the system. Cannot offer/accept a draw.");
 			return Protocol.SERVER_ERROR;
 		}
 		
@@ -1036,7 +1036,7 @@ public class GameDataManager {
 	 */
 	public synchronized int reject(String gameID, String username) {
 		if(!userExists(username)) {
-			Log.error("ERROR: Username \"" + username + "\" is not in the system. Cannot reject a draw.");
+			Log.error("Username \"" + username + "\" is not in the system. Cannot reject a draw.");
 			return Protocol.SERVER_ERROR;
 		}
 		
@@ -1091,7 +1091,7 @@ public class GameDataManager {
 	 */
 	public synchronized int forfeit(String gameID, String username) {
 		if(!userExists(username)) {
-			Log.error("ERROR: Username \"" + username + "\" is not in the system. Cannot forfeit a game.");
+			Log.error("Username \"" + username + "\" is not in the system. Cannot forfeit a game.");
 			return Protocol.SERVER_ERROR;
 		}
 		
@@ -1143,7 +1143,7 @@ public class GameDataManager {
 	 */
 	public synchronized int archive(String gameID, String username) {
 		if(!userExists(username)) {
-			Log.error("ERROR: Username \"" + username + "\" is not in the system. Cannot archive a game.");
+			Log.error("Username \"" + username + "\" is not in the system. Cannot archive a game.");
 			return Protocol.SERVER_ERROR;
 		}
 		
@@ -1184,7 +1184,7 @@ public class GameDataManager {
 	 */
 	public synchronized int restore(String gameID, String username) {
 		if(!userExists(username)) {
-			Log.error("ERROR: Username \"" + username + "\" is not in the system. Cannot archive a game.");
+			Log.error("Username \"" + username + "\" is not in the system. Cannot archive a game.");
 			return Protocol.SERVER_ERROR;
 		}
 		

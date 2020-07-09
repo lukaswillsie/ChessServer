@@ -243,7 +243,7 @@ class ChessProtocol implements Protocol {
 		
 		List<HashMap<GameData, Object>> games = manager.getGameData();
 		if(games == null) {
-			Log.error("ERROR: Error encountered in ClientManager.getGameData()");
+			Log.error("Error encountered in ClientManager.getGameData()");
 			return this.writeToClient(SERVER_ERROR);
 		}
 		
@@ -306,7 +306,7 @@ class ChessProtocol implements Protocol {
 			return this.writeToClient(CreateGame.GAMEID_IN_USE);
 		}
 		else {
-			Log.error("ERROR: error encountered in ClientManager.createGame()");
+			Log.error("Error encountered in ClientManager.createGame()");
 			return this.writeToClient(SERVER_ERROR);
 		}
 	}
@@ -346,7 +346,7 @@ class ChessProtocol implements Protocol {
 			return this.writeToClient(JoinGame.USER_ALREADY_IN_GAME);
 		}
 		else {
-			Log.error("ERROR: error encountered in manager.joinGame()");
+			Log.error("Error encountered in manager.joinGame()");
 			return this.writeToClient(SERVER_ERROR);
 		}
 	}	
@@ -374,7 +374,7 @@ class ChessProtocol implements Protocol {
 			List<Object> lines = this.manager.loadGame(gameID);
 			// Since we check canLoadGame() first, we know that if lines is null an error occurred
 			if(lines == null) {
-				Log.error("ERROR: An error occurred in ClientManager.loadGame()");
+				Log.error("An error occurred in ClientManager.loadGame()");
 				return 0;
 			}
 			
@@ -554,7 +554,7 @@ class ChessProtocol implements Protocol {
 				Log.log("charRep " + charRep + " is invalid. Promotion wasn't successful");
 				return this.writeToClient(Promote.CHAR_REP_INVALID);
 			default: // Only other case is server error
-				Log.error("ERROR: Error encountered in ClientManager.promote()");
+				Log.error("Error encountered in ClientManager.promote()");
 				return this.writeToClient(SERVER_ERROR);
 		}
 	}
@@ -598,7 +598,7 @@ class ChessProtocol implements Protocol {
 				Log.log("It is not user \"" + this.username + "\"'s turn in game \"" + rest + "\". Draw offer/accept was not successful.");
 				return this.writeToClient(Draw.NOT_USER_TURN);
 			default:	// The only other case is server error
-				Log.error("ERROR: Error encountered in ClientManager.draw(). Draw offer/accept was not successful.");
+				Log.error("Error encountered in ClientManager.draw(). Draw offer/accept was not successful.");
 				return this.writeToClient(SERVER_ERROR);
 		}
 	}
@@ -645,7 +645,7 @@ class ChessProtocol implements Protocol {
 				Log.log("There is no draw offer for user \"" + this.username + "\" to reject. Draw rejection was not successful.");
 				return this.writeToClient(Reject.NO_DRAW_OFFER);
 			default: 	// The only other case is server error
-				Log.error("ERROR: Error encountered in ClientManager.draw(). Draw rejection was not successful.");
+				Log.error("Error encountered in ClientManager.draw(). Draw rejection was not successful.");
 				return this.writeToClient(SERVER_ERROR);
 		}
 	}
@@ -689,7 +689,7 @@ class ChessProtocol implements Protocol {
 				Log.log("It is not user \"" + this.username + "\"'s turn in game \"" + rest + "\". Forfeit was not successful.");
 				return this.writeToClient(Forfeit.NOT_USER_TURN);
 			default: 
-				Log.error("ERROR: Error encountered in ClientManager.draw(). Forfeit was not successful.");
+				Log.error("Error encountered in ClientManager.draw(). Forfeit was not successful.");
 				return this.writeToClient(SERVER_ERROR);
 		}
 	}
@@ -724,7 +724,7 @@ class ChessProtocol implements Protocol {
 				Log.log("User \"" + this.username + "\" is not in game \"" + rest + "\". Archive was not successful.");
 				return this.writeToClient(Protocol.Archive.USER_NOT_IN_GAME);
 			default: // Only other case is server error
-				Log.error("ERROR: Error encountered in ClientManager.archive()");
+				Log.error("Error encountered in ClientManager.archive()");
 				return this.writeToClient(Protocol.SERVER_ERROR);
 		}
 	}
@@ -759,7 +759,7 @@ class ChessProtocol implements Protocol {
 				Log.log("User \"" + this.username + "\" is not in game \"" + rest + "\". Restoration was not successful.");
 				return this.writeToClient(Protocol.Restore.USER_NOT_IN_GAME);
 			default: // Only other case is server error
-				Log.error("ERROR: Error encountered in ClientManager.restore()");
+				Log.error("Error encountered in ClientManager.restore()");
 				return this.writeToClient(Protocol.SERVER_ERROR);
 		}
 	}

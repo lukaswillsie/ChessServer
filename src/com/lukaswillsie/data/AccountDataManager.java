@@ -62,7 +62,7 @@ public class AccountDataManager implements AccountManager {
 		try {
 			scanner = new Scanner(new File(accountsFile));
 		} catch (FileNotFoundException e) {
-			Log.error("ERROR: Couldn't open accounts file for scanning");
+			Log.error("Couldn't open accounts file for scanning");
 			return 1;
 		}
 		
@@ -76,7 +76,7 @@ public class AccountDataManager implements AccountManager {
 			split = line.split(",");
 			
 			if(split.length != 2) {
-				Log.error("ERROR: Line " + lineNumber + " of accounts file is incorrectly formatted");
+				Log.error("Line " + lineNumber + " of accounts file is incorrectly formatted");
 				return 1;
 			}
 			
@@ -109,16 +109,16 @@ public class AccountDataManager implements AccountManager {
 					unsavedUsers.remove(i);
 				}
 				catch(IOException e) {
-					Log.error("ERROR: COULDN'T SAVE USER (" + unsaved.getUsername() + "," + unsaved.getPassword() + ")");
+					Log.error("COULDN'T SAVE USER (" + unsaved.getUsername() + "," + unsaved.getPassword() + ")");
 					i++;
 				}
 			}
 		} catch (FileNotFoundException e) {
-			Log.error("ERROR: Couldn't open accounts file to save user data");
+			Log.error("Couldn't open accounts file to save user data");
 		}
 		// Thrown if usersOutput fails to close
 		catch (IOException e) {
-			Log.error("ERROR: Couldn't close accounts FileOutputStream");
+			Log.error("Couldn't close accounts FileOutputStream");
 			e.printStackTrace();
 		}
 	}
@@ -179,7 +179,7 @@ public class AccountDataManager implements AccountManager {
 			// we know that the file exists
 			accounts.createNewFile();
 		} catch (IOException e) {
-			Log.error("ERROR: Couldn't create accounts file with path \"" + accountsFile + "\"");
+			Log.error("Couldn't create accounts file with path \"" + accountsFile + "\"");
 			return 1;
 		}
 		
