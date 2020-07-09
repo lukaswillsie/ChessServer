@@ -13,7 +13,6 @@ import com.lukaswillsie.data.AccountManagerFactory;
 import com.lukaswillsie.data.ClientManager;
 import com.lukaswillsie.data.ClientManagerFactory;
 import com.lukaswillsie.data.GameData;
-import com.lukaswillsie.protocol.Protocol;
 import com.lukaswillsie.utility.Log;
 
 import Chess.com.lukaswillsie.chess.Pair;

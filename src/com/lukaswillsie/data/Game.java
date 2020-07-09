@@ -1,7 +1,6 @@
 package com.lukaswillsie.data;
 
 import java.util.HashMap;
-import java.util.List;
 
 import Chess.com.lukaswillsie.chess.Board;
 
@@ -12,6 +11,11 @@ public class Game {
 	 *
 	 */
 	public static class InvalidGameDataException extends Exception {
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = 1L;
+
 		private InvalidGameDataException(String message) {
 			super(message);
 		}
