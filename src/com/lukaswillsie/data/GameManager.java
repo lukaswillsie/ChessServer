@@ -48,12 +48,14 @@ public interface GameManager {
 	 * AccountManager.usernameExists(). So a username associated with a successful login or account
 	 * creation is also good to go. If the given username doesn't satisfy this condition, this method
 	 * logs the problem and returns Protocol.SERVER_ERROR.
+	 * @param open - whether or not the game to be created is "open", meaning all users can view and
+	 * join it if they want
 	 * 
 	 * @return 	Protocol.SERVER_ERROR 				- an error is encountered <br>
 	 * 			Protocol.CreateGame.SUCCESS 		- game created successfully <br>
 	 * 			Protocol.CreateGame.GAMEID_IN_USE 	- game already exists and hence cannot be created
 	 */
-	public abstract int createGame(String gameID, String username);
+	public abstract int createGame(String gameID, String username, boolean open);
 	
 	/**
 	 * Try to have the given user join the game with the given gameID
@@ -113,6 +115,13 @@ public interface GameManager {
 	 * is not in the system or the given user is not in the system
 	 */
 	public abstract List<Object> loadGame(String gameID);
+	
+	/**
+	 * Get a list of all open games in the system.
+	 * 
+	 * @return A list of every single open game in the system
+	 */
+	public abstract List<Game> openGames();
 	
 	/**
 	 * Try and make the given move in the given game. src is the square occupied by the piece

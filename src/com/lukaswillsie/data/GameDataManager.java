@@ -67,6 +67,12 @@ public class GameDataManager implements GameManager {
 	private List<Game> unsavedGames = new ArrayList<Game>();
 	
 	/**
+	 * A list of all open games. Open games are games that all users can see and join,
+	 * without having to be given the gameID by the game's creator.
+	 */
+	private List<Game> openGames = new ArrayList<Game>();
+	
+	/**
 	 * Tracks the total number of data-altering requests made since the last save
 	 */
 	private int requestsMade = 0;
@@ -306,8 +312,8 @@ public class GameDataManager implements GameManager {
 	
 	/**
 	 * Takes the given Game object and adds it to our collection of Game objects. Adds it to our
-	 * HashMap of games, and also ensures that it's added to its player(s) respective lists of
-	 * games.
+	 * HashMap of games, ensures that it's added to its player(s) respective lists of
+	 * games, and adds it to our list of open games if it's an open game.
 	 * 
 	 * @param game - the Game to add to our collection
 	 */
@@ -315,6 +321,11 @@ public class GameDataManager implements GameManager {
 		games.put((String)game.getData(GameData.GAMEID), game);
 		String white = (String)game.getData(GameData.WHITE);
 		String black = (String)game.getData(GameData.BLACK);
+		
+		// If the game is an open game, add it to our list
+		if((Integer) game.getData(GameData.OPEN) == 1) {
+			openGames.add(game);
+		}
 		
 		// If there's a white player
 		if(white.length() > 0) {
@@ -603,12 +614,14 @@ public class GameDataManager implements GameManager {
 	 * AccountManager.usernameExists(). So a username associated with a successful login or account
 	 * creation is also good to go. If the given username doesn't satisfy this condition, this method
 	 * logs the problem and returns Protocol.SERVER_ERROR.
+	 * @param open - whether or not the game to be created is "open", meaning all users can view and
+	 * join it if they want
 	 * 
 	 * @return 	Protocol.SERVER_ERROR 				- an error is encountered <br>
 	 * 			Protocol.CreateGame.SUCCESS 		- game created successfully <br>
 	 * 			Protocol.CreateGame.GAMEID_IN_USE 	- game already exists and hence cannot be created
 	 */
-	public synchronized int createGame(String gameID, String username) {
+	public synchronized int createGame(String gameID, String username, boolean open) {
 		if(getGame(gameID) != null) {
 			return Protocol.CreateGame.GAMEID_IN_USE;
 		}
@@ -704,6 +717,10 @@ public class GameDataManager implements GameManager {
 			Game game = new Game(gameID, board);
 			// Whoever creates the game plays white
 			game.setData(GameData.WHITE, username);
+			
+			if(open) {
+				game.setData(GameData.OPEN, 1);
+			}
 			addGame(game);
 			
 			requestMade();
@@ -757,8 +774,14 @@ public class GameDataManager implements GameManager {
 			else {
 				games.add(game);
 			}
-			requestMade();
 			
+			// If the game was open, we mark it as closed
+			boolean removed = openGames.remove(game);
+			if(removed) {
+				game.setData(GameData.OPEN, 0);
+			}
+			
+			requestMade();
 			return Protocol.JoinGame.SUCCESS;
 		}
 	}
@@ -828,6 +851,15 @@ public class GameDataManager implements GameManager {
 		}
 		
 		return game.getBoard().getSaveData();
+	}
+	
+	/**
+	 * Get a list of all open games in the system.
+	 * 
+	 * @return A list of every single open game in the system
+	 */
+	public synchronized List<Game> openGames() {
+		return openGames;
 	}
 	
 	/**

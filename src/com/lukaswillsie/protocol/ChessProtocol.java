@@ -50,6 +50,7 @@ class ChessProtocol implements Protocol {
 			"creategame",	// Usage: creategame gameID
 			"joingame",		// Usage: joingame gameID
 			"loadgame",		// Usage: loadgame gameID
+			"opengames",	// Usage: opengames
 			"move",			// Usage: move gameID src_row,src_col->dest_row,dest_col
 			"promote",		// Usage: promote gameID charRep
 			"draw",			// Usage: draw gameID
@@ -140,6 +141,9 @@ class ChessProtocol implements Protocol {
 				Log.log("Logged out user " + this.username + " for client " + socket.getInetAddress());
 				
 				this.username = null;
+			}
+			else if(command.equals("opengames")) {
+				return processOpenGames();
 			}
 			else {
 				Log.log("Command \"" + command + "\" is invalid.");
@@ -245,10 +249,14 @@ class ChessProtocol implements Protocol {
 		}
 		
 		// First we send the user the number of games to expect to receive
-		writeToClient(games.size());
+		int status;
+		status = writeToClient(games.size());
+		if(status == 1) {
+			return 1;
+		}
 		
 		// Then we take each game and write all of its data to the client in the proper order
-		int status;
+		
 		for(Game game : games) {
 			for(GameData data : GameData.order) {
 				if(data.type == 'i') {
@@ -270,20 +278,48 @@ class ChessProtocol implements Protocol {
 	}
 	
 	/**
-	 * Process a "creategame gameID" request. gameID is assumed to be the
-	 * "gameID" part of the creategame request. This method does not assume that
+	 * Process a "creategame gameID open" request. rest is assumed to be the
+	 * "gameID open" part of the creategame request. This method does not assume that
 	 * this String is properly formatted, so no pre-processing is required.
 	 * 
-	 * @param gameID - The gameID of the new game to create
+	 * @param rest - The part of a "creategame" command following "creategame "
 	 * @return 0 if the socket that this object is writing to is still connected <br>
 	 *         1 if the socket is found to have been disconnected
 	 */
-	private int processCreateGame(String gameID) {
+	private int processCreateGame(String rest) {
 		// The client can't create a game if it hasn't logged in a user, so check if
 		// it's logged anyone in and send the appropriate return code if they haven't.
 		if(this.username == null) {
 			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot create a game.");
 			return this.writeToClient(NO_USER);
+		}
+		
+		// rest should be of the form "gameID open". So we split it about the space
+		// and parse it
+		String[] splitted = rest.split(" ");
+		if(splitted.length != 2) {
+			Log.log("Command from " + socket.getInetAddress() + " is invalid");
+			return this.writeToClient(FORMAT_INVALID);
+		}
+		
+		String gameID = splitted[0];
+		boolean open;
+		try {
+			int val = Integer.parseInt(splitted[1]);
+			if(val == 0) {
+				open = false;
+			}
+			else if (val == 1) {
+				open = true;
+			}
+			else {
+				Log.log("\"open\" bit value from " + socket.getInetAddress() + " is not 0 or 1");
+				return this.writeToClient(FORMAT_INVALID);
+			}
+		}
+		catch(NumberFormatException e) {
+			Log.log("\"open\" bit value from " + socket.getInetAddress() + " couldn't be converted to int");
+			return this.writeToClient(FORMAT_INVALID);
 		}
 		
 		// gameIDs that contain commas are invalid (messes up the .csv file),
@@ -293,7 +329,7 @@ class ChessProtocol implements Protocol {
 			return this.writeToClient(CreateGame.FORMAT_INVALID);
 		}
 		
-		int code = this.manager.createGame(gameID, username);
+		int code = this.manager.createGame(gameID, username, open);
 		if(code == CreateGame.SUCCESS) {
 			Log.log("Game \"" + gameID + "\" successfully created.");
 			return this.writeToClient(CreateGame.SUCCESS);
@@ -406,6 +442,47 @@ class ChessProtocol implements Protocol {
 			Log.log("ERROR: Error encountered in ClientManager.canLoadGame()");
 			return this.writeToClient(SERVER_ERROR);
 		}
+	}
+	
+	/**
+	 * Process an "opengames" request. Gets a list of all open games in the system and sends them
+	 * to the client.
+	 * 
+	 * @return 0 if the command is processed and the client is still believed to be connected
+	 * 			 when the method terminates <br>
+	 * 		   1 if the client is found to have disconnected during the execution of this method
+	 */
+	private int processOpenGames() {
+		if(this.username == null) {
+			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot get open games.");
+			return this.writeToClient(NO_USER);
+		}
+		
+		List<Game> openGames = manager.openGames();
+		
+		int write = this.writeToClient(openGames.size());
+		if(write == 1) {
+			return 1;
+		}
+		
+		for(Game game : openGames) {
+			for(GameData data : GameData.order) {
+				if(data.type == 'i') {
+					write = this.writeToClient((Integer) game.getData(data));
+					if(write == 1) {
+						return 1;
+					}
+				}
+				else {
+					write = this.writeToClient((String) game.getData(data));
+					if(write == 1) {
+						return 1;
+					}
+				}
+			}
+		}
+		
+		return 0;
 	}
 	
 	/**
@@ -770,21 +847,23 @@ class ChessProtocol implements Protocol {
 	 * 		   1 if the client is found to have disconnected
 	 */
 	private int writeToClient(int num) {
-//		try {
-//			 out.writeInt(num);
-//			 return 0;
-//		}
-//		catch(SocketException e) {
-//			return 1;
-//		}
-//		catch(IOException e) {
-//			e.printStackTrace();
-//			Log.log("Encountered exception writing to " + socket.getInetAddress());
-//			System.exit(1);
-//			return 1; // We'll never get here, but have to do this to make the compiler happy
-//		}
-		System.out.println(num);
-		return 0;
+		try {
+			 out.writeInt(num);
+			 return 0;
+		}
+		catch(SocketException e) {
+			return 1;
+		}
+		catch(IOException e) {
+			e.printStackTrace();
+			Log.log("Encountered exception writing to " + socket.getInetAddress());
+			System.exit(1);
+			return 1; // We'll never get here, but have to do this to make the compiler happy
+		}
+		
+		// These lines are here for testing purposes
+//		System.out.println(num);
+//		return 0;
 	}
 	
 	/**
@@ -799,24 +878,26 @@ class ChessProtocol implements Protocol {
 	 * 		   1 if the client is found to have disconnected
 	 */
 	private int writeToClient(String msg) {
-//		try {
-//			for(int i = 0; i < msg.length(); i++) {
-//				out.write(msg.charAt(i));
-//			}
-//			out.write('\r');
-//			out.write('\n');
-//			return 0;
-//		}
-//		catch(SocketException e) {
-//			return 1;
-//		}
-//		catch(IOException e) {
-//			e.printStackTrace();
-//			Log.log("Encountered exception writing to " + socket.getInetAddress() + ". Exiting thread");
-//			System.exit(1);
-//			return 1; // We'll never get here, but have to do this to make the compiler happy
-//		}
-		System.out.println(msg);
-		return 0;
+		try {
+			for(int i = 0; i < msg.length(); i++) {
+				out.write(msg.charAt(i));
+			}
+			out.write('\r');
+			out.write('\n');
+			return 0;
+		}
+		catch(SocketException e) {
+			return 1;
+		}
+		catch(IOException e) {
+			e.printStackTrace();
+			Log.log("Encountered exception writing to " + socket.getInetAddress() + ". Exiting thread");
+			System.exit(1);
+			return 1; // We'll never get here, but have to do this to make the compiler happy
+		}
+		
+		// These lines are here for testing purposes
+//		System.out.println(msg);
+//		return 0;
 	}
 }
