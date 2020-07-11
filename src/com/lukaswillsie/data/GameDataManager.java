@@ -1,5 +1,6 @@
 package com.lukaswillsie.data;
 
+import java.awt.BufferCapabilities.FlipContents;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -917,25 +918,35 @@ public class GameDataManager implements GameManager {
 		
 		int result = game.getBoard().move(src, dest);
 		switch(result) {
-			// We put case 0 before case -1 here to make use of Java's fall-through feature. A return code
-			// of -1 indicates that the move was successfully made, but now a promotion is required. This is
-			// important because it means that the user's turn isn't yet over. So we only want to change the turn flag
-			// and increment the turn counter if we get a 0 return code. However, in both cases we want
-			// to check if the move resulted in checkmate, so we use fall-through here to prevent copying code.
+			// -1 means that the move was successful, and that a promotion is now required.
+			// i.e. it is still the user's turn. 0 means a normal move was successful
+			case -1:
+				Colour colour = (Integer) game.getData(GameData.STATE) == 1 ? Colour.BLACK : Colour.WHITE;
+				// The move could have brought checkmate
+				if(game.getBoard().isCheckmate(colour)) {
+					game.setData(GameData.WINNER, username);
+				}
+				
+				unsavedGames.add(game);
+				requestMade();
+				return Protocol.Move.SUCCESS;
 			case 0:
 				// Increment the turn counter if the user, who just moved, is black
-				Colour colour = (Integer) game.getData(GameData.STATE) == 1 ? Colour.BLACK : Colour.WHITE;
+				colour = (Integer) game.getData(GameData.STATE) == 1 ? Colour.BLACK : Colour.WHITE;
 				if(colour == Colour.BLACK) {
 					game.setData(GameData.TURN, (Integer)game.getData(GameData.TURN) + 1);
 				}
 				
-				// Make it the other player's turn now
-				switchTurn(game);
-			case -1:
-				colour = (Integer) game.getData(GameData.STATE) == 1 ? Colour.BLACK : Colour.WHITE;
-				// The move could have brought checkmate
+				// The move could have brought checkmate or stalemate
 				if(game.getBoard().isCheckmate(colour)) {
 					game.setData(GameData.WINNER, username);
+				}
+				else if(game.getBoard().isStalemate()) {
+					game.setData(GameData.DRAWN, 1);
+				}
+				else {
+					// Make it the other player's turn now that we know the game isn't over
+					switchTurn(game);
 				}
 				
 				unsavedGames.add(game);

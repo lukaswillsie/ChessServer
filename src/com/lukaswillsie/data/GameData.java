@@ -21,10 +21,11 @@ public enum GameData {
 	DRAW_OFFERED("0", 8, 'i'),		// 1 if a draw has been offered, and the player whose turn it is
 									// needs to respond
 	DRAWN("0", 9, 'i'),				// 1 if the players in this game have agreed to a draw, 0 otherwise
-	WINNER("", 10, 's'),				// Contains the name of the winner, or the empty String if there isn't a winner
+	WINNER("", 10, 's'),			// Contains the name of the winner, or the empty String if there isn't a winner
 	WHITE_CHK("0", 11, 'i'),		// 1 if white is in check, 0 if not
 	BLACK_CHK("0", 12, 'i'),		// 1 if black is in check, 0 if not
 	PROMOTION_NEEDED("0", 13, 'i');	// 1 if the player whose turn it is needs to promote a piece before their turn can end
+	
 	
 	// This array contains all the GameData values, in the order in which they should be sent to clients,
 	// and the order in which they should appear in the active_games.csv file. This is the exact same as
