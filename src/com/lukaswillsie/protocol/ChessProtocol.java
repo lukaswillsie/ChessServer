@@ -102,7 +102,7 @@ class ChessProtocol implements Protocol {
 					return processCreateGame(rest);
 				}
 				else if(keyword.equals("joingame")) {
-					return processJoingame(rest);
+					return processJoinGame(rest);
 				}
 				else if(keyword.equals("loadgame")) {
 					return processLoadgame(rest);
@@ -317,7 +317,7 @@ class ChessProtocol implements Protocol {
 	 * @return 0 if the socket that this object is writing to is still connected <br>
 	 *         1 if the socket is found to have been disconnected
 	 */
-	private int processJoingame(String gameID) {
+	private int processJoinGame(String gameID) {
 		// The client can't create a game if it hasn't logged in a user, so check if
 		// it's logged anyone in and send the appropriate return code if they haven't.
 		if(this.username == null) {
@@ -770,19 +770,21 @@ class ChessProtocol implements Protocol {
 	 * 		   1 if the client is found to have disconnected
 	 */
 	private int writeToClient(int num) {
-		try {
-			 out.writeInt(num);
-			 return 0;
-		}
-		catch(SocketException e) {
-			return 1;
-		}
-		catch(IOException e) {
-			e.printStackTrace();
-			Log.log("Encountered exception writing to " + socket.getInetAddress());
-			System.exit(1);
-			return 1; // We'll never get here, but have to do this to make the compiler happy
-		}
+//		try {
+//			 out.writeInt(num);
+//			 return 0;
+//		}
+//		catch(SocketException e) {
+//			return 1;
+//		}
+//		catch(IOException e) {
+//			e.printStackTrace();
+//			Log.log("Encountered exception writing to " + socket.getInetAddress());
+//			System.exit(1);
+//			return 1; // We'll never get here, but have to do this to make the compiler happy
+//		}
+		System.out.println(num);
+		return 0;
 	}
 	
 	/**
@@ -797,22 +799,24 @@ class ChessProtocol implements Protocol {
 	 * 		   1 if the client is found to have disconnected
 	 */
 	private int writeToClient(String msg) {
-		try {
-			for(int i = 0; i < msg.length(); i++) {
-				out.write(msg.charAt(i));
-			}
-			out.write('\r');
-			out.write('\n');
-			return 0;
-		}
-		catch(SocketException e) {
-			return 1;
-		}
-		catch(IOException e) {
-			e.printStackTrace();
-			Log.log("Encountered exception writing to " + socket.getInetAddress() + ". Exiting thread");
-			System.exit(1);
-			return 1; // We'll never get here, but have to do this to make the compiler happy
-		}
+//		try {
+//			for(int i = 0; i < msg.length(); i++) {
+//				out.write(msg.charAt(i));
+//			}
+//			out.write('\r');
+//			out.write('\n');
+//			return 0;
+//		}
+//		catch(SocketException e) {
+//			return 1;
+//		}
+//		catch(IOException e) {
+//			e.printStackTrace();
+//			Log.log("Encountered exception writing to " + socket.getInetAddress() + ". Exiting thread");
+//			System.exit(1);
+//			return 1; // We'll never get here, but have to do this to make the compiler happy
+//		}
+		System.out.println(msg);
+		return 0;
 	}
 }

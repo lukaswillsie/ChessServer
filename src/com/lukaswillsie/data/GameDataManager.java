@@ -42,6 +42,10 @@ public class GameDataManager implements GameManager {
 	private static final String newGameTemplate = "serverdata/games/standard/new_board.txt";
 	private static final String templateFolder = "serverdata/games/standard";
 	
+	/**
+	 * Is used to access information about user accounts; namely if particular
+	 * usernames are associated with actual users in the system
+	 */
 	private AccountDataManager accountManager;
 	
 	/**
@@ -73,11 +77,14 @@ public class GameDataManager implements GameManager {
 	 */
 	private static final int REQUESTS_BEFORE_SAVE = 20;
 	
-	/**
-	 * Keeps track of whether any high-level game data has been changed SINCE THE LAST SAVE. High-level
-	 * game data is the data that is stored in the .csv file containing a list of all games in the system.
-	 */
-	private boolean gamesChanged = false;
+	private class SaveThread extends Thread {
+		@Override
+		public void run() {
+			Log.log("Saving game data on exit...");
+			save();
+			Log.log("Finished saving game data");
+		}
+	}
 	
 	/**
 	 * Create a new GameDataManager object. Note that this object shouldn't be used
@@ -236,6 +243,8 @@ public class GameDataManager implements GameManager {
 			addGame(game);
 		}
 		
+		
+		Runtime.getRuntime().addShutdownHook(new SaveThread());
 		return 0;
 	}	
 	
@@ -367,31 +376,29 @@ public class GameDataManager implements GameManager {
 	 * Saves all game data we have stored in memory in the proper files. If an IO error occurs, logs the problem and 
 	 * dumps what the contents of a file SHOULD BE to the console.
 	 */
-	private void save() {
+	private synchronized void save() {
 		// Save all of our high-level game data in the proper file, if any of it has changed
-		if(gamesChanged) {
-			try(FileOutputStream gamesOutput = new FileOutputStream(new File(gamesFile))) {
-				
-				try {
-					for(Game game : getGames()) {
-						String line = toLine(game);
-						gamesOutput.write((line + "\n").getBytes());
-					}		
-				}
-				catch(IOException e) {
-					Log.error("Problem writing to games file \"" + gamesFile + "\"");
-					dumpGames();
-				}
-			} catch (FileNotFoundException e) {
-				Log.error("games file \"" + gamesFile + "\" does not exist.");
+		try(FileOutputStream gamesOutput = new FileOutputStream(new File(gamesFile))) {
+			
+			try {
+				for(Game game : getGames()) {
+					String line = toLine(game);
+					gamesOutput.write((line + "\n").getBytes());
+				}		
+			}
+			catch(IOException e) {
+				Log.error("Problem writing to games file \"" + gamesFile + "\"");
 				dumpGames();
 			}
-			// Thrown if gamesOutput fails to close
-			catch (IOException e) {
-				Log.error("Couldn't close games FileOutputStream");
-				e.printStackTrace();
-			}	
+		} catch (FileNotFoundException e) {
+			Log.error("games file \"" + gamesFile + "\" does not exist.");
+			dumpGames();
 		}
+		// Thrown if gamesOutput fails to close
+		catch (IOException e) {
+			Log.error("Couldn't close games FileOutputStream");
+			e.printStackTrace();
+		}	
 		
 		// Try and save data for all of our as yet unsaved games
 		for(Game game : unsavedGames) {
@@ -478,6 +485,7 @@ public class GameDataManager implements GameManager {
 	private void requestMade() {
 		this.requestsMade++;
 		if(this.requestsMade >= REQUESTS_BEFORE_SAVE) {
+			Log.log("Initiating automatic save...");
 			save();
 			this.requestsMade = 0;
 		}
@@ -568,8 +576,22 @@ public class GameDataManager implements GameManager {
 	 * @return - A list of Game objects corresponding to all games being played by this user
 	 */
 	public synchronized List<Game> getGameData(String username) {
-		// We've already got a list of games for each user, so all we have to do is get it
-		return userGames.get(username);
+		// If the given username corresponds to a user in the system
+		if(accountManager.usernameExists(username)) {
+			// If we don't have any games for the current user, return an empty list
+			List<Game> games = userGames.get(username);
+			if(games == null) {
+				List<Game> list = new ArrayList<Game>();
+				userGames.put(username, list);
+				return list;
+			}
+			else {
+				return games;
+			}
+		}
+		else {
+			return null;
+		}
 	}
 	
 	/**
@@ -591,7 +613,6 @@ public class GameDataManager implements GameManager {
 			return Protocol.CreateGame.GAMEID_IN_USE;
 		}
 		else if (!userExists(username)) {
-			// TODO: Consider adding a return code for this scenario
 			Log.error("Username \"" + username + "\" is not a valid username. Cannot process request to create game.");
 			return Protocol.SERVER_ERROR;
 		}
@@ -621,7 +642,7 @@ public class GameDataManager implements GameManager {
 				// Initialize the newly-created file from our new game template file
 				try {
 					FileOutputStream stream = new FileOutputStream(file);
-					Scanner scanner = new Scanner(newGameTemplate);
+					Scanner scanner = new Scanner(new File(newGameTemplate));
 					
 					try {
 						String line;
@@ -724,8 +745,18 @@ public class GameDataManager implements GameManager {
 		}
 		else {
 			game.setData(GameData.BLACK, username);
+			
 			// Add game to the user's list of games
-			userGames.get(username).add(game);
+			List<Game> games = userGames.get(username);
+			// If the user isn't in a game yet, this will happen
+			if(games == null) {
+				games = new ArrayList<Game>();
+				games.add(game);
+				userGames.put(username, games);
+			}
+			else {
+				games.add(game);
+			}
 			requestMade();
 			
 			return Protocol.JoinGame.SUCCESS;
@@ -875,6 +906,7 @@ public class GameDataManager implements GameManager {
 					game.setData(GameData.WINNER, username);
 				}
 				
+				unsavedGames.add(game);
 				requestMade();
 				return Protocol.Move.SUCCESS;
 			case 1:

@@ -46,6 +46,15 @@ public class AccountDataManager implements AccountManager {
 	 */
 	private HashMap<String, User> users = new HashMap<String, User>();
 	
+	private class SaveThread extends Thread {
+		@Override
+		public void run() {
+			Log.log("Saving account data on exit...");
+			save();
+			Log.log("Finished saving account data");
+		}
+	}
+	
 	/**
 	 * Set this object up for use. AccountDataManager objects should NOT be used unless
 	 * this method has been called and has returned successfully.
@@ -87,6 +96,7 @@ public class AccountDataManager implements AccountManager {
 			lineNumber++;
 		}
 		
+		Runtime.getRuntime().addShutdownHook(new SaveThread());
 		return 0;
 	}
 	
@@ -95,7 +105,7 @@ public class AccountDataManager implements AccountManager {
 	 * Users if their information is successfully saved, leaving them in the list and logging
 	 * their information to the console if not.
 	 */
-	private void save() {
+	private synchronized void save() {
 		try(FileOutputStream usersOutput = new FileOutputStream(new File(accountsFile), true)) {
 			String line;
 			User unsaved;
@@ -175,7 +185,7 @@ public class AccountDataManager implements AccountManager {
 	private int createFiles() {
 		File accounts = new File(accountsFile);
 		try {
-			// We don't care about createNewFile's return value because regardless,
+			// We don't care about createNewFile()'s return value because regardless,
 			// we know that the file exists
 			accounts.createNewFile();
 		} catch (IOException e) {
@@ -195,7 +205,6 @@ public class AccountDataManager implements AccountManager {
 	private void addUser(User user) {
 		if(users.get(user.getUsername()) == null) {
 			users.put(user.getUsername(), user);
-			unsavedUsers.add(user);
 		}
 		else {
 			Log.log("WARNING: Tried to add users with username \"" + user.getUsername() + "\" twice");
@@ -212,7 +221,7 @@ public class AccountDataManager implements AccountManager {
 	 * in the system
 	 */
 	@Override
-	public boolean validCredentials(String username, String password) {
+	public synchronized boolean validCredentials(String username, String password) {
 		User user = users.get(username);
 		
 		if(user == null) {
@@ -234,7 +243,7 @@ public class AccountDataManager implements AccountManager {
 	 * account in the sytem
 	 */
 	@Override
-	public boolean usernameExists(String username) {
+	public synchronized boolean usernameExists(String username) {
 		return users.get(username) != null;
 	}
 	
@@ -250,7 +259,7 @@ public class AccountDataManager implements AccountManager {
 	 * and password
 	 */
 	@Override
-	public boolean addAccount(String username, String password) {
+	public synchronized boolean addAccount(String username, String password) {
 		if(usernameExists(username)) {
 			return false;
 		}
@@ -260,6 +269,7 @@ public class AccountDataManager implements AccountManager {
 		else {
 			User newUser = new User(username, password);
 			addUser(newUser);
+			unsavedUsers.add(newUser);
 			// Check if we've added enough accounts that we now need to save
 			if(unsavedUsers.size() > USER_ACCOUNTS_BEFORE_SAVE) {
 				save();

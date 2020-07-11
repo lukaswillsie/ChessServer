@@ -48,14 +48,17 @@ public class Game {
 			data[i] = GameData.order[i].getInitial();
 		}
 		
-		initializeAsNewGame();
+		initializeAsNewGame(gameID);
 	}
 	
 	/**
 	 * Initialize this object as if it were a newly-created game. Sets all of this
-	 * game's data fields to their initial values.
+	 * game's data fields to their initial values, except gameID, which is
+	 * passed as a parameter.
+	 * 
+	 * @param gameID - the ID of this game
 	 */
-	private void initializeAsNewGame() {
+	private void initializeAsNewGame(String gameID) {
 		String[] data = new String[GameData.order.length];
 		for(int i = 0; i < GameData.order.length; i++) {
 			data[i] = GameData.order[i].getInitial();
@@ -65,7 +68,10 @@ public class Game {
 		for(int i = 0; i < GameData.order.length; i++) {
 			dataType = GameData.order[i];
 			
-			if(dataType.type == 'i') {
+			if(dataType == GameData.GAMEID) {
+				this.data.put(GameData.GAMEID, gameID);
+			}
+			else if(dataType.type == 'i') {
 				this.data.put(dataType, Integer.parseInt(data[i]));
 			}
 			else if(dataType.type == 's') {
