@@ -459,12 +459,18 @@ class ChessProtocol implements Protocol {
 		}
 		
 		List<Game> openGames = manager.openGames();
+		// If there's an error, notify the client
+		if(openGames == null) {
+			return this.writeToClient(SERVER_ERROR);
+		}
 		
+		// Otherwise, we first tell them how many games to expect
 		int write = this.writeToClient(openGames.size());
 		if(write == 1) {
 			return 1;
 		}
 		
+		// And then write each game's data to them in the order defined by GameData.order
 		for(Game game : openGames) {
 			for(GameData data : GameData.order) {
 				if(data.type == 'i') {

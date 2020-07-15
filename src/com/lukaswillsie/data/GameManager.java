@@ -117,9 +117,10 @@ public interface GameManager {
 	public abstract List<Object> loadGame(String gameID);
 	
 	/**
-	 * Get a list of all open games in the system.
+	 * Get a list of all open games in the system. Returns null on error.
 	 * 
-	 * @return A list of every single open game in the system
+	 * @return A list of every single open game in the system, or null if there is
+	 * an error accessing this information.
 	 */
 	public abstract List<Game> openGames();
 	

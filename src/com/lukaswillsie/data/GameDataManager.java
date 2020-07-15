@@ -855,9 +855,10 @@ public class GameDataManager implements GameManager {
 	}
 	
 	/**
-	 * Get a list of all open games in the system.
+	 * Get a list of all open games in the system. Returns null on error.
 	 * 
-	 * @return A list of every single open game in the system
+	 * @return A list of every single open game in the system, or null if there is
+	 * an error accessing this information.
 	 */
 	public synchronized List<Game> openGames() {
 		return openGames;
