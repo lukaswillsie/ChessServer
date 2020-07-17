@@ -120,8 +120,29 @@ public interface Protocol {
 	 *
 	 */
 	public static class LoadGame {
+		// Return code on success
 		public static final int SUCCESS = 0;
+		
+		// Return code if the game specified does not exist
 		public static final int GAME_DOES_NOT_EXIST = 1;
+		
+		// Return code if the client's logged in user is not a player in the specified game
+		public static final int USER_NOT_IN_GAME = 2;
+	}
+	
+	/**
+	 * Defines return codes specific to the "getgamedata gameID" command, for getting the data associated
+	 * with a particular game (not the state of the board, but the name of the players, whose turn it
+	 * is, the turn number, etc.)
+	 */
+	public static class GetGameData {
+		// Return code on success
+		public static final int SUCCESS = 0;
+		
+		// Return code if the game specified does not exist
+		public static final int GAME_DOES_NOT_EXIST = 1;
+		
+		// Return code if the client's logged in user is not a player in the specified game
 		public static final int USER_NOT_IN_GAME = 2;
 	}
 	

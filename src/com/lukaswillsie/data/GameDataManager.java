@@ -587,7 +587,7 @@ public class GameDataManager implements GameManager {
 	 * 
 	 * @return - A list of Game objects corresponding to all games being played by this user
 	 */
-	public synchronized List<Game> getGameData(String username) {
+	public synchronized List<Game> getGames(String username) {
 		// If the given username corresponds to a user in the system
 		if(accountManager.usernameExists(username)) {
 			// If we don't have any games for the current user, return an empty list
@@ -854,6 +854,18 @@ public class GameDataManager implements GameManager {
 		return game.getBoard().getSaveData();
 	}
 	
+	/**
+	 * Return the game object associated with the given gameID. Returns null if the given gameID isn't associated with
+	 * a game in the system
+	 * 
+	 * @param gameID - the ID of the game to be searched for
+	 * @return The Game object associated with the given ID, or null if no such Game exists
+	 */
+	@Override
+	public Game getGameData(String gameID) {
+		return getGame(gameID);
+	}
+
 	/**
 	 * Get a list of all open games in the system. Returns null on error.
 	 * 

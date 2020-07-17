@@ -50,6 +50,7 @@ class ChessProtocol implements Protocol {
 			"creategame",	// Usage: creategame gameID
 			"joingame",		// Usage: joingame gameID
 			"loadgame",		// Usage: loadgame gameID
+			"getgamedata",		// Usage: gamedata gameID
 			"opengames",	// Usage: opengames
 			"move",			// Usage: move gameID src_row,src_col->dest_row,dest_col
 			"promote",		// Usage: promote gameID charRep
@@ -108,6 +109,9 @@ class ChessProtocol implements Protocol {
 				else if(keyword.equals("loadgame")) {
 					return processLoadgame(rest);
 				}
+				else if(keyword.equals("getgamedata")) {
+					return processGameData(rest);
+				}
 				else if(keyword.equals("move")) {
 					return processMove(rest);
 				}
@@ -129,9 +133,9 @@ class ChessProtocol implements Protocol {
 				else if(keyword.equals("reject")) {
 					return processReject(rest);
 				}
-				else {
-					Log.log("Command \"" + command + "\" is invalid.");
-				}
+			}
+			else {
+				Log.log("Command \"" + command + "\" is invalid.");
 			}
 			return 0;
 			// If keyword is not in the list of valid keywords, do nothing
@@ -242,9 +246,9 @@ class ChessProtocol implements Protocol {
 		// the user's game data
 		this.username = username;
 		
-		List<Game> games = manager.getGameData(username);
+		List<Game> games = manager.getGames(username);
 		if(games == null) {
-			Log.error("Error encountered in ClientManager.getGameData()");
+			Log.error("Error encountered in ClientManager.getGames()");
 			return this.writeToClient(SERVER_ERROR);
 		}
 		
@@ -439,17 +443,78 @@ class ChessProtocol implements Protocol {
 			return this.writeToClient(LoadGame.USER_NOT_IN_GAME);
 		}
 		else {
-			Log.log("ERROR: Error encountered in ClientManager.canLoadGame()");
+			Log.log("ERROR: Error encountered in GameManager.canLoadGame()");
 			return this.writeToClient(SERVER_ERROR);
 		}
 	}
 	
 	/**
+	 * Process a "getgamedata gameID" request. Gets all the data associated with the game
+	 * that has the given ID, if there is one, and sends it to the client. rest is assumed to
+	 * be everything after "getgamedata " in the initial request (does not have to be pre-processed)
+	 * 
+	 * @param rest - everything following the "getgamedata " part of a request from a client
+	 * @return
+	 */
+	private int processGameData(String rest) {
+		if(this.username == null) {
+			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot get open games.");
+			return this.writeToClient(NO_USER);
+		}
+		
+		int res = manager.canLoadGame(rest, this.username);
+		if(res == Protocol.SERVER_ERROR) {
+			Log.log("Error encountered in GameManager.canLoadGame()");
+			return this.writeToClient(SERVER_ERROR);
+		}
+		else if (res == Protocol.LoadGame.GAME_DOES_NOT_EXIST) {
+			Log.log("Game \"" + rest + "\" does not exist");
+			return this.writeToClient(GetGameData.GAME_DOES_NOT_EXIST);
+			
+		}
+		else if (res == Protocol.LoadGame.USER_NOT_IN_GAME) {
+			Log.log("User \"" + username + "\" is not in game \"" + rest + "\"");
+			return this.writeToClient(GetGameData.USER_NOT_IN_GAME);
+		}
+		// Only other return code is success, so we proceed.
+		
+		Game game = manager.getGameData(rest);
+		if(game == null) {
+			Log.log("Manager told us game \"" + rest + "\" exists but returned null in getGame()");
+			return this.writeToClient(SERVER_ERROR);
+		}
+		// First we notify the client that we're about to send along the data they wanted
+		else {
+			res = this.writeToClient(GetGameData.SUCCESS);
+			if(res == 1) {
+				return 1;
+			}
+		}
+		
+		for(GameData data : GameData.order) {
+			if(data.type == 'i') {
+				res = this.writeToClient((Integer)game.getData(data));
+				if(res == 1) {
+					return 1;
+				}
+			}
+			else if (data.type == 's') {
+				res = this.writeToClient((String)game.getData(data));
+				if(res == 1) {
+					return 1;
+				}
+			}
+		}
+		
+		return 0;
+	}
+
+	/**
 	 * Process an "opengames" request. Gets a list of all open games in the system and sends them
 	 * to the client.
 	 * 
 	 * @return 0 if the command is processed and the client is still believed to be connected
-	 * 			 when the method terminates <br>
+	 * 			 when the method terminates <br>git s
 	 * 		   1 if the client is found to have disconnected during the execution of this method
 	 */
 	private int processOpenGames() {

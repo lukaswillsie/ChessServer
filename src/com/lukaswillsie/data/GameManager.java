@@ -37,7 +37,7 @@ public interface GameManager {
 	 * 
 	 * @return - A list of Game objects corresponding to all games being played by this user
 	 */
-	public abstract List<Game> getGameData(String username);
+	public abstract List<Game> getGames(String username);
 	
 	/**
 	 * Create a game with the given gameID under the given user's name.
@@ -115,6 +115,15 @@ public interface GameManager {
 	 * is not in the system or the given user is not in the system
 	 */
 	public abstract List<Object> loadGame(String gameID);
+	
+	/**
+	 * Return the game object associated with the given gameID. Returns null if the given gameID isn't associated with
+	 * a game in the system
+	 * 
+	 * @param gameID - the ID of the game to be searched for
+	 * @return The Game object associated with the given ID, or null if no such Game exists
+	 */
+	public abstract Game getGameData(String gameID);
 	
 	/**
 	 * Get a list of all open games in the system. Returns null on error.
