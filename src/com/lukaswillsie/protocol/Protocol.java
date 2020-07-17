@@ -10,17 +10,16 @@ package com.lukaswillsie.protocol;
  * have no need.
  * 
  * @author Lukas Willsie
- *
  */
 public interface Protocol {
-	// Return code if a critical error is encountered while processing a command
-	public static final int SERVER_ERROR = -1;
-	
-	// Return code if an invalidly formatted command is received
-	public static final int FORMAT_INVALID = -2;
-	
 	// Return code if a client tries to make a request before logging in a user
 	public static final int NO_USER = -3;
+		
+	// Return code if an invalidly formatted command is received
+	public static final int FORMAT_INVALID = -2;
+		
+	// Return code if a critical error is encountered while processing a command
+	public static final int SERVER_ERROR = -1;
 	
 	/**
 	 * Any Protocol object should be able to take a String, a command from a client,
