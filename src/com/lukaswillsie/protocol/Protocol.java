@@ -104,12 +104,12 @@ public interface Protocol {
 		// Return code if provided gameID does not represent an existing game
 		public static final int GAME_DOES_NOT_EXIST = 1;
 		
-		// Return code if the given gameID already has two players
-		public static final int GAME_FULL = 2;
-		
 		// Return code if the user has already joined the game represented by the
 		// provided gameID
-		public static final int USER_ALREADY_IN_GAME = 3;
+		public static final int USER_ALREADY_IN_GAME = 2;
+		
+		// Return code if the given gameID already has two players
+		public static final int GAME_FULL = 3;
 	}
 	
 	/**

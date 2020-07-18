@@ -742,8 +742,8 @@ public class GameDataManager implements GameManager {
 	 * @return 	Protocol.SERVER_ERROR 					- an error is encountered <br>
 	 * 			Protocol.JoinGame.SUCCESS 				- game joined successfully <br>
 	 * 			Protocol.JoinGame.GAME_DOES_NOT_EXIST 	- game does not exist <br>
-	 * 			Protocol.JoinGame.GAME_FULL 			- game is already full <br>
-	 * 			Protocol.JoinGame.USER_ALREADY_IN_GAME 	- the user has already joined that game
+	 * 			Protocol.JoinGame.USER_ALREADY_IN_GAME 	- the user has already joined that game <br>
+	 * 			Protocol.JoinGame.GAME_FULL 			- game is already full
 	 */
 	public synchronized int joinGame(String gameID, String username) {
 		if(!userExists(username)) {
@@ -755,12 +755,13 @@ public class GameDataManager implements GameManager {
 		if(game == null) {
 			return Protocol.JoinGame.GAME_DOES_NOT_EXIST;
 		}
-		else if(gameIsFull(game)) {
-			return Protocol.JoinGame.GAME_FULL;
-		}
 		else if(userInGame(game, username)) {
 			return Protocol.JoinGame.USER_ALREADY_IN_GAME;
 		}
+		else if(gameIsFull(game)) {
+			return Protocol.JoinGame.GAME_FULL;
+		}
+		
 		else {
 			game.setData(GameData.BLACK, username);
 			

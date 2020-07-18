@@ -374,13 +374,13 @@ class ChessProtocol implements Protocol {
 			Log.log("Game \"" + gameID + "\" does not exist, so it could not be joined.");
 			return this.writeToClient(JoinGame.GAME_DOES_NOT_EXIST);
 		}
-		else if (code == JoinGame.GAME_FULL) {
-			Log.log("Game \"" + gameID + "\" is already full, so it could not be joined");
-			return this.writeToClient(JoinGame.GAME_FULL);
-		}
 		else if (code == JoinGame.USER_ALREADY_IN_GAME) {
 			Log.log("User " + this.username + " is already in game \"" + gameID + "\"");
 			return this.writeToClient(JoinGame.USER_ALREADY_IN_GAME);
+		}
+		else if (code == JoinGame.GAME_FULL) {
+			Log.log("Game \"" + gameID + "\" is already full, so it could not be joined");
+			return this.writeToClient(JoinGame.GAME_FULL);
 		}
 		else {
 			Log.error("Error encountered in manager.joinGame()");
