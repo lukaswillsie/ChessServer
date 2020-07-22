@@ -409,10 +409,15 @@ class ChessProtocol implements Protocol {
 		int code = this.manager.canLoadGame(gameID, username);
 		if(code == LoadGame.SUCCESS) {
 			List<Object> lines = this.manager.loadGame(gameID);
-			// Since we check canLoadGame() first, we know that if lines is null an error occurred
+			// Since we checked canLoadGame() first, we know that if lines is null an error occurred
 			if(lines == null) {
 				Log.error("An error occurred in ClientManager.loadGame()");
 				return 0;
+			}
+			
+			// First we write to the client to tell them that we're about to send over the data
+			if(this.writeToClient(LoadGame.SUCCESS) == 1) {
+				return 1;
 			}
 			
 			// The definition of loadGame() in ClientManager tells us that everything in lines
