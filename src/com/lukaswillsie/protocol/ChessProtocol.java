@@ -622,6 +622,9 @@ class ChessProtocol implements Protocol {
 				case Move.SUCCESS:
 					Log.log("Move " + src + "->" + dest + " successfully made by user \"" + this.username + "\"");
 					return this.writeToClient(Move.SUCCESS);
+				case Move.SUCCESS_PROMOTION_NEEDED:
+					Log.log("Move " + src + "->" + dest + " successfully made by user \"" + this.username + "\", and now they need to promote");
+					return this.writeToClient(Move.SUCCESS_PROMOTION_NEEDED);
 				case Move.GAME_DOES_NOT_EXIST:
 					Log.log("Game \"" + gameID + "\" does not exist");
 					return this.writeToClient(Move.GAME_DOES_NOT_EXIST);

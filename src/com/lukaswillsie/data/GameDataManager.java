@@ -891,16 +891,18 @@ public class GameDataManager implements GameManager {
 	 * creation is also good to go. If the given username doesn't satisfy this condition, this method
 	 * logs the problem and returns Protocol.SERVER_ERROR.
 	 * 
-	 * @return 	Protocol.SERVER_ERROR				- if an error is encountered
-	 * 			Protocol.Move.SUCCESS				- if the move is successfully made, and the game records are properly updated <br>
-	 *			Protocol.Move.GAME_DOES_NOT_EXIST	- if the given game does not exist <br>
-	 *			Protocol.Move.USER_NOT_IN_GAME		- if the user is not in the given game <br>
-	 *			Protocol.Move.NO_OPPONENT			- if the user is in the given game, but does not have an opponent yet <br>
-	 *			Protocol.Move.GAME_IS_OVER			- if the given game is already over <br>
-	 *			Protocol.Move.NOT_USER_TURN			- if it is not the user's turn to make a move <br>
-	 *			Protocol.Move.HAS_TO_PROMOTE		- if it is the user's turn, but they have to promote a pawn rather than make a normal move <br>
-	 *			Protocol.Move.RESPOND_TO_DRAW		- if is is the user's turn, but they have to respond to a draw offer <br>
-	 *			Protocol.Move.MOVE_INVALID			- if the given move is invalid (for example, the selected piece can't move to the selected square) <br>
+	 * @return 	Protocol.SERVER_ERROR					- if an error is encountered
+	 * 			Protocol.Move.SUCCESS					- if the move is successfully made, and the game records are properly updated <br>
+	 *			Protocol.Move.SUCCESS_PROMOTION_NEEDED	- if the move is successfully made, and the game records are properly updated, <br>
+	 *													  and now the user needs to promote a pawn (i.e. their turn isn't over yet) <br>			
+	 *			Protocol.Move.GAME_DOES_NOT_EXIST		- if the given game does not exist <br>
+	 *			Protocol.Move.USER_NOT_IN_GAME			- if the user is not in the given game <br>
+	 *			Protocol.Move.NO_OPPONENT				- if the user is in the given game, but does not have an opponent yet <br>
+	 *			Protocol.Move.GAME_IS_OVER				- if the given game is already over <br>
+	 *			Protocol.Move.NOT_USER_TURN				- if it is not the user's turn to make a move <br>
+	 *			Protocol.Move.HAS_TO_PROMOTE			- if it is the user's turn, but they have to promote a pawn rather than make a normal move <br>
+	 *			Protocol.Move.RESPOND_TO_DRAW			- if is is the user's turn, but they have to respond to a draw offer <br>
+	 *			Protocol.Move.MOVE_INVALID				- if the given move is invalid (for example, the selected piece can't move to the selected square) <br>
 	 */
 	public synchronized int makeMove(String gameID, Pair src, Pair dest, String username) {
 		if(!userExists(username)) {
@@ -943,7 +945,7 @@ public class GameDataManager implements GameManager {
 				
 				unsavedGames.add(game);
 				requestMade();
-				return Protocol.Move.SUCCESS;
+				return Protocol.Move.SUCCESS_PROMOTION_NEEDED;
 			case 0:
 				// Increment the turn counter if the user, who just moved, is black
 				colour = (Integer) game.getData(GameData.STATE) == 1 ? Colour.BLACK : Colour.WHITE;
