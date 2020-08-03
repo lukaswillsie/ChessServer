@@ -937,6 +937,7 @@ public class GameDataManager implements GameManager {
 			// -1 means that the move was successful, and that a promotion is now required.
 			// i.e. it is still the user's turn. 0 means a normal move was successful
 			case -1:
+				// Get the colour of the user who just moved
 				Colour colour = (Integer) game.getData(GameData.STATE) == 1 ? Colour.BLACK : Colour.WHITE;
 				// The move could have brought checkmate
 				if(game.getBoard().isCheckmate(colour)) {
@@ -947,11 +948,8 @@ public class GameDataManager implements GameManager {
 				requestMade();
 				return Protocol.Move.SUCCESS_PROMOTION_NEEDED;
 			case 0:
-				// Increment the turn counter if the user, who just moved, is black
+				// Get the colour of the user who just moved
 				colour = (Integer) game.getData(GameData.STATE) == 1 ? Colour.BLACK : Colour.WHITE;
-				if(colour == Colour.BLACK) {
-					game.setData(GameData.TURN, (Integer)game.getData(GameData.TURN) + 1);
-				}
 				
 				// The move could have brought checkmate or stalemate
 				if(game.getBoard().isCheckmate(colour)) {
@@ -961,6 +959,11 @@ public class GameDataManager implements GameManager {
 					game.setData(GameData.DRAWN, 1);
 				}
 				else {
+					// Now that we know the game isn't over, we can increment the turn counter
+					// if the user, who just moved, is black
+					if(colour == Colour.BLACK) {
+						game.setData(GameData.TURN, (Integer)game.getData(GameData.TURN) + 1);
+					}
 					// Make it the other player's turn now that we know the game isn't over
 					switchTurn(game);
 				}
