@@ -250,7 +250,7 @@ public class GameDataManager implements GameManager {
 			addGame(game);
 		}
 		
-		
+		scanner.close();
 		Runtime.getRuntime().addShutdownHook(new SaveThread());
 		return 0;
 	}	
@@ -268,6 +268,7 @@ public class GameDataManager implements GameManager {
 			Scanner scanner = new Scanner(new File(getFilename(gameID)));
 			Board board = new Board();
 			int result = board.initialize(scanner);
+			scanner.close();
 			
 			if(result == 0) {
 				return board;
