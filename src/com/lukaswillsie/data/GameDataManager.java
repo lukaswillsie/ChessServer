@@ -410,10 +410,13 @@ public class GameDataManager implements GameManager {
 		catch (IOException e) {
 			Log.error("Couldn't close games FileOutputStream");
 			e.printStackTrace();
-		}	
+		}
 		
 		// Try and save data for all of our as yet unsaved games
-		for(Game game : unsavedGames) {
+		int i = 0;
+		while(i < unsavedGames.size()) {
+			Game game = unsavedGames.get(i);
+			
 			// Get a File reference for this game's data file
 			File file = new File(getFilename((String)game.getData(GameData.GAMEID)));
 			try(FileOutputStream stream = new FileOutputStream(file);
@@ -421,16 +424,18 @@ public class GameDataManager implements GameManager {
 				try {
 					game.getBoard().saveGame(stream);
 					// If we successfully save the game's data, we remove it from the list of unsaved games
-					unsavedGames.remove(game);
+					unsavedGames.remove(i);
 				}
 				catch(IOException e) {
 					Log.error("Couldn't save game data for game \"" + game.getData(GameData.GAMEID) + "\"");
 					dumpGame(game);
+					i++;
 				}
 			}
 			catch (FileNotFoundException e) {
 				Log.error("No game data file for game \"" +  game.getData(GameData.GAMEID) + "\"");
 				dumpGame(game);
+				i++;
 			} 
 			// Thrown if stream fails to close
 			catch (IOException e) {
@@ -499,6 +504,7 @@ public class GameDataManager implements GameManager {
 		if(this.requestsMade >= REQUESTS_BEFORE_SAVE) {
 			Log.log("Initiating automatic save...");
 			save();
+			Log.log("Automatic save complete");
 			this.requestsMade = 0;
 		}
 	}
