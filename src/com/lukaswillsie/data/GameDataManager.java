@@ -950,6 +950,11 @@ public class GameDataManager implements GameManager {
 				if(game.getBoard().isCheckmate(colour)) {
 					game.setData(GameData.WINNER, username);
 				}
+				// Note: we don't check for stalemate here because, crucially, the user's turn isn't over.
+				// A stalemate is when a player's turn comes and they have no legal moves to make. After
+				// moving a pawn to the back row, it's still the user's turn. So even if their opponent has
+				// no legal moves at this exact moment, that doesn't matter because it's not their opponent's
+				// turn. We should only check for stalemates once a player's turn has actually ended.
 				
 				unsavedGames.add(game);
 				requestMade();
@@ -1037,18 +1042,28 @@ public class GameDataManager implements GameManager {
 		switch(result) {
 			case 0:
 				Colour colour = (Integer) game.getData(GameData.STATE) == 1 ? Colour.BLACK : Colour.WHITE;
-				// If it's black's turn, increment the turn counter
-				if(colour == Colour.BLACK) {
-					game.setData(GameData.TURN, (Integer)game.getData(GameData.TURN) + 1);
-				}
 				
 				// It's possible that the user who just promoted actually checkmated their opponent
 				// via the promotion
 				if(game.getBoard().isCheckmate(colour)) {
 					game.setData(GameData.WINNER, username);
 				}
+				// They may also have stalemated their opponent, now that their turn is over
+				else if(game.getBoard().isStalemate()) {
+					game.setData(GameData.DRAWN, 1);
+				}
+				// Otherwise, end the user's turn as usual by switching to the opponent's turn
+				// and incrementing the turn counter if necessary
+				else {
+					// If it was just black's turn, increment the turn counter
+					if(colour == Colour.BLACK) {
+						game.setData(GameData.TURN, (Integer)game.getData(GameData.TURN) + 1);
+					}
+					switchTurn(game);
+				}
 				
-				switchTurn(game);
+				
+				unsavedGames.add(game);
 				requestMade();
 				return Protocol.Promote.SUCCESS;
 			case 1:
