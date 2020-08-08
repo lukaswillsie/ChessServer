@@ -1,6 +1,7 @@
 package com.lukaswillsie.data;
 
 import java.awt.BufferCapabilities.FlipContents;
+import java.awt.Color;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -946,8 +947,10 @@ public class GameDataManager implements GameManager {
 			case -1:
 				// Get the colour of the user who just moved
 				Colour colour = (Integer) game.getData(GameData.STATE) == 1 ? Colour.BLACK : Colour.WHITE;
+				Colour enemyColour = (colour == Colour.WHITE) ? Colour.BLACK : Colour.WHITE;
+				
 				// The move could have brought checkmate
-				if(game.getBoard().isCheckmate(colour)) {
+				if(game.getBoard().isCheckmate(enemyColour)) {
 					game.setData(GameData.WINNER, username);
 				}
 				// Note: we don't check for stalemate here because, crucially, the user's turn isn't over.
@@ -962,9 +965,10 @@ public class GameDataManager implements GameManager {
 			case 0:
 				// Get the colour of the user who just moved
 				colour = (Integer) game.getData(GameData.STATE) == 1 ? Colour.BLACK : Colour.WHITE;
+				enemyColour = (colour == Colour.WHITE) ? Colour.BLACK : Colour.WHITE;
 				
 				// The move could have brought checkmate or stalemate
-				if(game.getBoard().isCheckmate(colour)) {
+				if(game.getBoard().isCheckmate(enemyColour)) {
 					game.setData(GameData.WINNER, username);
 				}
 				else if(game.getBoard().isStalemate()) {
