@@ -1233,13 +1233,16 @@ public class GameDataManager implements GameManager {
 			return Protocol.Forfeit.NOT_USER_TURN;
 		}
 		
-		// Record that the opponent lost the game
+		// Record that the opponent won the game
 		if(((String)game.getData(GameData.WHITE)).equals(username)) {
 			game.setData(GameData.WINNER, game.getData(GameData.BLACK));
 		}
 		else {
 			game.setData(GameData.WINNER, game.getData(GameData.WHITE));
 		}
+		
+		// Record that the game ended by forfeit
+		game.setData(GameData.FORFEIT, 1);
 		
 		requestMade();
 		return Protocol.Forfeit.SUCCESS;

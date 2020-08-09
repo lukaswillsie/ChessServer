@@ -22,15 +22,18 @@ public enum GameData {
 									// needs to respond
 	DRAWN("0", 9, 'i'),				// 1 if the players in this game have agreed to a draw, 0 otherwise
 	WINNER("", 10, 's'),			// Contains the name of the winner, or the empty String if there isn't a winner
-	WHITE_CHK("0", 11, 'i'),		// 1 if white is in check, 0 if not
-	BLACK_CHK("0", 12, 'i'),		// 1 if black is in check, 0 if not
-	PROMOTION_NEEDED("0", 13, 'i');	// 1 if the player whose turn it is needs to promote a piece before their turn can end
+	FORFEIT("0", 11, 'i'),			// If somebody won the game (WINNER != ""), indicates whether or not that victory
+									// was by forfeit or checkmate. 1 if the victory was by forfeit, 0 if the victory was
+									// by checkmate. If neither player has won, means nothing.
+	WHITE_CHK("0", 12, 'i'),		// 1 if white is in check, 0 if not
+	BLACK_CHK("0", 13, 'i'),		// 1 if black is in check, 0 if not
+	PROMOTION_NEEDED("0", 14, 'i');	// 1 if the player whose turn it is needs to promote a piece before their turn can end
 	
 	
 	// This array contains all the GameData values, in the order in which they should be sent to clients,
 	// and the order in which they should appear in the active_games.csv file. This is the exact same as
 	// the order in which they are declared in the enum, but we choose to make it explicit here.
-	public static final GameData[] order = {GAMEID, WHITE, BLACK, OPEN, STATE, TURN, WHITE_ARCHIVED, BLACK_ARCHIVED, DRAW_OFFERED, DRAWN, WINNER, WHITE_CHK, BLACK_CHK, PROMOTION_NEEDED};
+	public static final GameData[] order = {GAMEID, WHITE, BLACK, OPEN, STATE, TURN, WHITE_ARCHIVED, BLACK_ARCHIVED, DRAW_OFFERED, DRAWN, WINNER, FORFEIT, WHITE_CHK, BLACK_CHK, PROMOTION_NEEDED};
 	
 	// The initial value that this piece of GameData should take upon creation of a new game
 	private String initial;
@@ -67,7 +70,7 @@ public enum GameData {
 	}
 	
 	/**
-	 * Return the this instance's column
+	 * Return this instance's column
 	 * @return - this instance's column
 	 */
 	int getColumn() {
