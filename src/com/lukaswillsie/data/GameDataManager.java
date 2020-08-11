@@ -518,16 +518,16 @@ public class GameDataManager implements GameManager {
 	 */
 	private int createTemplateFile() {
 		String[] lines = {
-		"0",
-		"0",
-		"0",
-		"0",
+		"1",
+		"1",
+		"1",
+		"1",
 		"rnbqkbnr",
 		"pppppppp",
-		"xxxxxxxx",
-		"xxxxxxxx",
-		"xxxxxxxx",
-		"xxxxxxxx",
+		"XXXXXXXX",
+		"XXXXXXXX",
+		"XXXXXXXX",
+		"XXXXXXXX",
 		"PPPPPPPP",
 		"RNBQKBNR",
 		"0"
@@ -540,6 +540,12 @@ public class GameDataManager implements GameManager {
 		}
 		
 		File template = new File(newGameTemplate);
+		
+		// Do nothing if the file already exists
+		if(template.exists()) {
+			return 0;
+		}
+		
 		try {
 			template.createNewFile();
 		} catch (IOException e) {
