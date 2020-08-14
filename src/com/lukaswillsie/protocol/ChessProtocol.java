@@ -50,7 +50,8 @@ class ChessProtocol implements Protocol {
 			"creategame",	// Usage: creategame gameID
 			"joingame",		// Usage: joingame gameID
 			"loadgame",		// Usage: loadgame gameID
-			"getgamedata",		// Usage: gamedata gameID
+			"loadgames",	// Usage: loadgames
+			"getgamedata",	// Usage: gamedata gameID
 			"opengames",	// Usage: opengames
 			"move",			// Usage: move gameID src_row,src_col->dest_row,dest_col
 			"promote",		// Usage: promote gameID charRep
@@ -148,6 +149,9 @@ class ChessProtocol implements Protocol {
 			}
 			else if(command.equals("opengames")) {
 				return processOpenGames();
+			}
+			else if(command.equals("loadgames")) {
+				return processLoadGames();
 			}
 			else {
 				Log.log("Command \"" + command + "\" is invalid.");
@@ -253,8 +257,7 @@ class ChessProtocol implements Protocol {
 		}
 		
 		// First we send the user the number of games to expect to receive
-		int status;
-		status = writeToClient(games.size());
+		int status = writeToClient(games.size());
 		if(status == 1) {
 			return 1;
 		}
@@ -265,15 +268,13 @@ class ChessProtocol implements Protocol {
 			for(GameData data : GameData.order) {
 				if(data.type == 'i') {
 					status = writeToClient((Integer)game.getData(data));
-					if(status == 1) {
-						return 1;
-					}
 				}
 				else {
 					status = writeToClient((String)game.getData(data));
-					if(status == 1) {
-						return 1;
-					}
+				}
+				
+				if(status == 1) {
+					return 1;
 				}
 			}
 		}
@@ -454,12 +455,58 @@ class ChessProtocol implements Protocol {
 	}
 	
 	/**
+	 * If the client has a user logged in, we send the data associated with all that user's
+	 * games to the client, in exactly the same way we do immediately after a user logs in. 
+	 * @return 0 if the command is processed and the client is still believed to be connected
+	 * 			 when the method terminates <br>
+	 * 		   1 if the client is found to have disconnected during the execution of this method
+	 */
+	private int processLoadGames() {
+		if(username == null) {
+			Log.log("Client " + socket.getInetAddress() + " does not have a user logged in. Cannot load games.");
+			return this.writeToClient(NO_USER);
+		}
+		
+		List<Game> userGames = manager.getGames(username);
+		if(userGames == null) {
+			Log.error("Manager thinks username \"" + username + "\" that we haved logged in is not in system.");
+			return this.writeToClient(SERVER_ERROR);
+		}
+		
+		// First tell the client how many games to expect
+		int status = this.writeToClient(userGames.size());
+		if(status == 1) {
+			return 1;
+		}
+		
+		// Write all the games to the client
+		for(Game game : userGames) {
+			for(GameData data : GameData.order) {
+				if(data.type == 'i') {
+					status = this.writeToClient((int) game.getData(data));
+				}
+				else {
+					status = this.writeToClient((String) game.getData(data));
+				}
+				
+				if(status == 1) {
+					return 1;
+				}
+			}
+		}
+		
+		return 0;
+	}
+	
+	/**
 	 * Process a "getgamedata gameID" request. Gets all the data associated with the game
 	 * that has the given ID, if there is one, and sends it to the client. rest is assumed to
 	 * be everything after "getgamedata " in the initial request (does not have to be pre-processed)
 	 * 
 	 * @param rest - everything following the "getgamedata " part of a request from a client
-	 * @return
+	 * @return 0 if the command is processed and the client is still believed to be connected
+	 * 			 when the method terminates <br>
+	 * 		   1 if the client is found to have disconnected during the execution of this method
 	 */
 	private int processGameData(String rest) {
 		if(this.username == null) {
@@ -519,7 +566,7 @@ class ChessProtocol implements Protocol {
 	 * to the client.
 	 * 
 	 * @return 0 if the command is processed and the client is still believed to be connected
-	 * 			 when the method terminates <br>git s
+	 * 			 when the method terminates <br>
 	 * 		   1 if the client is found to have disconnected during the execution of this method
 	 */
 	private int processOpenGames() {
