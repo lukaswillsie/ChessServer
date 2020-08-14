@@ -472,6 +472,13 @@ class ChessProtocol implements Protocol {
 			Log.error("Manager thinks username \"" + username + "\" that we haved logged in is not in system.");
 			return this.writeToClient(SERVER_ERROR);
 		}
+		else {
+			// Otherwise, notify the client that we are about to send them the games
+			int status = this.writeToClient(LoadGames.SUCCESS);
+			if(status == 1) {
+				return 1;
+			}
+		}
 		
 		// First tell the client how many games to expect
 		int status = this.writeToClient(userGames.size());

@@ -131,6 +131,17 @@ public interface Protocol {
 	}
 	
 	/**
+	 * Defines return codes specific to the "loadgames" command, for loading all of a user's games
+	 * at once
+	 * @author Lukas Willsie
+	 *
+	 */
+	public static class LoadGames {
+		// Return code if the client has a user logged in, and can expect to receive the user's games
+		public static final int SUCCESS = 0;
+	}
+	
+	/**
 	 * Defines return codes specific to the "getgamedata gameID" command, for getting the data associated
 	 * with a particular game (not the state of the board, but the name of the players, whose turn it
 	 * is, the turn number, etc.)
