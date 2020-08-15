@@ -108,7 +108,7 @@ class ChessProtocol implements Protocol {
 					return processJoinGame(rest);
 				}
 				else if(keyword.equals("loadgame")) {
-					return processLoadgame(rest);
+					return processLoadGame(rest);
 				}
 				else if(keyword.equals("getgamedata")) {
 					return processGameData(rest);
@@ -399,7 +399,7 @@ class ChessProtocol implements Protocol {
 	 * 			 when the method terminates <br>
 	 * 		   1 if the client is found to have disconnected during the execution of this method
 	 */
-	private int processLoadgame(String gameID) {
+	private int processLoadGame(String gameID) {
 		// The client can't create a game if it hasn't logged in a user, so check if
 		// it's logged anyone in and send the appropriate return code if they haven't.
 		if(this.username == null) {
@@ -413,7 +413,13 @@ class ChessProtocol implements Protocol {
 			// Since we checked canLoadGame() first, we know that if lines is null an error occurred
 			if(lines == null) {
 				Log.error("An error occurred in ClientManager.loadGame()");
-				return 0;
+				return this.writeToClient(SERVER_ERROR);
+			}
+			
+			Game game = this.manager.getGameData(gameID);
+			if(game == null) {
+				Log.error("loadGame() returned fine but getGameData() returned null");
+				return this.writeToClient(SERVER_ERROR);
 			}
 			
 			// First we write to the client to tell them that we're about to send over the data
@@ -421,9 +427,26 @@ class ChessProtocol implements Protocol {
 				return 1;
 			}
 			
-			// The definition of loadGame() in ClientManager tells us that everything in lines
-			// is guaranteed to either be an Integer or String
+			// First, we write all the high-level data stored in the Game object to the user
+			for(GameData data : GameData.order) {
+				if(data.type == 'i') {
+					code = this.writeToClient((Integer) game.getData(data));
+					if(code == 1) {
+						return 1;
+					}
+				}
+				else if(data.type == 's') {
+					code = this.writeToClient((String) game.getData(data));
+					if(code == 1) {
+						return 1;
+					}
+				}
+			}
+			
+			// Next, we write the game's board-level data to the client
 			for(Object o : lines) {
+				// The definition of loadGame() in GameManager tells us that everything in lines
+				// is guaranteed to either be an Integer or String
 				if(o instanceof Integer) {
 					code = this.writeToClient((Integer)o);
 					if(code == 1) {
